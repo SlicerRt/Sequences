@@ -19,54 +19,54 @@
 ==============================================================================*/
 
 // FooBar Widgets includes
-#include "qSlicerLoadableModuleTemplateFooBarWidget.h"
-#include "ui_qSlicerLoadableModuleTemplateFooBarWidget.h"
+#include "qSlicerMultiDimensionFooBarWidget.h"
+#include "ui_qSlicerMultiDimensionFooBarWidget.h"
 
 //-----------------------------------------------------------------------------
-/// \ingroup Slicer_QtModules_LoadableModuleTemplate
-class qSlicerLoadableModuleTemplateFooBarWidgetPrivate
-  : public Ui_qSlicerLoadableModuleTemplateFooBarWidget
+/// \ingroup Slicer_QtModules_MultiDimension
+class qSlicerMultiDimensionFooBarWidgetPrivate
+  : public Ui_qSlicerMultiDimensionFooBarWidget
 {
-  Q_DECLARE_PUBLIC(qSlicerLoadableModuleTemplateFooBarWidget);
+  Q_DECLARE_PUBLIC(qSlicerMultiDimensionFooBarWidget);
 protected:
-  qSlicerLoadableModuleTemplateFooBarWidget* const q_ptr;
+  qSlicerMultiDimensionFooBarWidget* const q_ptr;
 
 public:
-  qSlicerLoadableModuleTemplateFooBarWidgetPrivate(
-    qSlicerLoadableModuleTemplateFooBarWidget& object);
-  virtual void setupUi(qSlicerLoadableModuleTemplateFooBarWidget*);
+  qSlicerMultiDimensionFooBarWidgetPrivate(
+    qSlicerMultiDimensionFooBarWidget& object);
+  virtual void setupUi(qSlicerMultiDimensionFooBarWidget*);
 };
 
 // --------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateFooBarWidgetPrivate
-::qSlicerLoadableModuleTemplateFooBarWidgetPrivate(
-  qSlicerLoadableModuleTemplateFooBarWidget& object)
+qSlicerMultiDimensionFooBarWidgetPrivate
+::qSlicerMultiDimensionFooBarWidgetPrivate(
+  qSlicerMultiDimensionFooBarWidget& object)
   : q_ptr(&object)
 {
 }
 
 // --------------------------------------------------------------------------
-void qSlicerLoadableModuleTemplateFooBarWidgetPrivate
-::setupUi(qSlicerLoadableModuleTemplateFooBarWidget* widget)
+void qSlicerMultiDimensionFooBarWidgetPrivate
+::setupUi(qSlicerMultiDimensionFooBarWidget* widget)
 {
-  this->Ui_qSlicerLoadableModuleTemplateFooBarWidget::setupUi(widget);
+  this->Ui_qSlicerMultiDimensionFooBarWidget::setupUi(widget);
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerLoadableModuleTemplateFooBarWidget methods
+// qSlicerMultiDimensionFooBarWidget methods
 
 //-----------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateFooBarWidget
-::qSlicerLoadableModuleTemplateFooBarWidget(QWidget* parentWidget)
+qSlicerMultiDimensionFooBarWidget
+::qSlicerMultiDimensionFooBarWidget(QWidget* parentWidget)
   : Superclass( parentWidget )
-  , d_ptr( new qSlicerLoadableModuleTemplateFooBarWidgetPrivate(*this) )
+  , d_ptr( new qSlicerMultiDimensionFooBarWidgetPrivate(*this) )
 {
-  Q_D(qSlicerLoadableModuleTemplateFooBarWidget);
+  Q_D(qSlicerMultiDimensionFooBarWidget);
   d->setupUi(this);
 }
 
 //-----------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateFooBarWidget
-::~qSlicerLoadableModuleTemplateFooBarWidget()
+qSlicerMultiDimensionFooBarWidget
+::~qSlicerMultiDimensionFooBarWidget()
 {
 }

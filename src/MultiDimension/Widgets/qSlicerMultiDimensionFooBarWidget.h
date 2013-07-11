@@ -18,35 +18,35 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerLoadableModuleTemplateFooBarWidget_h
-#define __qSlicerLoadableModuleTemplateFooBarWidget_h
+#ifndef __qSlicerMultiDimensionFooBarWidget_h
+#define __qSlicerMultiDimensionFooBarWidget_h
 
 // Qt includes
 #include <QWidget>
 
 // FooBar Widgets includes
-#include "qSlicerLoadableModuleTemplateModuleWidgetsExport.h"
+#include "qSlicerMultiDimensionModuleWidgetsExport.h"
 
-class qSlicerLoadableModuleTemplateFooBarWidgetPrivate;
+class qSlicerMultiDimensionFooBarWidgetPrivate;
 
-/// \ingroup Slicer_QtModules_LoadableModuleTemplate
-class Q_SLICER_MODULE_LOADABLEMODULETEMPLATE_WIDGETS_EXPORT qSlicerLoadableModuleTemplateFooBarWidget
+/// \ingroup Slicer_QtModules_MultiDimension
+class Q_SLICER_MODULE_MULTIDIMENSION_WIDGETS_EXPORT qSlicerMultiDimensionFooBarWidget
   : public QWidget
 {
   Q_OBJECT
 public:
   typedef QWidget Superclass;
-  qSlicerLoadableModuleTemplateFooBarWidget(QWidget *parent=0);
-  virtual ~qSlicerLoadableModuleTemplateFooBarWidget();
+  qSlicerMultiDimensionFooBarWidget(QWidget *parent=0);
+  virtual ~qSlicerMultiDimensionFooBarWidget();
 
 protected slots:
 
 protected:
-  QScopedPointer<qSlicerLoadableModuleTemplateFooBarWidgetPrivate> d_ptr;
+  QScopedPointer<qSlicerMultiDimensionFooBarWidgetPrivate> d_ptr;
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerLoadableModuleTemplateFooBarWidget);
-  Q_DISABLE_COPY(qSlicerLoadableModuleTemplateFooBarWidget);
+  Q_DECLARE_PRIVATE(qSlicerMultiDimensionFooBarWidget);
+  Q_DISABLE_COPY(qSlicerMultiDimensionFooBarWidget);
 };
 
 #endif

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>qSlicerLoadableModuleTemplateModuleWidget</class>
- <widget class="qSlicerWidget" name="qSlicerLoadableModuleTemplateModuleWidget">
+ <class>qSlicerMultiDimensionModuleWidget</class>
+ <widget class="qSlicerWidget" name="qSlicerMultiDimensionModuleWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -21,7 +21,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="qSlicerLoadableModuleTemplateFooBarWidget" name="FooBar" native="true"/>
+       <widget class="qSlicerMultiDimensionFooBarWidget" name="FooBar" native="true"/>
       </item>
      </layout>
     </widget>
@@ -55,9 +55,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>qSlicerLoadableModuleTemplateFooBarWidget</class>
+   <class>qSlicerMultiDimensionFooBarWidget</class>
    <extends>QWidget</extends>
-   <header>qSlicerLoadableModuleTemplateFooBarWidget.h</header>
+   <header>qSlicerMultiDimensionFooBarWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

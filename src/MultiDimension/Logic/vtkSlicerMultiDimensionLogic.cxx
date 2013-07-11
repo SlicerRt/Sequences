@@ -15,8 +15,8 @@
 
 ==============================================================================*/
 
-// LoadableModuleTemplate Logic includes
-#include "vtkSlicerLoadableModuleTemplateLogic.h"
+// MultiDimension Logic includes
+#include "vtkSlicerMultiDimensionLogic.h"
 
 // MRML includes
 
@@ -27,26 +27,26 @@
 #include <cassert>
 
 //----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkSlicerLoadableModuleTemplateLogic);
+vtkStandardNewMacro(vtkSlicerMultiDimensionLogic);
 
 //----------------------------------------------------------------------------
-vtkSlicerLoadableModuleTemplateLogic::vtkSlicerLoadableModuleTemplateLogic()
+vtkSlicerMultiDimensionLogic::vtkSlicerMultiDimensionLogic()
 {
 }
 
 //----------------------------------------------------------------------------
-vtkSlicerLoadableModuleTemplateLogic::~vtkSlicerLoadableModuleTemplateLogic()
+vtkSlicerMultiDimensionLogic::~vtkSlicerMultiDimensionLogic()
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic::PrintSelf(ostream& os, vtkIndent indent)
+void vtkSlicerMultiDimensionLogic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
+void vtkSlicerMultiDimensionLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
   vtkNew<vtkIntArray> events;
   events->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
@@ -56,25 +56,25 @@ void vtkSlicerLoadableModuleTemplateLogic::SetMRMLSceneInternal(vtkMRMLScene * n
 }
 
 //-----------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic::RegisterNodes()
+void vtkSlicerMultiDimensionLogic::RegisterNodes()
 {
   assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic::UpdateFromMRMLScene()
+void vtkSlicerMultiDimensionLogic::UpdateFromMRMLScene()
 {
   assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic
+void vtkSlicerMultiDimensionLogic
 ::OnMRMLSceneNodeAdded(vtkMRMLNode* vtkNotUsed(node))
 {
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerLoadableModuleTemplateLogic
+void vtkSlicerMultiDimensionLogic
 ::OnMRMLSceneNodeRemoved(vtkMRMLNode* vtkNotUsed(node))
 {
 }

@@ -15,19 +15,19 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerLoadableModuleTemplateModule_h
-#define __qSlicerLoadableModuleTemplateModule_h
+#ifndef __qSlicerMultiDimensionModule_h
+#define __qSlicerMultiDimensionModule_h
 
 // SlicerQt includes
 #include "qSlicerLoadableModule.h"
 
-#include "qSlicerLoadableModuleTemplateModuleExport.h"
+#include "qSlicerMultiDimensionModuleExport.h"
 
-class qSlicerLoadableModuleTemplateModulePrivate;
+class qSlicerMultiDimensionModulePrivate;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class Q_SLICER_QTMODULES_LOADABLEMODULETEMPLATE_EXPORT
-qSlicerLoadableModuleTemplateModule
+class Q_SLICER_QTMODULES_MULTIDIMENSION_EXPORT
+qSlicerMultiDimensionModule
   : public qSlicerLoadableModule
 {
   Q_OBJECT
@@ -36,8 +36,8 @@ qSlicerLoadableModuleTemplateModule
 public:
 
   typedef qSlicerLoadableModule Superclass;
-  explicit qSlicerLoadableModuleTemplateModule(QObject *parent=0);
-  virtual ~qSlicerLoadableModuleTemplateModule();
+  explicit qSlicerMultiDimensionModule(QObject *parent=0);
+  virtual ~qSlicerMultiDimensionModule();
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
@@ -62,11 +62,11 @@ protected:
   virtual vtkMRMLAbstractLogic* createLogic();
 
 protected:
-  QScopedPointer<qSlicerLoadableModuleTemplateModulePrivate> d_ptr;
+  QScopedPointer<qSlicerMultiDimensionModulePrivate> d_ptr;
 
 private:
-  Q_DECLARE_PRIVATE(qSlicerLoadableModuleTemplateModule);
-  Q_DISABLE_COPY(qSlicerLoadableModuleTemplateModule);
+  Q_DECLARE_PRIVATE(qSlicerMultiDimensionModule);
+  Q_DISABLE_COPY(qSlicerMultiDimensionModule);
 
 };
 

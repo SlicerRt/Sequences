@@ -19,44 +19,44 @@
 #include <QDebug>
 
 // SlicerQt includes
-#include "qSlicerLoadableModuleTemplateModuleWidget.h"
-#include "ui_qSlicerLoadableModuleTemplateModuleWidget.h"
+#include "qSlicerMultiDimensionModuleWidget.h"
+#include "ui_qSlicerMultiDimensionModuleWidget.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerLoadableModuleTemplateModuleWidgetPrivate: public Ui_qSlicerLoadableModuleTemplateModuleWidget
+class qSlicerMultiDimensionModuleWidgetPrivate: public Ui_qSlicerMultiDimensionModuleWidget
 {
 public:
-  qSlicerLoadableModuleTemplateModuleWidgetPrivate();
+  qSlicerMultiDimensionModuleWidgetPrivate();
 };
 
 //-----------------------------------------------------------------------------
-// qSlicerLoadableModuleTemplateModuleWidgetPrivate methods
+// qSlicerMultiDimensionModuleWidgetPrivate methods
 
 //-----------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateModuleWidgetPrivate::qSlicerLoadableModuleTemplateModuleWidgetPrivate()
+qSlicerMultiDimensionModuleWidgetPrivate::qSlicerMultiDimensionModuleWidgetPrivate()
 {
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerLoadableModuleTemplateModuleWidget methods
+// qSlicerMultiDimensionModuleWidget methods
 
 //-----------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateModuleWidget::qSlicerLoadableModuleTemplateModuleWidget(QWidget* _parent)
+qSlicerMultiDimensionModuleWidget::qSlicerMultiDimensionModuleWidget(QWidget* _parent)
   : Superclass( _parent )
-  , d_ptr( new qSlicerLoadableModuleTemplateModuleWidgetPrivate )
+  , d_ptr( new qSlicerMultiDimensionModuleWidgetPrivate )
 {
 }
 
 //-----------------------------------------------------------------------------
-qSlicerLoadableModuleTemplateModuleWidget::~qSlicerLoadableModuleTemplateModuleWidget()
+qSlicerMultiDimensionModuleWidget::~qSlicerMultiDimensionModuleWidget()
 {
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerLoadableModuleTemplateModuleWidget::setup()
+void qSlicerMultiDimensionModuleWidget::setup()
 {
-  Q_D(qSlicerLoadableModuleTemplateModuleWidget);
+  Q_D(qSlicerMultiDimensionModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
 }

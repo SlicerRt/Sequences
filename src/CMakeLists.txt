@@ -15,7 +15,7 @@ find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
-add_subdirectory(LoadableModuleTemplate)
+add_subdirectory(MultiDimension)
 
 #-----------------------------------------------------------------------------
 include(${Slicer_EXTENSION_CPACK})

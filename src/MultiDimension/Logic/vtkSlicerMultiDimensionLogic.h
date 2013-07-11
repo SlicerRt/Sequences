@@ -15,14 +15,14 @@
 
 ==============================================================================*/
 
-// .NAME vtkSlicerLoadableModuleTemplateLogic - slicer logic class for volumes manipulation
+// .NAME vtkSlicerMultiDimensionLogic - slicer logic class for volumes manipulation
 // .SECTION Description
 // This class manages the logic associated with reading, saving,
 // and changing propertied of the volumes
 
 
-#ifndef __vtkSlicerLoadableModuleTemplateLogic_h
-#define __vtkSlicerLoadableModuleTemplateLogic_h
+#ifndef __vtkSlicerMultiDimensionLogic_h
+#define __vtkSlicerMultiDimensionLogic_h
 
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
@@ -32,22 +32,22 @@
 // STD includes
 #include <cstdlib>
 
-#include "vtkSlicerLoadableModuleTemplateModuleLogicExport.h"
+#include "vtkSlicerMultiDimensionModuleLogicExport.h"
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_LOADABLEMODULETEMPLATE_MODULE_LOGIC_EXPORT vtkSlicerLoadableModuleTemplateLogic :
+class VTK_SLICER_MULTIDIMENSION_MODULE_LOGIC_EXPORT vtkSlicerMultiDimensionLogic :
   public vtkSlicerModuleLogic
 {
 public:
 
-  static vtkSlicerLoadableModuleTemplateLogic *New();
-  vtkTypeMacro(vtkSlicerLoadableModuleTemplateLogic, vtkSlicerModuleLogic);
+  static vtkSlicerMultiDimensionLogic *New();
+  vtkTypeMacro(vtkSlicerMultiDimensionLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
 protected:
-  vtkSlicerLoadableModuleTemplateLogic();
-  virtual ~vtkSlicerLoadableModuleTemplateLogic();
+  vtkSlicerMultiDimensionLogic();
+  virtual ~vtkSlicerMultiDimensionLogic();
 
   virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
@@ -57,8 +57,8 @@ protected:
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 private:
 
-  vtkSlicerLoadableModuleTemplateLogic(const vtkSlicerLoadableModuleTemplateLogic&); // Not implemented
-  void operator=(const vtkSlicerLoadableModuleTemplateLogic&);               // Not implemented
+  vtkSlicerMultiDimensionLogic(const vtkSlicerMultiDimensionLogic&); // Not implemented
+  void operator=(const vtkSlicerMultiDimensionLogic&);               // Not implemented
 };
 
 #endif
