@@ -64,20 +64,20 @@ qSlicerMultiDimensionModule::~qSlicerMultiDimensionModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMultiDimensionModule::helpText()const
 {
-  return "This is a loadable module bundled in an extension";
+  return "This is a loadable module for handling multi-dimensional data";
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerMultiDimensionModule::acknowledgementText()const
 {
-  return "This work was was partially funded by NIH grant 3P41RR013218-12S1";
+  return "This work was funded by CCO ACRU and OCARIO";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerMultiDimensionModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
+  moduleContributors << QString("Matthew Holden (Queen's), Kevin Wang (PMH)");
   return moduleContributors;
 }
 
@@ -90,7 +90,7 @@ QIcon qSlicerMultiDimensionModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMultiDimensionModule::categories() const
 {
-  return QStringList() << "Examples";
+  return QStringList() << "MultiDimension";
 }
 
 //-----------------------------------------------------------------------------

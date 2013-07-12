@@ -19,6 +19,9 @@
 #include "vtkSlicerMultiDimensionLogic.h"
 
 // MRML includes
+#include "vtkMRMLHierarchyNode.h"
+#include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLScene.h"
 
 // VTK includes
 #include <vtkNew.h>
@@ -79,3 +82,131 @@ void vtkSlicerMultiDimensionLogic
 {
 }
 
+//---------------------------------------------------------------------------
+vtkMRMLNode* vtkSlicerMultiDimensionLogic
+::CreateMultiDimensionRootNode()
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::New();
+  rootNode->AllowMultipleChildrenOn();
+  rootNode->SetAttribute("HierarchyType", "MultiDimension");
+  rootNode->SetAttribute("MultiDimension.Name", "Time");
+  rootNode->SetAttribute("MultiDimension.Unit", "Sec");
+
+  this->GetMRMLScene()->AddNode(rootNode);
+
+  return rootNode;
+}
+
+//---------------------------------------------------------------------------
+vtkMRMLNode* vtkSlicerMultiDimensionLogic
+::SetMultiDimensionRootNode(vtkMRMLNode* node)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(node);
+  if (!rootNode)
+  {
+    return NULL;
+  }
+
+  rootNode->AllowMultipleChildrenOn();
+  rootNode->SetAttribute("HierarchyType", "MultiDimension");
+  rootNode->SetAttribute("MultiDimension.Name", "Time");
+  rootNode->SetAttribute("MultiDimension.Unit", "Sec");
+
+  if (!this->GetMRMLScene()->GetNodeByID(rootNode->GetID()))
+  {
+    this->GetMRMLScene()->AddNode(rootNode);
+  }
+
+  return rootNode;
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionLogic
+::DeleteMultiDimensionRootNode(vtkMRMLNode* node)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(node);
+  if (!rootNode)
+  {
+    return;
+  }
+  const char* hierarchyType = rootNode->GetAttribute("HierarchyType");
+  if (hierarchyType == NULL || strcmp(hierarchyType, "MultiDimension") != 0)
+  {
+    return;
+  }
+  this->GetMRMLScene()->RemoveNode(rootNode);
+  rootNode->Delete();
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionLogic
+::AddChildVolumeNodeAtTimePoint(vtkMRMLNode* rNode, vtkMRMLNode* cNode, char* timePoint)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  vtkMRMLScalarVolumeNode* childNode = vtkMRMLScalarVolumeNode::SafeDownCast(cNode);
+  if (!rootNode || !childNode)
+  {
+    return;
+  }
+  vtkMRMLHierarchyNode* chidlHierarchyNode = vtkMRMLHierarchyNode::New();
+  chidlHierarchyNode->AllowMultipleChildrenOff();
+  chidlHierarchyNode->SetAttribute("HierarchyType", "MultiDimension");
+  chidlHierarchyNode->SetAttribute("MultiDimension.Name", "Time");
+  chidlHierarchyNode->SetAttribute("MultiDimension.Unit", "Sec");
+  chidlHierarchyNode->SetAttribute("MultiDimension.Value", timePoint);
+
+  chidlHierarchyNode->SetParentNodeID(rootNode->GetID());
+  chidlHierarchyNode->SetAssociatedNodeID(childNode->GetID());
+
+  this->GetMRMLScene()->AddNode(chidlHierarchyNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionLogic
+::RemoveChildVolumeNodeAtTimePoint(vtkMRMLNode* rNode, char* timePoint)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  if (!rootNode)
+  {
+    return;
+  }
+  vtkMRMLHierarchyNode* childHierarchyNode = NULL;
+  vtkMRMLScalarVolumeNode* volumeNode = NULL;
+  int numberOfChildrenNodes = rootNode->GetNumberOfChildrenNodes();
+  for (int i=0; i<numberOfChildrenNodes; i++)
+  {
+    childHierarchyNode = vtkMRMLHierarchyNode::SafeDownCast(rootNode->GetNthChildNode(i));
+    volumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(childHierarchyNode->GetAssociatedNode());
+    if (strcmp(volumeNode->GetAttribute("MultiDimension.Value"), timePoint) == 0)
+    {
+      break;
+    }
+  }
+  childHierarchyNode->SetAssociatedNodeID("");
+  childHierarchyNode->SetParentNodeID("");
+  childHierarchyNode->Delete();
+}
+
+//---------------------------------------------------------------------------
+vtkMRMLNode* vtkSlicerMultiDimensionLogic
+::GetChildVolumeNodeAtTimePoint(vtkMRMLNode* rNode, char* timePoint)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  if (!rootNode)
+  {
+    return NULL;
+  }
+  vtkMRMLHierarchyNode* childHierarchyNode = NULL;
+  vtkMRMLScalarVolumeNode* volumeNode = NULL;
+  int numberOfChildrenNodes = rootNode->GetNumberOfChildrenNodes();
+  for (int i=0; i<numberOfChildrenNodes; i++)
+  {
+    childHierarchyNode = vtkMRMLHierarchyNode::SafeDownCast(rootNode->GetNthChildNode(i));
+    volumeNode = vtkMRMLScalarVolumeNode::SafeDownCast(childHierarchyNode->GetAssociatedNode());
+    if (strcmp(volumeNode->GetAttribute("MultiDimension.Value"), timePoint) == 0)
+    {
+      break;
+    }
+  }
+  return volumeNode;
+}

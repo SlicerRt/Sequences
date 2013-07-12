@@ -34,6 +34,7 @@
 
 #include "vtkSlicerMultiDimensionModuleLogicExport.h"
 
+class vtkMRMLNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_MULTIDIMENSION_MODULE_LOGIC_EXPORT vtkSlicerMultiDimensionLogic :
@@ -44,6 +45,13 @@ public:
   static vtkSlicerMultiDimensionLogic *New();
   vtkTypeMacro(vtkSlicerMultiDimensionLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
+
+  vtkMRMLNode* CreateMultiDimensionRootNode();
+  vtkMRMLNode* SetMultiDimensionRootNode(vtkMRMLNode*);
+  void DeleteMultiDimensionRootNode(vtkMRMLNode*);
+  void AddChildVolumeNodeAtTimePoint(vtkMRMLNode*, vtkMRMLNode*, char*);
+  void RemoveChildVolumeNodeAtTimePoint(vtkMRMLNode*, char*);
+  vtkMRMLNode* GetChildVolumeNodeAtTimePoint(vtkMRMLNode*, char*);
 
 protected:
   vtkSlicerMultiDimensionLogic();
