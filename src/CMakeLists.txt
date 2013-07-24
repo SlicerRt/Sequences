@@ -17,6 +17,7 @@ include(${Slicer_USE_FILE})
 #-----------------------------------------------------------------------------
 add_subdirectory(MultiDimension)
 add_subdirectory(MultiDimensionComposer)
+add_subdirectory(MetafileImporter)
 #add_subdirectory(MultiDimensionExplorer)
 
 #-----------------------------------------------------------------------------
