@@ -19,7 +19,8 @@
 #include <QtPlugin>
 
 // MetafileImporter Logic includes
-#include <vtkSlicerMetafileImporterLogic.h>
+#include "vtkSlicerMetafileImporterLogic.h"
+#include "vtkSlicerMultiDimensionLogic.h"
 
 // MetafileImporter includes
 #include "qSlicerMetafileImporterModule.h"
@@ -96,13 +97,21 @@ QStringList qSlicerMetafileImporterModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::dependencies() const
 {
-  return QStringList();
+  return QStringList() << "MultiDimension";
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerMetafileImporterModule::setup()
 {
   this->Superclass::setup();
+
+  vtkSlicerMetafileImporterLogic* MetafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
+  qSlicerAbstractCoreModule* MultiDimensionModule = qSlicerCoreApplication::application()->moduleManager()->module( "MultiDimension" );
+
+  if ( MultiDimensionModule )
+  {
+    MetafileImporterLogic->MultiDimensionLogic = vtkSlicerMultiDimensionLogic::SafeDownCast( MultiDimensionModule->logic() );
+  }
 }
 
 //-----------------------------------------------------------------------------

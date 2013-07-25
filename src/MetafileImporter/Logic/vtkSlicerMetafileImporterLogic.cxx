@@ -17,11 +17,14 @@
 
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
+#include "vtkSlicerMultiDimensionLogic.h"
 
 // MRML includes
 
 // VTK includes
 #include <vtkNew.h>
+#include "vtkMatrix4x4.h"
+#include "vtkMRMLLinearTransformNode.h"
 
 // STD includes
 #include <cassert>
@@ -65,6 +68,8 @@ vtkSlicerMetafileImporterLogic::vtkSlicerMetafileImporterLogic()
   this->Dimensions[0]=0;
   this->Dimensions[1]=0;
   this->Dimensions[2]=0;
+
+  this->MultiDimensionLogic = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -289,6 +294,44 @@ static std::string SEQMETA_FIELD_FRAME_FIELD_PREFIX = "Seq_Frame";
 static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 
 
+vtkMRMLLinearTransformNode* StringToTransformNode( std::string str )
+{
+  std::stringstream ss( str );
+  
+  double e00; ss >> e00; double e01; ss >> e01; double e02; ss >> e02; double e03; ss >> e03;
+  double e10; ss >> e10; double e11; ss >> e11; double e12; ss >> e12; double e13; ss >> e13;
+  double e20; ss >> e20; double e21; ss >> e21; double e22; ss >> e22; double e23; ss >> e23;
+  double e30; ss >> e30; double e31; ss >> e31; double e32; ss >> e32; double e33; ss >> e33;
+
+  vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+
+  matrix->SetElement( 0, 0, e00 );
+  matrix->SetElement( 0, 1, e01 );
+  matrix->SetElement( 0, 2, e02 );
+  matrix->SetElement( 0, 3, e03 );
+
+  matrix->SetElement( 1, 0, e10 );
+  matrix->SetElement( 1, 1, e11 );
+  matrix->SetElement( 1, 2, e12 );
+  matrix->SetElement( 1, 3, e13 );
+
+  matrix->SetElement( 2, 0, e20 );
+  matrix->SetElement( 2, 1, e21 );
+  matrix->SetElement( 2, 2, e22 );
+  matrix->SetElement( 2, 3, e23 );
+
+  matrix->SetElement( 3, 0, e30 );
+  matrix->SetElement( 3, 1, e31 );
+  matrix->SetElement( 3, 2, e32 );
+  matrix->SetElement( 3, 3, e33 );
+
+  vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::New();
+  transformNode->SetAndObserveMatrixTransformToParent( matrix );
+
+  return transformNode;
+}
+
+
 
 
 //----------------------------------------------------------------------------
@@ -362,8 +405,9 @@ void vtkSlicerMetafileImporterLogic::ReadImageHeader()
       int frameNumber=0;
       StringToInt(frameNumberStr.c_str(),frameNumber); // TODO: Removed warning
       
-      // TODO: Add the part that converts the string to transform and adds transform to hierarchy
-      //SetCustomFrameString(frameNumber, frameFieldName.c_str(), value.c_str());
+      // Convert the string to transform and add transform to hierarchy
+      vtkMRMLLinearTransformNode* currentTransform = StringToTransformNode( value );
+      this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, currentTransform, &frameNumberStr[0] );
 
       if (ferror(stream))
       {
@@ -561,7 +605,9 @@ void vtkSlicerMetafileImporterLogic::Read()
 {
   // TODO: Setup hierarchy structure
 
-  // this->ReadImageHeader(); // TODO: Removed error macro
+  this->rootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
+
+  this->ReadImageHeader(); // TODO: Removed error macro
   // this->ReadImagePixels(); // TODO: Removed error macro
 
 }

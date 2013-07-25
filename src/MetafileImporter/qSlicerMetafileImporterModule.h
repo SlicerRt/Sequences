@@ -20,6 +20,8 @@
 
 // SlicerQt includes
 #include "qSlicerLoadableModule.h"
+#include "qSlicerCoreApplication.h"
+#include "qSlicerModuleManager.h"
 
 #include "qSlicerMetafileImporterModuleExport.h"
 

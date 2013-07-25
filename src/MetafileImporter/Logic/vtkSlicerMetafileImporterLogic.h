@@ -40,7 +40,7 @@
 
 // MetfileImporter includes
 #include "vtkSlicerMetafileImporterModuleLogicExport.h"
-
+#include "vtkSlicerMultiDimensionLogic.h"
 
 // Enumerations
 // Directly from PLUS -----------------------------------------------------------------
@@ -73,17 +73,17 @@ typedef itk::ImageIOBase::IOComponentType ITKScalarPixelType;
 
 // END ENUMERATIONS ------------------------------------------------------------------------------
 
-  typedef itk::ImageBase< 2 >                    ImageBaseType;
-  typedef ImageBaseType::Pointer                 ImageBasePointer;
-  typedef ImageBaseType::ConstPointer            ImageBaseConstPointer;  
-  struct FlipInfoType
-  {
-    FlipInfoType() : hFlip(false), vFlip(false), doubleColumn(false), doubleRow(false) {};
-    bool hFlip; // flip the image horizontally (pixel columns are reordered)
-    bool vFlip; // flip the image vertically (pixel rows are reordered)
-    bool doubleColumn; // keep pairs of pixel columns together (for RF_IQ_LINE encoded images)
-    bool doubleRow; // keep pairs of pixel rows together (for RF_I_LINE_Q_LINE encoded images)
-  };
+typedef itk::ImageBase< 2 >                    ImageBaseType;
+typedef ImageBaseType::Pointer                 ImageBasePointer;
+typedef ImageBaseType::ConstPointer            ImageBaseConstPointer;  
+struct FlipInfoType
+{
+  FlipInfoType() : hFlip(false), vFlip(false), doubleColumn(false), doubleRow(false) {};
+  bool hFlip; // flip the image horizontally (pixel columns are reordered)
+  bool vFlip; // flip the image vertically (pixel rows are reordered)
+  bool doubleColumn; // keep pairs of pixel columns together (for RF_IQ_LINE encoded images)
+  bool doubleRow; // keep pairs of pixel rows together (for RF_I_LINE_Q_LINE encoded images)
+};
 
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -121,6 +121,12 @@ public:
     MHD images and the full image (including pixel data) in case of MHA images.
   */
   void SetFileName(const char* aFilename);
+
+  /*! Logic for MultiDimension hierarchy to manipulate nodes */
+  vtkSlicerMultiDimensionLogic* MultiDimensionLogic;
+
+  /*! The root node for the multi-dimension hierarchy */
+  vtkMRMLNode* rootNode;
 
 
 protected:
