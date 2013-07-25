@@ -255,5 +255,5 @@ class MultiDimensionComposerLogic:
     rootNode = multiDimensionLogic.SetMultiDimensionRootNode(mvNode)
     for frameId in range(0,nFrames):
       childNode = inputVolumeNodes[frameId][1]
-      multiDimensionLogic.AddChildVolumeNodeAtTimePoint(rootNode, childNode, str(frameId))
+      multiDimensionLogic.AddChildNodeAtTimePoint(rootNode, childNode, str(frameId))
 
