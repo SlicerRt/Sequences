@@ -49,9 +49,9 @@ public:
   vtkMRMLNode* CreateMultiDimensionRootNode();
   vtkMRMLNode* SetMultiDimensionRootNode(vtkMRMLNode*);
   void DeleteMultiDimensionRootNode(vtkMRMLNode*);
-  void AddChildVolumeNodeAtTimePoint(vtkMRMLNode*, vtkMRMLNode*, char*);
-  void RemoveChildVolumeNodeAtTimePoint(vtkMRMLNode*, char*);
-  vtkMRMLNode* GetChildVolumeNodeAtTimePoint(vtkMRMLNode*, char*);
+  void AddChildNodeAtTimePoint(vtkMRMLNode*, vtkMRMLNode*, char*);
+  void RemoveChildNodeAtTimePoint(vtkMRMLNode*, char*);
+  vtkCollection* GetChildNodesAtTimePoint(vtkMRMLNode*, char*);
 
 protected:
   vtkSlicerMultiDimensionLogic();
@@ -63,6 +63,9 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+
+  bool IsDataConnectorNode(vtkMRMLNode*);
+  vtkMRMLNode* FindChildNodeAtTimePoint(vtkMRMLNode*, char*);
 private:
 
   vtkSlicerMultiDimensionLogic(const vtkSlicerMultiDimensionLogic&); // Not implemented
