@@ -256,6 +256,33 @@ vtkCollection* vtkSlicerMultiDimensionLogic
 
 
 //---------------------------------------------------------------------------
+
+// Note: The map should be of the form: < FromValue, ToValue >
+void vtkSlicerMultiDimensionLogic
+::UpdateValues( vtkMRMLNode* rNode, std::map< std::string, std::string > valueMap )
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  if (!rootNode)
+  {
+    return;
+  }
+
+  // Iterate through all the children nodes
+  for ( int i = 0; i < rootNode->GetNumberOfChildrenNodes(); i++ )
+  {
+    vtkMRMLHierarchyNode* childHierarchyNode = vtkMRMLHierarchyNode::SafeDownCast( rootNode->GetNthChildNode( i ) );
+    std::string value = childHierarchyNode->GetAttribute( "MultiDimension.Value" );
+    // If the multi-dimension value is valid and appears in the map then map to the new values
+    if ( valueMap.find( value ) != valueMap.end() )
+    {
+      childHierarchyNode->SetAttribute( "MultiDimension.Value", valueMap[ value ].c_str() );
+    }
+  }
+
+}
+
+
+//---------------------------------------------------------------------------
 bool vtkSlicerMultiDimensionLogic
 ::IsDataConnectorNode(vtkMRMLNode* node)
 {

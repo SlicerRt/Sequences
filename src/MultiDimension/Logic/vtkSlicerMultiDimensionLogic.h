@@ -53,6 +53,8 @@ public:
   void RemoveChildNodeAtTimePoint(vtkMRMLNode*, char*);
   vtkCollection* GetChildNodesAtTimePoint(vtkMRMLNode*, char*);
 
+  void UpdateValues( vtkMRMLNode*, std::map< std::string, std::string > );
+
 protected:
   vtkSlicerMultiDimensionLogic();
   virtual ~vtkSlicerMultiDimensionLogic();
