@@ -76,6 +76,9 @@ public:
   /*! The root node for the multi-dimension hierarchy */
   vtkMRMLNode* rootNode;
 
+  /*! Map the frame numbers to timestamps */
+  std::map< std::string, std::string > frameToTimeMap;
+
 
 protected:
 

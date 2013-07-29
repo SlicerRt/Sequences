@@ -33,6 +33,7 @@
 
 // STD includes
 #include <cassert>
+#include <sstream>
 
 
 
@@ -245,6 +246,15 @@ void vtkSlicerMetafileImporterLogic
       this->GetMRMLScene()->AddNode( currentTransform );
     }
 
+    if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
+    {
+      std::stringstream frameStream;
+      frameStream << frameNumber;
+      this->frameToTimeMap[ frameStream.str() ] = value;
+      std::string testValue = this->frameToTimeMap[ frameStream.str() ];
+      std::string test;
+    }
+
     if ( ferror( stream ) )
     {
       // vtkErrorMacro("Error reading the file "<<this->FileName);
@@ -321,6 +331,7 @@ void vtkSlicerMetafileImporterLogic
   this->ReadTransforms( fileName ); // TODO: Removed error macro
   this->ReadImages( fileName ); // TODO: Removed error macro
 
+  this->MultiDimensionLogic->UpdateValues( this->rootNode, this->frameToTimeMap );
 }
 
  
