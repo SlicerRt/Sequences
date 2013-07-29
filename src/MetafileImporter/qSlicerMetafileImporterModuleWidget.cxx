@@ -96,8 +96,7 @@ void qSlicerMetafileImporterModuleWidget
   
   if ( fileName.isEmpty() == false )
   {
-    d->logic()->SetFileName( fileName.toStdString().c_str() );
-    d->logic()->Read();
+    d->logic()->Read( fileName.toStdString() );
   }
  
 }
