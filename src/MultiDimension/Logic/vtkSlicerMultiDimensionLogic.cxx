@@ -91,6 +91,7 @@ vtkMRMLNode* vtkSlicerMultiDimensionLogic
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
   rootNode->SetAttribute("MultiDimension.Name", "Time");
   rootNode->SetAttribute("MultiDimension.Unit", "Sec");
+  rootNode->SetName( "MultiDimensionHierarchy" );
 
   this->GetMRMLScene()->AddNode(rootNode);
 
@@ -111,6 +112,7 @@ vtkMRMLNode* vtkSlicerMultiDimensionLogic
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
   rootNode->SetAttribute("MultiDimension.Name", "Time");
   rootNode->SetAttribute("MultiDimension.Unit", "Sec");
+  rootNode->SetName( "MultiDimensionHierarchy" );
 
   if (!this->GetMRMLScene()->GetNodeByID(rootNode->GetID()))
   {
@@ -158,8 +160,6 @@ void vtkSlicerMultiDimensionLogic
     childHierarchyNode = vtkMRMLHierarchyNode::New();
     childHierarchyNode->AllowMultipleChildrenOn();
     childHierarchyNode->SetAttribute("HierarchyType", "MultiDimension");
-    childHierarchyNode->SetAttribute("MultiDimension.Name", "Time");
-    childHierarchyNode->SetAttribute("MultiDimension.Unit", "Sec");
     childHierarchyNode->SetAttribute("MultiDimension.Value", timePoint);
     childHierarchyNode->SetParentNodeID( rootNode->GetID() );
     childHierarchyNode->SetScene( this->GetMRMLScene() );

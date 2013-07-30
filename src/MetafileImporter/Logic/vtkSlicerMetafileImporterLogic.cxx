@@ -238,7 +238,9 @@ void vtkSlicerMetafileImporterLogic
     if ( frameFieldName.find( "Transform" ) != std::string::npos && frameFieldName.find( "Status" ) == std::string::npos )
     {
       vtkMRMLLinearTransformNode* currentTransform = StringToTransformNode( value );
-      currentTransform->SetName( frameFieldName.c_str() );
+      std::stringstream transformName;
+      transformName << frameFieldName.c_str() << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
+      currentTransform->SetName( transformName.str().c_str() );
       currentTransform->SetScene( this->GetMRMLScene() );
 
       char buffer[256];
@@ -302,7 +304,9 @@ void vtkSlicerMetafileImporterLogic
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
     slice->SetAndObserveImageData( imageSlicer->GetOutput() );
-    slice->SetName( "Image" );
+    std::stringstream sliceName;
+    sliceName << "Image_" << std::setw( 5 ) << std::setfill( '0' ) << i;
+    slice->SetName( sliceName.str().c_str() );
     slice->SetScene( this->GetMRMLScene() );
 
     // Move the image slice so it is at the origin
@@ -327,6 +331,11 @@ void vtkSlicerMetafileImporterLogic
 {
   // Setup hierarchy structure
   this->rootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
+  int dotFound = fileName.find_last_of( "." );
+  int slashFound = fileName.find_last_of( "/" );
+  std::stringstream rootName;
+  rootName << this->rootNode->GetName() << "_" << fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+  this->rootNode->SetName( rootName.str().c_str() );
 
   this->ReadTransforms( fileName ); // TODO: Removed error macro
   this->ReadImages( fileName ); // TODO: Removed error macro
