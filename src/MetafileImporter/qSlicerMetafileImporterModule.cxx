@@ -25,6 +25,11 @@
 // MetafileImporter includes
 #include "qSlicerMetafileImporterModule.h"
 #include "qSlicerMetafileImporterModuleWidget.h"
+#include "qSlicerMetafileImporterIO.h"
+
+// Slicer includes
+#include "qSlicerNodeWriter.h"
+#include "qSlicerCoreIOManager.h"
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerMetafileImporterModule, qSlicerMetafileImporterModule);
@@ -105,13 +110,20 @@ void qSlicerMetafileImporterModule::setup()
 {
   this->Superclass::setup();
 
+  qSlicerCoreApplication* app = qSlicerCoreApplication::application();
+
   vtkSlicerMetafileImporterLogic* MetafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
-  qSlicerAbstractCoreModule* MultiDimensionModule = qSlicerCoreApplication::application()->moduleManager()->module( "MultiDimension" );
+  qSlicerAbstractCoreModule* MultiDimensionModule = app->moduleManager()->module( "MultiDimension" );
 
   if ( MultiDimensionModule )
   {
     MetafileImporterLogic->MultiDimensionLogic = vtkSlicerMultiDimensionLogic::SafeDownCast( MultiDimensionModule->logic() );
   }
+
+  // Register the IO
+  app->coreIOManager()->registerIO( new qSlicerMetafileImporterIO( MetafileImporterLogic, this ) );
+  app->coreIOManager()->registerIO( new qSlicerNodeWriter( "MetafileImporter", QString( "SequenceMetafile" ), QStringList(), this ) ); 
+
 }
 
 //-----------------------------------------------------------------------------
