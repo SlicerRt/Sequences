@@ -65,20 +65,20 @@ qSlicerMetafileImporterModule::~qSlicerMetafileImporterModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::helpText()const
 {
-  return "This is a loadable module bundled in an extension";
+  return "This module is to import sequence metafiles into MultiDimension hierarchies. For help on how to use this module please visit: <a href='http://www.slicerrt.org/'>SlicerRT</a>";
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::acknowledgementText()const
 {
-  return "This work was was partially funded by NIH grant 3P41RR013218-12S1";
+  return "Supported by SparKit and the Slicer Community.";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
+  moduleContributors << QString("Matthew S. Holden (Queen's University)");
   return moduleContributors;
 }
 
@@ -91,7 +91,7 @@ QIcon qSlicerMetafileImporterModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::categories() const
 {
-  return QStringList() << "Examples";
+  return QStringList() << "MultiDimension";
 }
 
 //-----------------------------------------------------------------------------
