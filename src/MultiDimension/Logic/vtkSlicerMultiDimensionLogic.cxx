@@ -91,7 +91,7 @@ vtkMRMLNode* vtkSlicerMultiDimensionLogic
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
   rootNode->SetAttribute("MultiDimension.Name", "Time");
   rootNode->SetAttribute("MultiDimension.Unit", "Sec");
-  rootNode->SetName( "MultiDimensionHierarchy" );
+  //rootNode->SetName( "MultiDimensionHierarchy" );
 
   this->GetMRMLScene()->AddNode(rootNode);
 
@@ -112,7 +112,7 @@ vtkMRMLNode* vtkSlicerMultiDimensionLogic
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
   rootNode->SetAttribute("MultiDimension.Name", "Time");
   rootNode->SetAttribute("MultiDimension.Unit", "Sec");
-  rootNode->SetName( "MultiDimensionHierarchy" );
+  //rootNode->SetName( "MultiDimensionHierarchy" );
 
   if (!this->GetMRMLScene()->GetNodeByID(rootNode->GetID()))
   {
@@ -254,6 +254,18 @@ vtkCollection* vtkSlicerMultiDimensionLogic
   return childCollection;
 }
 
+//---------------------------------------------------------------------------
+int vtkSlicerMultiDimensionLogic
+::GetNumberOfChildrenNodes(vtkMRMLNode* rNode)
+{
+  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  if (!rootNode)
+  {
+    return NULL;
+  }
+  
+  return rootNode->GetNumberOfChildrenNodes();
+}
 
 //---------------------------------------------------------------------------
 
