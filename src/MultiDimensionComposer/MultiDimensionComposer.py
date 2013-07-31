@@ -12,12 +12,12 @@ class MultiDimensionComposer:
     parent.title = "MultiDimension Composer"
     parent.categories = ["MultiDimension"]
     parent.dependencies = []
-    parent.contributors = ["Kevin Wang (Princess Margaret Hospital)"]
+    parent.contributors = ["Kevin Wang (Princess Margaret Cancer Centre)"]
     parent.helpText = string.Template("""
     Use this module to compose a MultiDimension MRML node using multiple ScalarVolumeNode. 
 """).substitute({ 'a':parent.slicerWikiUrl, 'b':slicer.app.majorVersion, 'c':slicer.app.minorVersion })
     parent.acknowledgementText = """
-    Supported by SparKit and the Slicer Community. See http://www.slicerrt.org for details.
+    Supported by SparKit, OCAIRO and the Slicer Community. See http://www.slicerrt.org for details.
     """
     self.parent = parent
 
@@ -120,16 +120,18 @@ class MultiDimensionComposerWidget:
     self.outputFormLayout = qt.QFormLayout(self.outputCollapsibleButton)
 
     # Dose Volume selector
-    self.mvSelectorLabel = qt.QLabel('MultiDimension :')
-    self.mvSelector = slicer.qMRMLNodeComboBox()
-    self.mvSelector.nodeTypes = ['vtkMRMLHierarchyNode']
-    self.mvSelector.noneEnabled = False
-    self.mvSelector.addEnabled = True
-    self.mvSelector.removeEnabled = False
-    self.mvSelector.selectNodeUponCreation = True
-    self.mvSelector.setMRMLScene( slicer.mrmlScene )
-    self.mvSelector.setToolTip( 'Set the MultiDimension' )
-    self.outputFormLayout.addRow(self.mvSelectorLabel, self.mvSelector)
+    self.mdSelectorLabel = qt.QLabel('MultiDimension :')
+    self.mdSelector = slicer.qMRMLNodeComboBox()
+    self.mdSelector.nodeTypes = ['vtkMRMLHierarchyNode']
+    self.mdSelector.addAttribute('vtkMRMLHierarchyNode','MultiDimension.Name')
+    self.mdSelector.noneEnabled = False
+    self.mdSelector.addEnabled = True
+    self.mdSelector.removeEnabled = False
+    self.mdSelector.renameEnabled = True
+    self.mdSelector.selectNodeUponCreation = True
+    self.mdSelector.setMRMLScene( slicer.mrmlScene )
+    self.mdSelector.setToolTip( 'Set the MultiDimension' )
+    self.outputFormLayout.addRow(self.mdSelectorLabel, self.mdSelector)
 
     # Apply button
     self.createButton = qt.QPushButton("Create")
@@ -139,23 +141,9 @@ class MultiDimensionComposerWidget:
 
     # Add vertical spacer
     self.layout.addStretch(1)
-    #self.UpdateApplyButtonState()
 
-    # connections
-    #self.referenceDoseVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onDoseVolumeSelect)
-    #self.secondaryDoseVolumeSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onDoseVolumeSelect)
-    
     self.inputVolumeNodes = []
     self.inputVolumeNodesIDList = []
-
-  def UpdateApplyButtonState(self):
-    if not self.referenceDoseVolumeSelector.currentNode() or not self.secondaryDoseVolumeSelector.currentNode() :
-      self.applyButton.enabled = False
-    else:
-      self.applyButton.enabled = True
-
-  def onDoseVolumeSelect(self, node):
-    self.UpdateApplyButtonState()
 
   def onAdd(self):
     #slicer.app.processEvents()
@@ -174,17 +162,16 @@ class MultiDimensionComposerWidget:
       self.items.append(item)
 
   def onRemove(self):
-    #slicer.app.processEvents()
     pass
 
   def onCreate(self):
-    mvNode = self.mvSelector.currentNode()
+    mvNode = self.mdSelector.currentNode()
     if mvNode == None:
       return
 
     slicer.app.processEvents()
     self.logic = MultiDimensionComposerLogic()
-    self.logic.createMultiDimension(self.inputVolumeNodes, self.mvSelector.currentNode())
+    self.logic.createMultiDimension(self.inputVolumeNodes, self.mdSelector.currentNode())
 
   def onReload(self,moduleName="MultiDimensionComposer"):
     """Generic reload method for any scripted module.
