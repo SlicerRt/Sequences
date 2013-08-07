@@ -96,7 +96,15 @@ void qSlicerMetafileImporterModuleWidget
   
   if ( fileName.isEmpty() == false )
   {
+    QProgressDialog dialog;
+    dialog.setModal( true );
+    dialog.setLabelText( "Please wait while reading sequence metafile..." );
+    dialog.show();
+    dialog.setValue( 25 );
+
     d->logic()->Read( fileName.toStdString() );
+
+    dialog.close();
   }
  
 }

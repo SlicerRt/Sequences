@@ -30,6 +30,7 @@
 #include "vtkExtractVOI.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkSmartPointer.h"
+#include "vtkImageChangeInformation.h"
 
 // STD includes
 #include <cassert>
@@ -299,21 +300,23 @@ void vtkSlicerMetafileImporterLogic
     imageSlicer->SetVOI( 0, dimensions[0] - 1, 0, dimensions[1] - 1, i, i );
     imageSlicer->Update();
 
+    // Move the image slice so it is at the origin
+    vtkSmartPointer< vtkImageChangeInformation > translationFilter = vtkSmartPointer< vtkImageChangeInformation >::New();
+    translationFilter->SetInput( imageSlicer->GetOutput() );
+    translationFilter->SetExtentTranslation( 0, 0, -i );
+    translationFilter->Update();
+
+    // Add the image slice to scene as a volume
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
 
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
-    slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
-    slice->SetAndObserveImageData( imageSlicer->GetOutput() );
+    slice->SetAndObserveImageData( translationFilter->GetOutput() );
     std::stringstream sliceName;
     sliceName << "Image_" << std::setw( 5 ) << std::setfill( '0' ) << i;
     slice->SetName( sliceName.str().c_str() );
     slice->SetScene( this->GetMRMLScene() );
 
-    // Move the image slice so it is at the origin
-    vtkSmartPointer< vtkMatrix4x4 > sliceTransformMatrix = vtkSmartPointer< vtkMatrix4x4 >::New();
-    sliceTransformMatrix->Identity();
-    sliceTransformMatrix->SetElement( 2, 3, - i * spacing[2] );
-    slice->ApplyTransformMatrix( sliceTransformMatrix );
+    slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
 
     char buffer[256];
     this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, slice, itoa( i, buffer, 10 ) );
