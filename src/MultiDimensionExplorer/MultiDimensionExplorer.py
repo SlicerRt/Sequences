@@ -129,21 +129,25 @@ class MultiDimensionExplorerWidget:
     self.mdNode = self.mdSelector.currentNode()
     print self.mdNode.GetID()
 
-    if self.mdNode == None:
-      return
+    #if self.mdNode == None:
+    #  return
     
     #self.mdNode = self.logic.SetMultiDimensionRootNode(self.mdNode)
-    tempNode = self.logic.FindChildNodeAtTimePoint(self.mdNode, str(int(value)))
-    tempVolumeNode = tempNode.GetAssociatedNode()
+    #tempNode = self.logic.FindChildNodeAtTimePoint(self.mdNode, str(int(value)))
+    #tempVolumeNode = tempNode.GetAssociatedNode()
     
-    if tempVolumeNode == None:
-      return
+    #if tempVolumeNode == None:
+    #  return
 
     # make the temp volume appear in all the slice views
-    selectionNode = slicer.app.applicationLogic().GetSelectionNode()
-    selectionNode.SetReferenceActiveVolumeID(tempVolumeNode.GetID())
-    slicer.app.applicationLogic().PropagateVolumeSelection(0)
+    #selectionNode = slicer.app.applicationLogic().GetSelectionNode()
+    #selectionNode.SetReferenceActiveVolumeID(tempVolumeNode.GetID())
+    #slicer.app.applicationLogic().PropagateVolumeSelection(0)
     
+    childNode = self.mdNode.GetNthChildNode( int( value ) )
+    timePoint = childNode.GetAttribute( "MultiDimension.Value" )
+    logic = MultiDimensionExplorerLogic()
+    logic.DisplayNodes( self.logic.GetChildNodesAtTimePoint( self.mdNode,timePoint ) )
     
   def onReload(self,moduleName="MultiDimensionExplorer"):
     """Generic reload method for any scripted module.
@@ -207,5 +211,24 @@ class MultiDimensionExplorerLogic:
   """
   def __init__(self):
     pass
+    
+  def DisplayNodes( self, nodeCollection ):
+  
+    # Set temporary nodes to have the selected slider values
+    print nodeCollection.GetNumberOfItems()
+    for i in range( 0, nodeCollection.GetNumberOfItems() ):
+      selectedNode = nodeCollection.GetItemAsObject( i )
+      node = slicer.mrmlScene.GetFirstNodeByName( "Virtual_" + selectedNode.GetName() )
+      
+      # Create a new virtual node if one doesn't already exist
+      if ( node == None ):
+        node = slicer.mrmlScene.CreateNodeByClass( selectedNode.GetClassName() )
+      
+      node.Copy( selectedNode )
+      node.SetName( "Virtual_" + selectedNode.GetName() )
+      print node.GetName()
+      slicer.mrmlScene.AddNode( node )
+      node.SetScene( slicer.mrmlScene )
+      
 
 
