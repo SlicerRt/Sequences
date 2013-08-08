@@ -161,9 +161,9 @@ void vtkSlicerMultiDimensionLogic
     childHierarchyNode->AllowMultipleChildrenOn();
     childHierarchyNode->SetAttribute("HierarchyType", "MultiDimension");
     childHierarchyNode->SetAttribute("MultiDimension.Value", timePoint);
-    childHierarchyNode->SetParentNodeID( rootNode->GetID() );
     childHierarchyNode->SetScene( this->GetMRMLScene() );
     this->GetMRMLScene()->AddNode( childHierarchyNode );
+    childHierarchyNode->SetParentNodeID( rootNode->GetID() );
   }
 
   if ( childHierarchyNode->GetNumberOfChildrenNodes() == 0 && childHierarchyNode->GetAssociatedNode() == NULL )
@@ -177,19 +177,22 @@ void vtkSlicerMultiDimensionLogic
     vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
     dataConnectorNode->AllowMultipleChildrenOff();
     dataConnectorNode->SetAttribute("HierarchyType", "MultiDimension");
+    dataConnectorNode->SetScene( this->GetMRMLScene() );
+    this->GetMRMLScene()->AddNode( dataConnectorNode );
     dataConnectorNode->SetParentNodeID( childHierarchyNode->GetID() );
     dataConnectorNode->SetAssociatedNodeID( childHierarchyNode->GetAssociatedNodeID() );
+
     childHierarchyNode->SetAssociatedNodeID( "" );
-    // this->GetMRMLScene()->AddNode( dataConnectorNode ); // Do not add the data connector nodes to scene
   }
 
   // Create a data connector node for the new node
   vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
   dataConnectorNode->AllowMultipleChildrenOff();
   dataConnectorNode->SetAttribute("HierarchyType", "MultiDimension");
+  dataConnectorNode->SetScene( this->GetMRMLScene() );
+  this->GetMRMLScene()->AddNode( dataConnectorNode );
   dataConnectorNode->SetParentNodeID( childHierarchyNode->GetID() );
   dataConnectorNode->SetAssociatedNodeID( childNode->GetID() );
-  // this->GetMRMLScene()->AddNode( dataConnectorNode ); // Do not add the data connector nodes to scene
 
 }
 
@@ -237,6 +240,18 @@ vtkCollection* vtkSlicerMultiDimensionLogic
   vtkMRMLHierarchyNode* childHierarchyNode = vtkMRMLHierarchyNode::SafeDownCast( this->FindChildNodeAtTimePoint( rootNode, timePoint ) );
   vtkCollection* childCollection = vtkCollection::New();
 
+  if ( childHierarchyNode == NULL )
+  {
+    return childCollection;
+  }
+
+  int numChildNodes = childHierarchyNode->GetNumberOfChildrenNodes();
+
+  if ( childHierarchyNode->GetNumberOfChildrenNodes() == 0 && childHierarchyNode->GetAssociatedNode() != NULL )
+  {
+    childCollection->AddItem( childHierarchyNode->GetAssociatedNode() );
+  }
+
   for ( int i = 0; i < childHierarchyNode->GetNumberOfChildrenNodes(); i++ )
   {
     vtkMRMLNode* currentChildNode = childHierarchyNode->GetNthChildNode( i );
@@ -244,10 +259,6 @@ vtkCollection* vtkSlicerMultiDimensionLogic
     {
       vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( currentChildNode );
       childCollection->AddItem( dataConnectorNode->GetAssociatedNode() );
-    }
-    else
-    {
-      childCollection->AddItem( currentChildNode );
     }
   }
 
