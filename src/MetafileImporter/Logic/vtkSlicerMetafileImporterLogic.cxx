@@ -240,13 +240,13 @@ void vtkSlicerMetafileImporterLogic
     {
       vtkMRMLLinearTransformNode* currentTransform = StringToTransformNode( value );
       std::stringstream transformName;
-      transformName << frameFieldName.c_str() << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
+      transformName << frameFieldName.c_str();// << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
       currentTransform->SetName( transformName.str().c_str() );
       currentTransform->SetScene( this->GetMRMLScene() );
 
+      this->GetMRMLScene()->AddNode( currentTransform );
       char buffer[256];
       this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, currentTransform, itoa( frameNumber, buffer, 10 ) );
-      this->GetMRMLScene()->AddNode( currentTransform );
     }
 
     if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
@@ -312,15 +312,15 @@ void vtkSlicerMetafileImporterLogic
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
     slice->SetAndObserveImageData( translationFilter->GetOutput() );
     std::stringstream sliceName;
-    sliceName << "Image_" << std::setw( 5 ) << std::setfill( '0' ) << i;
+    sliceName << "Image";// << "_" << std::setw( 5 ) << std::setfill( '0' ) << i;
     slice->SetName( sliceName.str().c_str() );
     slice->SetScene( this->GetMRMLScene() );
 
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
 
+    this->GetMRMLScene()->AddNode( slice );
     char buffer[256];
     this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, slice, itoa( i, buffer, 10 ) );
-    this->GetMRMLScene()->AddNode( slice );
   }
 
 }
