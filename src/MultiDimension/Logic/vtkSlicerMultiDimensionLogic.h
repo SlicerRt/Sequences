@@ -49,11 +49,12 @@ public:
   vtkMRMLNode* CreateMultiDimensionRootNode();
   vtkMRMLNode* SetMultiDimensionRootNode(vtkMRMLNode*);
   void DeleteMultiDimensionRootNode(vtkMRMLNode*);
-  void AddChildNodeAtTimePoint(vtkMRMLNode*, vtkMRMLNode*, char*);
-  void RemoveChildNodeAtTimePoint(vtkMRMLNode*, char*);
-  int GetNumberOfChildrenNodes(vtkMRMLNode*);
-  vtkCollection* GetChildNodesAtTimePoint(vtkMRMLNode*, char*);
-  vtkMRMLNode* FindChildNodeAtTimePoint(vtkMRMLNode*, char*);
+
+  void AddDataNodeAtValue( vtkMRMLNode*, vtkMRMLNode*, const char* );
+  void RemoveSequenceNodeAtValue( vtkMRMLNode*, const char* );
+  int GetNumberOfChildrenNodes( vtkMRMLNode* ); // TODO: Is this method necessary? Does vtkMRMLHierarchyNode::GetNumberOfChildrenNodes() do the same thing?
+  vtkCollection* GetDataNodesAtValue( vtkMRMLNode*, const char* );
+  vtkMRMLNode* GetSequenceNodeAtValue( vtkMRMLNode*, const char* );
 
   void UpdateValues( vtkMRMLNode*, std::map< std::string, std::string > );
 

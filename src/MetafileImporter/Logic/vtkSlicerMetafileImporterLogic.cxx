@@ -245,8 +245,10 @@ void vtkSlicerMetafileImporterLogic
       currentTransform->SetScene( this->GetMRMLScene() );
 
       this->GetMRMLScene()->AddNode( currentTransform );
-      char buffer[256];
-      this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, currentTransform, itoa( frameNumber, buffer, 10 ) );
+
+      std::stringstream valueString;
+      valueString << frameNumber;
+      this->MultiDimensionLogic->AddDataNodeAtValue( rootNode, currentTransform, valueString.str().c_str() );
     }
 
     if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
@@ -319,8 +321,10 @@ void vtkSlicerMetafileImporterLogic
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
 
     this->GetMRMLScene()->AddNode( slice );
-    char buffer[256];
-    this->MultiDimensionLogic->AddChildNodeAtTimePoint( rootNode, slice, itoa( i, buffer, 10 ) );
+
+    std::stringstream valueString;
+    valueString << i;
+    this->MultiDimensionLogic->AddDataNodeAtValue( rootNode, slice, valueString.str().c_str() );
   }
 
 }

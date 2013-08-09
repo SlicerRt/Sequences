@@ -40,7 +40,8 @@ class MultiDimensionExplorerWidget:
       self.setup()
       self.parent.show()
     
-    self.logic = slicer.modules.multidimension.logic()
+    self.MultiDimensionLogic = slicer.modules.multidimension.logic()
+    self.logic = MultiDimensionExplorerLogic()
 
   def setup(self):
     # Instantiate and connect widgets ...
@@ -84,7 +85,7 @@ class MultiDimensionExplorerWidget:
     self.mdSelector = slicer.qMRMLNodeComboBox()
     self.mdSelector.nodeTypes = ['vtkMRMLHierarchyNode']
     self.mdSelector.addAttribute('vtkMRMLHierarchyNode','MultiDimension.Name')
-    self.mdSelector.noneEnabled = False
+    self.mdSelector.noneEnabled = True
     self.mdSelector.addEnabled = False
     self.mdSelector.removeEnabled = False
     self.mdSelector.setMRMLScene( slicer.mrmlScene )
@@ -114,40 +115,27 @@ class MultiDimensionExplorerWidget:
   def onInputMDChanged(self):
     slicer.app.processEvents()
     self.mdNode = self.mdSelector.currentNode()
-    print "inside"
-    print self.mdNode.GetID()
+    #print "inside"
+    #print self.mdNode.GetID()
     if self.mdNode != None:
-      nFrames = self.logic.GetNumberOfChildrenNodes(self.mdNode)
-      print "nframe", nFrames
+      nFrames = self.MultiDimensionLogic.GetNumberOfChildrenNodes(self.mdNode)
+      #print "nframe", nFrames
       self.mdSlider.minimum = 0
       self.mdSlider.maximum = nFrames-1
       
   def onSliderChanged(self, newValue):
     slicer.app.processEvents()
-    value = self.mdSlider.value
-    print "value", value
+    frameNumber = self.mdSlider.value
+    #print "Frame:", frameNumber
     self.mdNode = self.mdSelector.currentNode()
-    print self.mdNode.GetID()
+    #print self.mdNode.GetID()
 
-    #if self.mdNode == None:
-    #  return
+    if self.mdNode == None:
+      return
     
-    #self.mdNode = self.logic.SetMultiDimensionRootNode(self.mdNode)
-    #tempNode = self.logic.FindChildNodeAtTimePoint(self.mdNode, str(int(value)))
-    #tempVolumeNode = tempNode.GetAssociatedNode()
-    
-    #if tempVolumeNode == None:
-    #  return
-
-    # make the temp volume appear in all the slice views
-    #selectionNode = slicer.app.applicationLogic().GetSelectionNode()
-    #selectionNode.SetReferenceActiveVolumeID(tempVolumeNode.GetID())
-    #slicer.app.applicationLogic().PropagateVolumeSelection(0)
-    
-    childNode = self.mdNode.GetNthChildNode( int( value ) )
-    timePoint = childNode.GetAttribute( "MultiDimension.Value" )
-    logic = MultiDimensionExplorerLogic()
-    logic.DisplayNodes( self.logic.GetChildNodesAtTimePoint( self.mdNode,timePoint ) )
+    sequenceNode = self.mdNode.GetNthChildNode( int( frameNumber ) )
+    value = sequenceNode.GetAttribute( "MultiDimension.Value" )
+    self.logic.DisplayNodes( self.MultiDimensionLogic.GetDataNodesAtValue( self.mdNode,value ) )
     
   def onReload(self,moduleName="MultiDimensionExplorer"):
     """Generic reload method for any scripted module.
@@ -215,7 +203,7 @@ class MultiDimensionExplorerLogic:
   def DisplayNodes( self, nodeCollection ):
   
     # Set temporary nodes to have the selected slider values
-    print nodeCollection.GetNumberOfItems()
+    #print nodeCollection.GetNumberOfItems()
     for i in range( 0, nodeCollection.GetNumberOfItems() ):
       selectedNode = nodeCollection.GetItemAsObject( i )
       node = slicer.mrmlScene.GetFirstNodeByName( "Virtual_" + selectedNode.GetName() )
@@ -226,7 +214,7 @@ class MultiDimensionExplorerLogic:
       
       node.Copy( selectedNode )
       node.SetName( "Virtual_" + selectedNode.GetName() )
-      print node.GetName()
+      #print node.GetName()
       slicer.mrmlScene.AddNode( node )
       node.SetScene( slicer.mrmlScene )
       

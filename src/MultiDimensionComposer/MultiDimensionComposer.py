@@ -155,7 +155,7 @@ class MultiDimensionComposerWidget:
     self.volumeTableWidget.clearContents()
     self.volumeTableWidget.setRowCount(numberOfInputVolumeNodes)
     for i in range(numberOfInputVolumeNodes):
-      print "item:", self.inputVolumeNodes[i][0]
+      #print "item:", self.inputVolumeNodes[i][0]
       item = qt.QTableWidgetItem()
       item.setText(self.inputVolumeNodes[i][0])
       self.volumeTableWidget.setItem(i, 0, item )
@@ -242,5 +242,5 @@ class MultiDimensionComposerLogic:
     rootNode = multiDimensionLogic.SetMultiDimensionRootNode(mvNode)
     for frameId in range(0,nFrames):
       childNode = inputVolumeNodes[frameId][1]
-      multiDimensionLogic.AddChildNodeAtTimePoint(rootNode, childNode, str(frameId))
+      multiDimensionLogic.AddDataNodeAtValue(rootNode, childNode, str(frameId))
 
