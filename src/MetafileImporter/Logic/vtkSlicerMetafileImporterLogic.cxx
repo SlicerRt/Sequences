@@ -94,10 +94,6 @@ void vtkSlicerMetafileImporterLogic
 }
 
 
-
-
-
-
 // Add the helper functions
 
 //-------------------------------------------------------
@@ -105,15 +101,6 @@ void Trim(std::string &str)
 {
   str.erase(str.find_last_not_of(" \t\r\n")+1);
   str.erase(0,str.find_first_not_of(" \t\r\n"));
-}
-
-//-------------------------------------------------------
-std::string Trim(const char* c)
-{
-  std::string str = c;
-  str.erase(str.find_last_not_of(" \t\r\n")+1);
-  str.erase(0,str.find_first_not_of(" \t\r\n"));
-  return str;
 }
 
 //----------------------------------------------------------------------------
@@ -243,6 +230,7 @@ void vtkSlicerMetafileImporterLogic
       transformName << frameFieldName.c_str();// << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
       currentTransform->SetName( transformName.str().c_str() );
       currentTransform->SetScene( this->GetMRMLScene() );
+      currentTransform->SetHideFromEditors(true);
 
       this->GetMRMLScene()->AddNode( currentTransform );
 
@@ -317,6 +305,7 @@ void vtkSlicerMetafileImporterLogic
     sliceName << "Image";// << "_" << std::setw( 5 ) << std::setfill( '0' ) << i;
     slice->SetName( sliceName.str().c_str() );
     slice->SetScene( this->GetMRMLScene() );
+    slice->SetHideFromEditors(true);
 
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
 
@@ -340,14 +329,16 @@ void vtkSlicerMetafileImporterLogic
   this->rootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
-  std::stringstream rootName;
-  rootName << this->rootNode->GetName() << "_" << fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
-  this->rootNode->SetName( rootName.str().c_str() );
+  std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+  this->rootNode->SetName( rootName.c_str() );
 
   this->ReadTransforms( fileName ); // TODO: Removed error macro
   this->ReadImages( fileName ); // TODO: Removed error macro
 
   this->MultiDimensionLogic->UpdateValues( this->rootNode, this->frameToTimeMap );
+
+  // Loading is completed indicate to modules that the hierarchy is changed
+  this->rootNode->Modified();
 }
 
  

@@ -10,7 +10,7 @@ from __main__ import vtk, qt, ctk, slicer
 class MultiDimensionComposer:
   def __init__(self, parent):
     parent.title = "MultiDimension Composer"
-    parent.categories = ["MultiDimension"]
+    parent.categories = ["Multi-dimension"]
     parent.dependencies = []
     parent.contributors = ["Kevin Wang (Princess Margaret Cancer Centre)"]
     parent.helpText = string.Template("""

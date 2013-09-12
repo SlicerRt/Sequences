@@ -142,19 +142,17 @@ void vtkSlicerMultiDimensionLogic
 
 //---------------------------------------------------------------------------
 void vtkSlicerMultiDimensionLogic
-::AddDataNodeAtValue( vtkMRMLNode* rNode, vtkMRMLNode* dNode, const char* value )
+::AddDataNodeAtValue( vtkMRMLNode* rNode, vtkMRMLNode* dataNode, const char* value )
 {
   vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast( rNode );
-  vtkMRMLNode* dataNode = dNode;
-
   if ( ! rootNode || ! dataNode )
   {
+    vtkErrorMacro("AddDataNodeAtValue failed: rootNode or dataNode is invalid");
     return;
   }
 
   // Need to create connector nodes if the timePoint already exists
-  vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( this->GetSequenceNodeAtValue( rootNode, value ) );
-
+  vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( GetSequenceNodeAtValue( rootNode, value ) );  
   if ( sequenceNode == NULL )
   {
     sequenceNode = vtkMRMLHierarchyNode::New();
@@ -163,16 +161,21 @@ void vtkSlicerMultiDimensionLogic
     sequenceNode->SetAttribute( "MultiDimension.Value", value );
     sequenceNode->SetScene( this->GetMRMLScene() );
     this->GetMRMLScene()->AddNode( sequenceNode );
-    sequenceNode->SetParentNodeID( rootNode->GetID() );
+    sequenceNode->SetParentNodeID( rootNode->GetID() );    
+    std::stringstream sequenceNodeName;
+    sequenceNodeName << "Seq_" << rootNode->GetName() << "_" << value;
+    sequenceNode->SetName(sequenceNodeName.str().c_str());
   }
 
+  /*
   if ( sequenceNode->GetNumberOfChildrenNodes() == 0 && sequenceNode->GetAssociatedNode() == NULL )
   {
     sequenceNode->SetAssociatedNodeID( dataNode->GetID() );
     return;
   }
+  */
   
-  if ( sequenceNode->GetAssociatedNode() != NULL )
+/*  if ( sequenceNode->GetAssociatedNode() != NULL )
   {
     vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
     dataConnectorNode->AllowMultipleChildrenOff();
@@ -182,7 +185,11 @@ void vtkSlicerMultiDimensionLogic
     dataConnectorNode->SetParentNodeID( sequenceNode->GetID() );
     dataConnectorNode->SetAssociatedNodeID( sequenceNode->GetAssociatedNodeID() );
     sequenceNode->SetAssociatedNodeID( "" );
+    std::stringstream dataConnectorNodeName;
+    dataConnectorNodeName << "Conn_" << rootNode->GetName() << "_" << value << "_" << dataNode->GetName();
+    dataConnectorNode->SetName(dataConnectorNodeName.str().c_str());
   }
+*/
 
   // Create a data connector node for the new node
   vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
@@ -192,7 +199,9 @@ void vtkSlicerMultiDimensionLogic
   this->GetMRMLScene()->AddNode( dataConnectorNode );
   dataConnectorNode->SetParentNodeID( sequenceNode->GetID() );
   dataConnectorNode->SetAssociatedNodeID( dataNode->GetID() );
-
+  std::stringstream dataConnectorNodeName;
+  dataConnectorNodeName << "Conn_" << rootNode->GetName() << "_" << value << "_" << dataNode->GetName();
+  dataConnectorNode->SetName(dataConnectorNodeName.str().c_str());
 }
 
 
@@ -264,20 +273,6 @@ vtkCollection* vtkSlicerMultiDimensionLogic
 }
 
 //---------------------------------------------------------------------------
-// TODO: Is this function necessary? Does it do the same thing as vtkRMMLHierarchyNode::GetNumberOfChildrenNodes()?
-int vtkSlicerMultiDimensionLogic
-::GetNumberOfChildrenNodes( vtkMRMLNode* rNode )
-{
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
-  if ( ! rootNode )
-  {
-    return NULL;
-  }
-  
-  return rootNode->GetNumberOfChildrenNodes();
-}
-
-//---------------------------------------------------------------------------
 
 // Note: The map should be of the form: < FromValue, ToValue >
 void vtkSlicerMultiDimensionLogic
@@ -300,7 +295,6 @@ void vtkSlicerMultiDimensionLogic
       sequenceNode->SetAttribute( "MultiDimension.Value", valueMap[ currentValue ].c_str() );
     }
   }
-
 }
 
 
@@ -330,22 +324,23 @@ bool vtkSlicerMultiDimensionLogic
 
 
 //---------------------------------------------------------------------------
-vtkMRMLNode* vtkSlicerMultiDimensionLogic
-::GetSequenceNodeAtValue( vtkMRMLNode* rNode, const char* value )
-{
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
-  if ( ! rootNode )
+vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
+::GetSequenceNodeAtValue( vtkMRMLHierarchyNode* rootNode, const char* value )
+{  
+  if ( rootNode==NULL )
   {
+    vtkErrorMacro("GetSequenceNodeAtValue failed: rootNode is invalid");
     return NULL;
   }
 
   int numberOfChildrenNodes = rootNode->GetNumberOfChildrenNodes();
   for ( int i = 0; i < numberOfChildrenNodes; i++ )
   {
-    vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( rootNode->GetNthChildNode(i) );
-    // Observe that this is the sequence node, and does not contain any data
+    vtkMRMLHierarchyNode* sequenceNode = rootNode->GetNthChildNode(i);
+    // note that this is the sequence node, which does not contain any data, only the value along the dimension
     if ( strcmp( sequenceNode->GetAttribute( "MultiDimension.Value" ), value ) == 0 )
     {
+      // found it!
       return sequenceNode;
     }
   }

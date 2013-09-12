@@ -15,14 +15,14 @@
 
 ==============================================================================*/
 
-// .NAME vtkSlicerMultiDimensionLogic - slicer logic class for volumes manipulation
+// .NAME vtkSlicerMultiDimensionBrowserLogic - slicer logic class for volumes manipulation
 // .SECTION Description
 // This class manages the logic associated with reading, saving,
 // and changing propertied of the volumes
 
 
-#ifndef __vtkSlicerMultiDimensionLogic_h
-#define __vtkSlicerMultiDimensionLogic_h
+#ifndef __vtkSlicerMultiDimensionBrowserLogic_h
+#define __vtkSlicerMultiDimensionBrowserLogic_h
 
 // Slicer includes
 #include "vtkSlicerModuleLogic.h"
@@ -32,35 +32,28 @@
 // STD includes
 #include <cstdlib>
 
-#include "vtkSlicerMultiDimensionModuleLogicExport.h"
+#include "vtkSlicerMultiDimensionBrowserModuleLogicExport.h"
 
 class vtkMRMLNode;
-class vtkMRMLHierarchyNode;
+class vtkMRMLMultiDimensionBrowserNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class VTK_SLICER_MULTIDIMENSION_MODULE_LOGIC_EXPORT vtkSlicerMultiDimensionLogic :
+class VTK_SLICER_MULTIDIMENSIONBROWSER_MODULE_LOGIC_EXPORT vtkSlicerMultiDimensionBrowserLogic :
   public vtkSlicerModuleLogic
 {
 public:
 
-  static vtkSlicerMultiDimensionLogic *New();
-  vtkTypeMacro(vtkSlicerMultiDimensionLogic, vtkSlicerModuleLogic);
+  static vtkSlicerMultiDimensionBrowserLogic *New();
+  vtkTypeMacro(vtkSlicerMultiDimensionBrowserLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  vtkMRMLNode* CreateMultiDimensionRootNode();
-  vtkMRMLNode* SetMultiDimensionRootNode(vtkMRMLNode*);
-  void DeleteMultiDimensionRootNode(vtkMRMLNode*);
+  vtkMRMLNode* SetMultiDimensionBrowserRootNode(vtkMRMLNode*);
 
-  void AddDataNodeAtValue( vtkMRMLNode*, vtkMRMLNode*, const char* );
-  void RemoveSequenceNodeAtValue( vtkMRMLNode*, const char* );
-  vtkCollection* GetDataNodesAtValue( vtkMRMLNode*, const char* );
-  vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-
-  void UpdateValues( vtkMRMLNode*, std::map< std::string, std::string > );
+  void UpdateVirtualOutputNode(vtkMRMLMultiDimensionBrowserNode* browserNode);
 
 protected:
-  vtkSlicerMultiDimensionLogic();
-  virtual ~vtkSlicerMultiDimensionLogic();
+  vtkSlicerMultiDimensionBrowserLogic();
+  virtual ~vtkSlicerMultiDimensionBrowserLogic();
 
   virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
@@ -68,12 +61,14 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+  virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData);
 
   bool IsDataConnectorNode(vtkMRMLNode*);
+
 private:
 
-  vtkSlicerMultiDimensionLogic(const vtkSlicerMultiDimensionLogic&); // Not implemented
-  void operator=(const vtkSlicerMultiDimensionLogic&);               // Not implemented
+  vtkSlicerMultiDimensionBrowserLogic(const vtkSlicerMultiDimensionBrowserLogic&); // Not implemented
+  void operator=(const vtkSlicerMultiDimensionBrowserLogic&);               // Not implemented
 };
 
 #endif

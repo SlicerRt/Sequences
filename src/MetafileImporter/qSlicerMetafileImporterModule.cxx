@@ -96,7 +96,7 @@ QIcon qSlicerMetafileImporterModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::categories() const
 {
-  return QStringList() << "MultiDimension";
+  return QStringList() << "Multi-dimension";
 }
 
 //-----------------------------------------------------------------------------

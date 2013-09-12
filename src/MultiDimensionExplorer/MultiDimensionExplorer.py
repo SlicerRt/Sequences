@@ -10,7 +10,7 @@ from __main__ import vtk, qt, ctk, slicer
 class MultiDimensionExplorer:
   def __init__(self, parent):
     parent.title = "MultiDimension Explorer"
-    parent.categories = ["MultiDimension"]
+    parent.categories = ["Multi-dimension"]
     parent.dependencies = []
     parent.contributors = ["Kevin Wang (Princess Margaret Cancer Centre)"]
     parent.helpText = string.Template("""
@@ -118,7 +118,7 @@ class MultiDimensionExplorerWidget:
     #print "inside"
     #print self.mdNode.GetID()
     if self.mdNode != None:
-      nFrames = self.MultiDimensionLogic.GetNumberOfChildrenNodes(self.mdNode)
+      nFrames = self.mdNode.GetNumberOfChildrenNodes()
       #print "nframe", nFrames
       self.mdSlider.minimum = 0
       self.mdSlider.maximum = nFrames-1
@@ -211,12 +211,12 @@ class MultiDimensionExplorerLogic:
       # Create a new virtual node if one doesn't already exist
       if ( node == None ):
         node = slicer.mrmlScene.CreateNodeByClass( selectedNode.GetClassName() )
-      
+                    
       node.Copy( selectedNode )
       node.SetName( "Virtual_" + selectedNode.GetName() )
       #print node.GetName()
-      slicer.mrmlScene.AddNode( node )
-      node.SetScene( slicer.mrmlScene )
+        slicer.mrmlScene.AddNode( node )
+        node.SetScene( slicer.mrmlScene )      
       
 
 

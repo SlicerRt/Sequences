@@ -18,63 +18,63 @@
 // Qt includes
 #include <QtPlugin>
 
-// MultiDimension Logic includes
-#include <vtkSlicerMultiDimensionLogic.h>
+// MultiDimensionBrowser Logic includes
+#include <vtkSlicerMultiDimensionBrowserLogic.h>
 
-// MultiDimension includes
-#include "qSlicerMultiDimensionModule.h"
-#include "qSlicerMultiDimensionModuleWidget.h"
+// MultiDimensionBrowser includes
+#include "qSlicerMultiDimensionBrowserModule.h"
+#include "qSlicerMultiDimensionBrowserModuleWidget.h"
 
 //-----------------------------------------------------------------------------
-Q_EXPORT_PLUGIN2(qSlicerMultiDimensionModule, qSlicerMultiDimensionModule);
+Q_EXPORT_PLUGIN2(qSlicerMultiDimensionBrowserModule, qSlicerMultiDimensionBrowserModule);
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
-class qSlicerMultiDimensionModulePrivate
+class qSlicerMultiDimensionBrowserModulePrivate
 {
 public:
-  qSlicerMultiDimensionModulePrivate();
+  qSlicerMultiDimensionBrowserModulePrivate();
 };
 
 //-----------------------------------------------------------------------------
-// qSlicerMultiDimensionModulePrivate methods
+// qSlicerMultiDimensionBrowserModulePrivate methods
 
 //-----------------------------------------------------------------------------
-qSlicerMultiDimensionModulePrivate
-::qSlicerMultiDimensionModulePrivate()
+qSlicerMultiDimensionBrowserModulePrivate
+::qSlicerMultiDimensionBrowserModulePrivate()
 {
 }
 
 //-----------------------------------------------------------------------------
-// qSlicerMultiDimensionModule methods
+// qSlicerMultiDimensionBrowserModule methods
 
 //-----------------------------------------------------------------------------
-qSlicerMultiDimensionModule
-::qSlicerMultiDimensionModule(QObject* _parent)
+qSlicerMultiDimensionBrowserModule
+::qSlicerMultiDimensionBrowserModule(QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerMultiDimensionModulePrivate)
+  , d_ptr(new qSlicerMultiDimensionBrowserModulePrivate)
 {
 }
 
 //-----------------------------------------------------------------------------
-qSlicerMultiDimensionModule::~qSlicerMultiDimensionModule()
+qSlicerMultiDimensionBrowserModule::~qSlicerMultiDimensionBrowserModule()
 {
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerMultiDimensionModule::helpText()const
+QString qSlicerMultiDimensionBrowserModule::helpText()const
 {
   return "This is a loadable module for handling multi-dimensional data";
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerMultiDimensionModule::acknowledgementText()const
+QString qSlicerMultiDimensionBrowserModule::acknowledgementText()const
 {
   return "This work was funded by CCO ACRU and OCARIO";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerMultiDimensionModule::contributors()const
+QStringList qSlicerMultiDimensionBrowserModule::contributors()const
 {
   QStringList moduleContributors;
   moduleContributors << QString("Matthew Holden (Queen's), Kevin Wang (PMH)");
@@ -82,38 +82,38 @@ QStringList qSlicerMultiDimensionModule::contributors()const
 }
 
 //-----------------------------------------------------------------------------
-QIcon qSlicerMultiDimensionModule::icon()const
+QIcon qSlicerMultiDimensionBrowserModule::icon()const
 {
-  return QIcon(":/Icons/MultiDimension.png");
+  return QIcon(":/Icons/MultiDimensionBrowser.png");
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerMultiDimensionModule::categories() const
+QStringList qSlicerMultiDimensionBrowserModule::categories() const
 {
   return QStringList() << "Multi-dimension";
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerMultiDimensionModule::dependencies() const
+QStringList qSlicerMultiDimensionBrowserModule::dependencies() const
 {
   return QStringList();
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerMultiDimensionModule::setup()
+void qSlicerMultiDimensionBrowserModule::setup()
 {
   this->Superclass::setup();
 }
 
 //-----------------------------------------------------------------------------
-qSlicerAbstractModuleRepresentation * qSlicerMultiDimensionModule
+qSlicerAbstractModuleRepresentation * qSlicerMultiDimensionBrowserModule
 ::createWidgetRepresentation()
 {
-  return new qSlicerMultiDimensionModuleWidget;
+  return new qSlicerMultiDimensionBrowserModuleWidget;
 }
 
 //-----------------------------------------------------------------------------
-vtkMRMLAbstractLogic* qSlicerMultiDimensionModule::createLogic()
+vtkMRMLAbstractLogic* qSlicerMultiDimensionBrowserModule::createLogic()
 {
-  return vtkSlicerMultiDimensionLogic::New();
+  return vtkSlicerMultiDimensionBrowserLogic::New();
 }
