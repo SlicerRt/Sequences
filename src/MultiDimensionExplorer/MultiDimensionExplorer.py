@@ -215,8 +215,8 @@ class MultiDimensionExplorerLogic:
       node.Copy( selectedNode )
       node.SetName( "Virtual_" + selectedNode.GetName() )
       #print node.GetName()
-        slicer.mrmlScene.AddNode( node )
-        node.SetScene( slicer.mrmlScene )      
+      slicer.mrmlScene.AddNode( node )
+      node.SetScene( slicer.mrmlScene )      
       
 
 

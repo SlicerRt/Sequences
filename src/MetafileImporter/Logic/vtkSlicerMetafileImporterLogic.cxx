@@ -15,6 +15,8 @@
 
 ==============================================================================*/
 
+// #define ENABLE_PERFORMANCE_PROFILING
+
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
 #include "vtkSlicerMultiDimensionLogic.h"
@@ -27,10 +29,12 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkImageData.h"
-#include "vtkExtractVOI.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkSmartPointer.h"
-#include "vtkImageChangeInformation.h"
+
+#ifdef ENABLE_PERFORMANCE_PROFILING
+#include "vtkTimerLog.h"
+#endif
 
 // STD includes
 #include <cassert>
@@ -177,6 +181,7 @@ void vtkSlicerMetafileImporterLogic
 
   char line[ MAX_LINE_LENGTH + 1 ] = { 0 };
 
+  //int rootNodeDisableModify = this->RootNode->StartModify();
   while ( fgets( line, MAX_LINE_LENGTH, stream ) )
   {
 
@@ -236,15 +241,15 @@ void vtkSlicerMetafileImporterLogic
 
       std::stringstream valueString;
       valueString << frameNumber;
-      this->MultiDimensionLogic->AddDataNodeAtValue( rootNode, currentTransform, valueString.str().c_str() );
+      this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, currentTransform, valueString.str().c_str() );
     }
 
     if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
     {
       std::stringstream frameStream;
       frameStream << frameNumber;
-      this->frameToTimeMap[ frameStream.str() ] = value;
-      std::string testValue = this->frameToTimeMap[ frameStream.str() ];
+      this->FrameToTimeMap[ frameStream.str() ] = value;
+      std::string testValue = this->FrameToTimeMap[ frameStream.str() ];
       std::string test;
     }
 
@@ -259,6 +264,7 @@ void vtkSlicerMetafileImporterLogic
     }
 
   }
+  //this->RootNode->EndModify(rootNodeDisableModify);
 
   fclose( stream );
 }
@@ -269,38 +275,45 @@ void vtkSlicerMetafileImporterLogic
 ::ReadImages( std::string fileName )
 {
   // Grab the image data from the mha file
+
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  timer->StartTimer();  
+#endif
   vtkSmartPointer< vtkMetaImageReader > imageReader = vtkSmartPointer< vtkMetaImageReader >::New();
   imageReader->SetFileName( fileName.c_str() );
   imageReader->Update();
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  timer->StopTimer();
+  vtkWarningMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
+#endif
 
   vtkSmartPointer< vtkImageData > imageData = imageReader->GetOutput();
   int* dimensions = imageData->GetDimensions();
   double* spacing = imageData->GetSpacing();
 
-  vtkSmartPointer< vtkMRMLScalarVolumeNode > allVolumesNode = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
-  allVolumesNode->SetAndObserveImageData( imageData );
-
-  // Now, read the volume into individual image slices
-  // Assume the slices are z-planes
-  // Observe that the VOIs are zero-offset
+  vtkSmartPointer<vtkImageData> emptySliceImageData=vtkSmartPointer<vtkImageData>::New();
+  emptySliceImageData->SetDimensions(dimensions[0],dimensions[1],1);
+  emptySliceImageData->SetSpacing(spacing[0],spacing[1],1);
+  emptySliceImageData->SetOrigin(0,0,0);  
+  emptySliceImageData->SetScalarType(imageData->GetScalarType());
+  emptySliceImageData->SetNumberOfScalarComponents(imageData->GetNumberOfScalarComponents()); 
+  
+  int sliceSize=imageData->GetIncrements()[2];
+  int rootNodeDisableModify = this->RootNode->StartModify();
   for ( int i = 0; i < dimensions[2]; i++ )
-  {
-    vtkSmartPointer< vtkExtractVOI > imageSlicer = vtkSmartPointer< vtkExtractVOI >::New();
-    imageSlicer->SetInput( imageData );
-    imageSlicer->SetVOI( 0, dimensions[0] - 1, 0, dimensions[1] - 1, i, i );
-    imageSlicer->Update();
-
-    // Move the image slice so it is at the origin
-    vtkSmartPointer< vtkImageChangeInformation > translationFilter = vtkSmartPointer< vtkImageChangeInformation >::New();
-    translationFilter->SetInput( imageSlicer->GetOutput() );
-    translationFilter->SetExtentTranslation( 0, 0, -i );
-    translationFilter->Update();
-
+  {     
     // Add the image slice to scene as a volume
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
 
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
-    slice->SetAndObserveImageData( translationFilter->GetOutput() );
+    vtkSmartPointer<vtkImageData> sliceImageData=vtkSmartPointer<vtkImageData>::New();
+    sliceImageData->DeepCopy(emptySliceImageData);
+    sliceImageData->AllocateScalars();
+    unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, i);
+    memcpy(sliceImageData->GetScalarPointer(), startPtr, sliceSize);
+
+    slice->SetAndObserveImageData(sliceImageData);
     std::stringstream sliceName;
     sliceName << "Image";// << "_" << std::setw( 5 ) << std::setfill( '0' ) << i;
     slice->SetName( sliceName.str().c_str() );
@@ -313,32 +326,46 @@ void vtkSlicerMetafileImporterLogic
 
     std::stringstream valueString;
     valueString << i;
-    this->MultiDimensionLogic->AddDataNodeAtValue( rootNode, slice, valueString.str().c_str() );
+    this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, slice, valueString.str().c_str() );
   }
+  this->RootNode->EndModify(rootNodeDisableModify);
 
 }
-
-
 
 
 //----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic
 ::Read( std::string fileName )
 {
+//  this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
+
   // Setup hierarchy structure
-  this->rootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
+  this->RootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
   std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
-  this->rootNode->SetName( rootName.c_str() );
+  this->RootNode->SetName( rootName.c_str() );
 
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  timer->StartTimer();
+#endif
   this->ReadTransforms( fileName ); // TODO: Removed error macro
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  timer->StopTimer();
+  vtkWarningMacro("ReadTransforms time: " << timer->GetElapsedTime() << "sec\n");
+  timer->StartTimer();
+#endif
   this->ReadImages( fileName ); // TODO: Removed error macro
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  timer->StopTimer();
+  vtkWarningMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
+#endif
 
-  this->MultiDimensionLogic->UpdateValues( this->rootNode, this->frameToTimeMap );
+  this->MultiDimensionLogic->UpdateValues( this->RootNode, this->FrameToTimeMap );
+
+//  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
 
   // Loading is completed indicate to modules that the hierarchy is changed
-  this->rootNode->Modified();
+  this->RootNode->Modified();
 }
-
- 

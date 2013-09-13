@@ -74,10 +74,10 @@ public:
   vtkSlicerMultiDimensionLogic* MultiDimensionLogic;
 
   /*! The root node for the multi-dimension hierarchy */
-  vtkMRMLNode* rootNode;
+  vtkMRMLNode* RootNode;
 
   /*! Map the frame numbers to timestamps */
-  std::map< std::string, std::string > frameToTimeMap;
+  std::map< std::string, std::string > FrameToTimeMap;
 
 
 protected:

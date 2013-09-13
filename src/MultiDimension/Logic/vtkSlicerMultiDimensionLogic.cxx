@@ -158,43 +158,21 @@ void vtkSlicerMultiDimensionLogic
     sequenceNode = vtkMRMLHierarchyNode::New();
     sequenceNode->AllowMultipleChildrenOn();
     sequenceNode->SetAttribute( "HierarchyType", "MultiDimension" );
-    sequenceNode->SetAttribute( "MultiDimension.Value", value );
+    sequenceNode->SetAttribute( "MultiDimension.Value", value );    
+    sequenceNode->SetHideFromEditors(true);
     sequenceNode->SetScene( this->GetMRMLScene() );
     this->GetMRMLScene()->AddNode( sequenceNode );
     sequenceNode->SetParentNodeID( rootNode->GetID() );    
     std::stringstream sequenceNodeName;
     sequenceNodeName << "Seq_" << rootNode->GetName() << "_" << value;
     sequenceNode->SetName(sequenceNodeName.str().c_str());
-  }
-
-  /*
-  if ( sequenceNode->GetNumberOfChildrenNodes() == 0 && sequenceNode->GetAssociatedNode() == NULL )
-  {
-    sequenceNode->SetAssociatedNodeID( dataNode->GetID() );
-    return;
-  }
-  */
-  
-/*  if ( sequenceNode->GetAssociatedNode() != NULL )
-  {
-    vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
-    dataConnectorNode->AllowMultipleChildrenOff();
-    dataConnectorNode->SetAttribute( "HierarchyType", "MultiDimension" );
-    dataConnectorNode->SetScene( this->GetMRMLScene() );
-    this->GetMRMLScene()->AddNode( dataConnectorNode );
-    dataConnectorNode->SetParentNodeID( sequenceNode->GetID() );
-    dataConnectorNode->SetAssociatedNodeID( sequenceNode->GetAssociatedNodeID() );
-    sequenceNode->SetAssociatedNodeID( "" );
-    std::stringstream dataConnectorNodeName;
-    dataConnectorNodeName << "Conn_" << rootNode->GetName() << "_" << value << "_" << dataNode->GetName();
-    dataConnectorNode->SetName(dataConnectorNodeName.str().c_str());
-  }
-*/
+  }  
 
   // Create a data connector node for the new node
   vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::New();
   dataConnectorNode->AllowMultipleChildrenOff();
   dataConnectorNode->SetAttribute( "HierarchyType", "MultiDimension" );
+  dataConnectorNode->SetHideFromEditors(true);
   dataConnectorNode->SetScene( this->GetMRMLScene() );
   this->GetMRMLScene()->AddNode( dataConnectorNode );
   dataConnectorNode->SetParentNodeID( sequenceNode->GetID() );
