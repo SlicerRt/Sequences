@@ -124,6 +124,36 @@ void qSlicerMultiDimensionBrowserModuleWidget::setup()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::enter()
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+
+  if (this->mrmlScene() != 0)
+  {
+    // For the user's convenience, create a browser node by default, when entering to the module and no browser node exists in the scene yet
+    vtkMRMLNode* node = this->mrmlScene()->GetNthNodeByClass(0, "vtkMRMLMultiDimensionBrowserNode");
+    if (node==NULL)
+    {
+      vtkSmartPointer<vtkMRMLMultiDimensionBrowserNode> newBrowserNode = vtkSmartPointer<vtkMRMLMultiDimensionBrowserNode>::New();
+      this->mrmlScene()->AddNode(newBrowserNode);
+      vtkSmartPointer<vtkMRMLHierarchyNode> newVirtualOutputNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
+      newVirtualOutputNode->SetAttribute("HierarchyType","MultiDimension");
+      newVirtualOutputNode->SetAttribute("MultiDimension.SourceHierarchy","<Undefined>");
+      this->mrmlScene()->AddNode(newVirtualOutputNode);
+      newVirtualOutputNode->SetName(d->MRMLNodeComboBox_VirtualOutput->baseName().toLatin1().constData());
+      newBrowserNode->SetAndObserveVirtualOutputNodeID(newVirtualOutputNode->GetID());
+      setActiveBrowserNode(newBrowserNode);
+    }  
+  }
+  else
+  {
+    qCritical() << "Entering the MultiDimensionBrowser module failed, scene is invalid";
+  }
+
+  this->Superclass::enter();
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerMultiDimensionBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* node)
 {
   vtkMRMLMultiDimensionBrowserNode* browserNode = vtkMRMLMultiDimensionBrowserNode::SafeDownCast(node);  
@@ -175,6 +205,7 @@ void qSlicerMultiDimensionBrowserModuleWidget::setActiveBrowserNode(vtkMRMLMulti
       this, SLOT(onActiveBrowserNodeModified(vtkObject*)));
     d->ActiveBrowserNode = browserNode;
   }
+  d->MRMLNodeComboBox_ActiveBrowser->setCurrentNode(browserNode);
 
   updateWidgetFromMRML();
 }
@@ -267,7 +298,14 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
   d->MRMLNodeComboBox_MultiDimensionRoot->setEnabled(true);  
   d->MRMLNodeComboBox_MultiDimensionRoot->setCurrentNode(multiDimensionRootNode);
   d->MRMLNodeComboBox_VirtualOutput->setEnabled(true);
-  
+
+  // Set up the virtual output selector
+
+  vtkMRMLHierarchyNode* virtualOutputNode=d->ActiveBrowserNode->GetVirtualOutputNode();
+  d->MRMLNodeComboBox_VirtualOutput->setCurrentNode(virtualOutputNode);
+
+  // Set up the multi-dimension input section (root node selector and sequence slider)
+
   if (multiDimensionRootNode==NULL)
   {
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
@@ -277,13 +315,6 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
   }
 
   // A valid multi-dimension root node is selected
-
-  // Set up the virtual output selector
-
-  vtkMRMLHierarchyNode* virtualOutputNode=d->ActiveBrowserNode->GetVirtualOutputNode();
-  d->MRMLNodeComboBox_VirtualOutput->setCurrentNode(virtualOutputNode);
-
-  // Set up the slider
 
   const char* parameterName=multiDimensionRootNode->GetAttribute("MultiDimension.Name");
   if (parameterName!=NULL)

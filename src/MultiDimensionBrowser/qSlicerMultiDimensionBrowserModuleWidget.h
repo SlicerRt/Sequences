@@ -60,7 +60,8 @@ protected:
 
   QScopedPointer<qSlicerMultiDimensionBrowserModuleWidgetPrivate> d_ptr;
   
-  virtual void setup();
+  virtual void setup();  
+  virtual void enter();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerMultiDimensionBrowserModuleWidget);
