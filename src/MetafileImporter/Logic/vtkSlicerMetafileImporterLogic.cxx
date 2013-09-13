@@ -126,7 +126,7 @@ void StringToInt(const char* strPtr, T &result)
 }
 
 
-vtkMRMLLinearTransformNode* StringToTransformNode( std::string str )
+void UpdateTransformNodeFromString(vtkMRMLLinearTransformNode* transformNode, const std::string& str )
 {
   std::stringstream ss( str );
   
@@ -135,7 +135,7 @@ vtkMRMLLinearTransformNode* StringToTransformNode( std::string str )
   double e20; ss >> e20; double e21; ss >> e21; double e22; ss >> e22; double e23; ss >> e23;
   double e30; ss >> e30; double e31; ss >> e31; double e32; ss >> e32; double e33; ss >> e33;
 
-  vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+  vtkSmartPointer<vtkMatrix4x4> matrix = vtkSmartPointer<vtkMatrix4x4>::New();
 
   matrix->SetElement( 0, 0, e00 );
   matrix->SetElement( 0, 1, e01 );
@@ -157,10 +157,7 @@ vtkMRMLLinearTransformNode* StringToTransformNode( std::string str )
   matrix->SetElement( 3, 2, e32 );
   matrix->SetElement( 3, 3, e33 );
 
-  vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::New();
   transformNode->SetAndObserveMatrixTransformToParent( matrix );
-
-  return transformNode;
 }
 
 
@@ -180,6 +177,8 @@ void vtkSlicerMetafileImporterLogic
   FILE* stream = fopen( fileName.c_str(), flags ); // TODO: Removed error
 
   char line[ MAX_LINE_LENGTH + 1 ] = { 0 };
+
+  this->FrameToTimeMap.clear();
 
   //int rootNodeDisableModify = this->RootNode->StartModify();
   while ( fgets( line, MAX_LINE_LENGTH, stream ) )
@@ -230,11 +229,11 @@ void vtkSlicerMetafileImporterLogic
     // Convert the string to transform and add transform to hierarchy
     if ( frameFieldName.find( "Transform" ) != std::string::npos && frameFieldName.find( "Status" ) == std::string::npos )
     {
-      vtkMRMLLinearTransformNode* currentTransform = StringToTransformNode( value );
+      vtkSmartPointer<vtkMRMLLinearTransformNode> currentTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+      UpdateTransformNodeFromString(currentTransform, value);
       std::stringstream transformName;
       transformName << frameFieldName.c_str();// << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
       currentTransform->SetName( transformName.str().c_str() );
-      currentTransform->SetScene( this->GetMRMLScene() );
       currentTransform->SetHideFromEditors(true);
 
       this->GetMRMLScene()->AddNode( currentTransform );
@@ -341,6 +340,8 @@ void vtkSlicerMetafileImporterLogic
 
   // Setup hierarchy structure
   this->RootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
+  this->RootNode->SetAttribute("MultiDimension.Name", "Time");
+  this->RootNode->SetAttribute("MultiDimension.Unit", "Sec");
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
   std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
@@ -368,4 +369,7 @@ void vtkSlicerMetafileImporterLogic
 
   // Loading is completed indicate to modules that the hierarchy is changed
   this->RootNode->Modified();
+  
+  this->RootNode=NULL;
+  this->FrameToTimeMap.clear();
 }
