@@ -40,6 +40,8 @@ public:
 
 public slots:
 
+  void onRootNodeChanged();
+  void onSequenceNodeChanged();
 
 protected:
   QScopedPointer<qSlicerMultiDimensionModuleWidgetPrivate> d_ptr;

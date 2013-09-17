@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>525</width>
-    <height>319</height>
+    <height>708</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,13 +15,69 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton" native="true">
-     <property name="text" stdset="0">
+    <layout class="QFormLayout" name="formLayout">
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <item row="0" column="1">
+      <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_MultiDimensionRoot">
+       <property name="nodeTypes">
+        <stringlist>
+         <string>vtkMRMLHierarchyNode</string>
+        </stringlist>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="Label_ActiveNode">
+       <property name="text">
+        <string>Active Node:</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton">
+     <property name="text">
       <string>Display</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="qSlicerMultiDimensionFooBarWidget" name="FooBar" native="true"/>
+       <widget class="QGroupBox" name="GroupBox_Root">
+        <property name="title">
+         <string>Root Node</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QTableWidget" name="TableWidget_Root"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="GroupBox_SequenceNodes">
+        <property name="title">
+         <string>Sequence Nodes</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <widget class="QTableWidget" name="TableWidget_SequenceNodes"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="GroupBox_DataNodes">
+        <property name="title">
+         <string>Data Nodes</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <widget class="QTableWidget" name="TableWidget_DataNodes"/>
+         </item>
+        </layout>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -43,6 +99,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>qMRMLNodeComboBox</class>
+   <extends>QWidget</extends>
+   <header>qMRMLNodeComboBox.h</header>
+  </customwidget>
+  <customwidget>
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
@@ -54,13 +115,24 @@
    <header>ctkCollapsibleButton.h</header>
    <container>1</container>
   </customwidget>
-  <customwidget>
-   <class>qSlicerMultiDimensionFooBarWidget</class>
-   <extends>QWidget</extends>
-   <header>qSlicerMultiDimensionFooBarWidget.h</header>
-   <container>1</container>
-  </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>qSlicerMultiDimensionModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_MultiDimensionRoot</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>262</x>
+     <y>353</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>262</x>
+     <y>50</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
