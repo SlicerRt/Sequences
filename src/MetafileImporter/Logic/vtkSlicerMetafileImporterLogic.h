@@ -49,6 +49,7 @@ public:
   static vtkSlicerMetafileImporterLogic *New();
   vtkTypeMacro(vtkSlicerMetafileImporterLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
+  void SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic* multiDimensionLogic);
 
 protected:
   vtkSlicerMetafileImporterLogic();
@@ -70,23 +71,26 @@ public:
   /*! Read file contents into the object */
   void Read( std::string fileName );
 
+protected:
+
+  /*! Read all the fields in the metaimage file header */
+  void ReadTransforms(const std::string &fileName );
+
+  /*! Read pixel data from the metaimage */
+  void ReadImages(const std::string& fileName );
+
+  /*! Generate a node name that contains the hierarchy name and parameter value */
+  std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& parameterValue);
+
   /*! Logic for MultiDimension hierarchy to manipulate nodes */
   vtkSlicerMultiDimensionLogic* MultiDimensionLogic;
 
   /*! The root node for the multi-dimension hierarchy */
-  vtkMRMLNode* RootNode;
+  vtkMRMLHierarchyNode* RootNode;
 
   /*! Map the frame numbers to timestamps */
-  std::map< std::string, std::string > FrameToTimeMap;
+  std::map< int, std::string > FrameNumberToParameterValueMap;
 
-
-protected:
-
-  /*! Read all the fields in the metaimage file header */
-  void ReadTransforms( std::string fileName );
-
-  /*! Read pixel data from the metaimage */
-  void ReadImages( std::string fileName );
 };
 
 #endif

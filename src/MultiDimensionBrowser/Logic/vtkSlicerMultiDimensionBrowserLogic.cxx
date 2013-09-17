@@ -165,28 +165,40 @@ void vtkSlicerMultiDimensionBrowserLogic
   int numberOfSourceChildNodes=selectedSequenceNode->GetNumberOfChildrenNodes();
   for (int sourceChildNodeIndex=0; sourceChildNodeIndex<numberOfSourceChildNodes; ++sourceChildNodeIndex)
   {    
-    if (selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex)==NULL || 
-      selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex)->GetAssociatedNode()==NULL)
+    vtkMRMLHierarchyNode* sourceConnectorNode=selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex);
+    if (sourceConnectorNode==NULL || sourceConnectorNode->GetAssociatedNode()==NULL)
     {
       vtkErrorMacro("Invalid sequence node");
       continue;
     }
     vtkMRMLNode* sourceNode=selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex)->GetAssociatedNode();
+    const char* sourceDataName=sourceConnectorNode->GetAttribute("MultiDimension.SourceDataName");
+    if (sourceDataName==NULL)
+    {
+      vtkErrorMacro("MultiDimension.SourceDataName is missing");
+      continue;
+    }
     vtkMRMLNode* targetOutputNode=NULL;
     for (std::vector<vtkMRMLHierarchyNode*>::iterator outputConnectorNodeIt=outputConnectorNodes.begin(); outputConnectorNodeIt!=outputConnectorNodes.end(); ++outputConnectorNodeIt)
     {
-      vtkMRMLNode* outputNode=(*outputConnectorNodeIt)->GetAssociatedNode();
-      if (outputNode==NULL)
+      const char* outputSourceDataName=(*outputConnectorNodeIt)->GetAttribute("MultiDimension.SourceDataName");
+      if (outputSourceDataName==NULL)
       {
-        vtkWarningMacro("A connector node found without an associated node");
+        vtkErrorMacro("MultiDimension.SourceDataName is missing from a virtual output node");
         continue;
       }
-      if (strcmp(sourceNode->GetName(),outputNode->GetName())==0)
+      if (strcmp(sourceDataName,outputSourceDataName)==0)
       {
         // found a node with the same name in the hierarchy => reuse that
+        vtkMRMLNode* outputNode=(*outputConnectorNodeIt)->GetAssociatedNode();
+        if (outputNode==NULL)
+        {
+          vtkErrorMacro("A connector node found without an associated node");
+          continue;
+        }
         targetOutputNode=outputNode;
         break;
-      }
+      }      
     }
 
     if (targetOutputNode==NULL)
@@ -197,11 +209,15 @@ void vtkSlicerMultiDimensionBrowserLogic
       scene->AddNode(targetOutputNode);
       targetOutputNode->Delete(); // ownership transferred to the scene, so we can release the pointer
       // now connect this new node to the virtualOutput hierarchy with a new connector node
-      vtkMRMLHierarchyNode* outputConnectorNode=vtkMRMLHierarchyNode::New();      
+      vtkMRMLHierarchyNode* outputConnectorNode=vtkMRMLHierarchyNode::New();
       scene->AddNode(outputConnectorNode);
       outputConnectorNode->Delete(); // ownership transferred to the scene, so we can release the pointer
+      outputConnectorNode->SetAttribute("MultiDimension.SourceDataName", sourceDataName);
       outputConnectorNode->SetParentNodeID(virtualOutputNode->GetID());
       outputConnectorNode->SetAssociatedNodeID(targetOutputNode->GetID());
+      std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+sourceDataName+" connector";
+      outputConnectorNode->SetName(outputConnectorNodeName.c_str());
+      outputConnectorNode->SetHideFromEditors(true);
       outputConnectorNodes.push_back(outputConnectorNode);
     }
 
@@ -231,7 +247,10 @@ void vtkSlicerMultiDimensionBrowserLogic
     else
     */
     {
-      // for other (generic) nodes
+      // Slice browser is updated when there is a rename, but we want to avoid update, because
+      // the source node may be hidden from editors and it would result in removing the target node
+      // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
+      targetOutputNode->SetName(sourceNode->GetName());
       targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);    
     }
 
@@ -241,6 +260,7 @@ void vtkSlicerMultiDimensionBrowserLogic
     std::string name=targetOutputNode->GetName();
     targetOutputNode->SetName("");
     targetOutputNode->SetName(name.c_str());
+    //targetOutputNode->SetName(sourceDataName);
   }
 }
 

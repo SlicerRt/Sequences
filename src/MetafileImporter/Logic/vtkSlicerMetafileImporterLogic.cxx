@@ -22,14 +22,15 @@
 #include "vtkSlicerMultiDimensionLogic.h"
 
 // MRML includes
+#include "vtkMRMLHierarchyNode.h"
+#include "vtkMRMLLinearTransformNode.h"
+#include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLScalarVolumeDisplayNode.h"
 
 // VTK includes
 #include <vtkNew.h>
 #include "vtkMatrix4x4.h"
-#include "vtkMRMLLinearTransformNode.h"
-#include "vtkMRMLScalarVolumeNode.h"
 #include "vtkImageData.h"
-#include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkSmartPointer.h"
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -40,7 +41,7 @@
 #include <cassert>
 #include <sstream>
 
-
+static const char IMAGE_NODE_BASE_NAME[]="Image";
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMetafileImporterLogic);
@@ -61,6 +62,12 @@ vtkSlicerMetafileImporterLogic::~vtkSlicerMetafileImporterLogic()
 void vtkSlicerMetafileImporterLogic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMetafileImporterLogic::SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic* multiDimensionLogic)
+{
+  this->MultiDimensionLogic=multiDimensionLogic;
 }
 
 //---------------------------------------------------------------------------
@@ -169,7 +176,7 @@ static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 
 //----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic
-::ReadTransforms( std::string fileName )
+::ReadTransforms( const std::string& fileName )
 {
 
   // Open in binary mode because we determine the start of the image buffer also during this read
@@ -178,20 +185,26 @@ void vtkSlicerMetafileImporterLogic
 
   char line[ MAX_LINE_LENGTH + 1 ] = { 0 };
 
-  this->FrameToTimeMap.clear();
+  this->FrameNumberToParameterValueMap.clear();
 
-  //int rootNodeDisableModify = this->RootNode->StartModify();
+  // This structure contains all the transform nodes that are read from the file.
+  // The nodes are not added immediately to the scene to allow them properly named, using the timestamp parameter value.
+  // Maps the frame number to a vector of transform nodes that belong to that frame.
+  std::map<int,std::vector<vtkMRMLLinearTransformNode*>> importedTransformNodes;
+
+  // It contains the largest frame number. It will be used to iterate through all the frame numbers from 0 to lastFrameNumber
+  int lastFrameNumber=-1;
+
   while ( fgets( line, MAX_LINE_LENGTH, stream ) )
   {
-
     std::string lineStr = line;
 
     // Split line into name and value
-    size_t equalSignFound;
+    size_t equalSignFound=0;
     equalSignFound = lineStr.find_first_of( "=" );
     if ( equalSignFound == std::string::npos )
     {
-      // vtkWarningMacro("Parsing line failed, equal sign is missing ("<<lineStr<<")");
+      vtkWarningMacro("Parsing line failed, equal sign is missing ("<<lineStr<<")");
       continue;
     }
     std::string name = lineStr.substr( 0, equalSignFound );
@@ -201,9 +214,17 @@ void vtkSlicerMetafileImporterLogic
     Trim( name );
     Trim( value );
 
+    if ( name.compare("ElementDataFile")==NULL )
+    {
+      // this is the last field of the header
+      break;
+    }
+    
+
     // Only consider the Seq_Frame
     if ( name.compare( 0, SEQMETA_FIELD_FRAME_FIELD_PREFIX.size(), SEQMETA_FIELD_FRAME_FIELD_PREFIX ) != 0 )
     {
+      // not a frame field, ignore it
       continue;
     }
 
@@ -216,7 +237,7 @@ void vtkSlicerMetafileImporterLogic
     underscoreFound = name.find_first_of( "_" );
     if ( underscoreFound == std::string::npos )
     {
-      // vtkWarningMacro("Parsing line failed, underscore is missing from frame field name ("<<lineStr<<")");
+      vtkWarningMacro("Parsing line failed, underscore is missing from frame field name ("<<lineStr<<")");
       continue;
     }
 
@@ -225,36 +246,28 @@ void vtkSlicerMetafileImporterLogic
 
     int frameNumber = 0;
     StringToInt( frameNumberStr.c_str(), frameNumber ); // TODO: Removed warning
+    if (frameNumber>lastFrameNumber)
+    {
+      lastFrameNumber=frameNumber;
+    }
       
     // Convert the string to transform and add transform to hierarchy
     if ( frameFieldName.find( "Transform" ) != std::string::npos && frameFieldName.find( "Status" ) == std::string::npos )
     {
-      vtkSmartPointer<vtkMRMLLinearTransformNode> currentTransform = vtkSmartPointer<vtkMRMLLinearTransformNode>::New();
+      vtkMRMLLinearTransformNode* currentTransform = vtkMRMLLinearTransformNode::New(); // will be deleted when added to the scene
       UpdateTransformNodeFromString(currentTransform, value);
-      std::stringstream transformName;
-      transformName << frameFieldName.c_str();// << "_" << std::setw( 5 ) << std::setfill( '0' ) << frameNumber;
-      currentTransform->SetName( transformName.str().c_str() );
-      currentTransform->SetHideFromEditors(true);
-
-      this->GetMRMLScene()->AddNode( currentTransform );
-
-      std::stringstream valueString;
-      valueString << frameNumber;
-      this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, currentTransform, valueString.str().c_str() );
+      currentTransform->SetName( frameFieldName.c_str() );
+      importedTransformNodes[frameNumber].push_back(currentTransform);
     }
 
     if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
     {
-      std::stringstream frameStream;
-      frameStream << frameNumber;
-      this->FrameToTimeMap[ frameStream.str() ] = value;
-      std::string testValue = this->FrameToTimeMap[ frameStream.str() ];
-      std::string test;
+      this->FrameNumberToParameterValueMap[frameNumber] = value;
     }
 
     if ( ferror( stream ) )
     {
-      // vtkErrorMacro("Error reading the file "<<this->FileName);
+      vtkErrorMacro("Error reading the file "<<fileName.c_str());
       break;
     }
     if ( feof( stream ) )
@@ -263,15 +276,34 @@ void vtkSlicerMetafileImporterLogic
     }
 
   }
-  //this->RootNode->EndModify(rootNodeDisableModify);
-
   fclose( stream );
+
+  // Now add all the nodes to the scene
+
+  for (int currentFrameNumber=0; currentFrameNumber<=lastFrameNumber; currentFrameNumber++)
+  {
+    std::map<int,std::vector<vtkMRMLLinearTransformNode*>>::iterator transformsForCurrentFrame=importedTransformNodes.find(currentFrameNumber);
+    if ( transformsForCurrentFrame == importedTransformNodes.end() )
+    {
+      // no transforms for this frame
+      continue;
+    }
+    std::string paramValueString=this->FrameNumberToParameterValueMap[currentFrameNumber];
+    for (std::vector<vtkMRMLLinearTransformNode*>::iterator transformIt=transformsForCurrentFrame->second.begin(); transformIt!=transformsForCurrentFrame->second.end(); ++transformIt)
+    {
+      vtkMRMLLinearTransformNode* transform=(*transformIt);
+      // The transform name at this point is simply the field name (e.g., ProbeToTracker), need to generate a full name (ProbeToTracker time=123.43s)     
+      this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, transform, paramValueString.c_str() );
+      transform->Delete(); // ownership transferred to the scene
+    }
+  }  
+
 }
 
 //----------------------------------------------------------------------------
 // Read the spacing and dimentions of the image.
 void vtkSlicerMetafileImporterLogic
-::ReadImages( std::string fileName )
+::ReadImages( const std::string& fileName )
 {
   // Grab the image data from the mha file
 
@@ -299,38 +331,33 @@ void vtkSlicerMetafileImporterLogic
   emptySliceImageData->SetNumberOfScalarComponents(imageData->GetNumberOfScalarComponents()); 
   
   int sliceSize=imageData->GetIncrements()[2];
-  int rootNodeDisableModify = this->RootNode->StartModify();
-  for ( int i = 0; i < dimensions[2]; i++ )
+  for ( int frameNumber = 0; frameNumber < dimensions[2]; frameNumber++ )
   {     
-    // Add the image slice to scene as a volume
-    vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
+    // Add the image slice to scene as a volume    
 
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
     vtkSmartPointer<vtkImageData> sliceImageData=vtkSmartPointer<vtkImageData>::New();
     sliceImageData->DeepCopy(emptySliceImageData);
     sliceImageData->AllocateScalars();
-    unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, i);
+    unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, frameNumber);
     memcpy(sliceImageData->GetScalarPointer(), startPtr, sliceSize);
 
+    slice->SetName(IMAGE_NODE_BASE_NAME);
     slice->SetAndObserveImageData(sliceImageData);
-    std::stringstream sliceName;
-    sliceName << "Image";// << "_" << std::setw( 5 ) << std::setfill( '0' ) << i;
-    slice->SetName( sliceName.str().c_str() );
-    slice->SetScene( this->GetMRMLScene() );
-    slice->SetHideFromEditors(true);
 
-    slice->SetAndObserveDisplayNodeID( displayNode->GetID() );
+    std::string paramValueString=this->FrameNumberToParameterValueMap[frameNumber];
+    this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, slice, paramValueString.c_str() );
 
-    this->GetMRMLScene()->AddNode( slice );
-
-    std::stringstream valueString;
-    valueString << i;
-    this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, slice, valueString.str().c_str() );
+    // TODO: add the display node to the MultiDimension hierarchy?
+    vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
+    displayNode->SetDefaultColorMap();
+    displayNode->SetHideFromEditors(true);
+    std::string displayNodeName=std::string(slice->GetName())+" display";
+    displayNode->SetName(displayNodeName.c_str());
+    this->GetMRMLScene()->AddNode( displayNode );
+    slice->SetAndObserveDisplayNodeID( displayNode->GetID() );   
   }
-  this->RootNode->EndModify(rootNodeDisableModify);
-
 }
-
 
 //----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic
@@ -340,13 +367,14 @@ void vtkSlicerMetafileImporterLogic
 
   // Setup hierarchy structure
   this->RootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
-  this->RootNode->SetAttribute("MultiDimension.Name", "Time");
-  this->RootNode->SetAttribute("MultiDimension.Unit", "Sec");
+  this->RootNode->SetAttribute("MultiDimension.Name", "time");
+  this->RootNode->SetAttribute("MultiDimension.Unit", "s");
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
   std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
   this->RootNode->SetName( rootName.c_str() );
 
+  int rootNodeDisableModify = this->RootNode->StartModify();
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
   timer->StartTimer();
@@ -363,13 +391,13 @@ void vtkSlicerMetafileImporterLogic
   vtkWarningMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
 #endif
 
-  this->MultiDimensionLogic->UpdateValues( this->RootNode, this->FrameToTimeMap );
-
 //  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
+
+  this->RootNode->EndModify(rootNodeDisableModify);
 
   // Loading is completed indicate to modules that the hierarchy is changed
   this->RootNode->Modified();
   
   this->RootNode=NULL;
-  this->FrameToTimeMap.clear();
+  this->FrameNumberToParameterValueMap.clear();
 }

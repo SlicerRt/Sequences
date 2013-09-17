@@ -47,16 +47,14 @@ public:
   vtkTypeMacro(vtkSlicerMultiDimensionLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  vtkMRMLNode* CreateMultiDimensionRootNode();
-  vtkMRMLNode* SetMultiDimensionRootNode(vtkMRMLNode*);
-  void DeleteMultiDimensionRootNode(vtkMRMLNode*);
+  vtkMRMLHierarchyNode* CreateMultiDimensionRootNode();
+  vtkMRMLHierarchyNode* SetMultiDimensionRootNode(vtkMRMLHierarchyNode*);
+  void DeleteMultiDimensionRootNode(vtkMRMLHierarchyNode*);
 
-  void AddDataNodeAtValue( vtkMRMLNode*, vtkMRMLNode*, const char* );
-  void RemoveSequenceNodeAtValue( vtkMRMLNode*, const char* );
-  vtkCollection* GetDataNodesAtValue( vtkMRMLNode*, const char* );
+  void AddDataNodeAtValue(vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue);
+  void RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
+  vtkCollection* GetDataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
   vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-
-  void UpdateValues( vtkMRMLNode*, std::map< std::string, std::string > );
 
 protected:
   vtkSlicerMultiDimensionLogic();

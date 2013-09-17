@@ -112,16 +112,16 @@ void qSlicerMetafileImporterModule::setup()
 
   qSlicerCoreApplication* app = qSlicerCoreApplication::application();
 
-  vtkSlicerMetafileImporterLogic* MetafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
-  qSlicerAbstractCoreModule* MultiDimensionModule = app->moduleManager()->module( "MultiDimension" );
+  vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
+  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "MultiDimension" );
 
-  if ( MultiDimensionModule )
+  if ( multiDimensionModule )
   {
-    MetafileImporterLogic->MultiDimensionLogic = vtkSlicerMultiDimensionLogic::SafeDownCast( MultiDimensionModule->logic() );
+    metafileImporterLogic->SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic::SafeDownCast( multiDimensionModule->logic() ));
   }
 
   // Register the IO
-  app->coreIOManager()->registerIO( new qSlicerMetafileImporterIO( MetafileImporterLogic, this ) );
+  app->coreIOManager()->registerIO( new qSlicerMetafileImporterIO( metafileImporterLogic, this ) );
   app->coreIOManager()->registerIO( new qSlicerNodeWriter( "MetafileImporter", QString( "SequenceMetafile" ), QStringList(), this ) ); 
 
 }
