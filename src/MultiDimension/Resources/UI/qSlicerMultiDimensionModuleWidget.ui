@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>677</width>
+    <width>679</width>
     <height>892</height>
    </rect>
   </property>
@@ -99,51 +99,92 @@
      <property name="contentsFrameShape">
       <enum>QFrame::NoFrame</enum>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout_9">
       <item>
-       <widget class="QGroupBox" name="GroupBox_Unsequenced">
-        <property name="title">
-         <string>Unsequenced</string>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_7">
-         <item>
-          <widget class="QListWidget" name="ListWidget_UnsequencedNodes"/>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_6">
-        <property name="leftMargin">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="topMargin">
          <number>0</number>
         </property>
         <item>
-         <widget class="QPushButton" name="PushButton_Sequence">
+         <widget class="QPushButton" name="PushButton_AddSequenceNode">
           <property name="text">
-           <string>-&gt;</string>
+           <string>Add New Sequence Node</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="PushButton_Unsequence">
+         <widget class="QPushButton" name="PushButton_RemoveSequenceNode">
           <property name="text">
-           <string>&lt;-</string>
+           <string>Remove Current Sequence Node</string>
           </property>
          </widget>
         </item>
        </layout>
       </item>
       <item>
-       <widget class="QGroupBox" name="GroupBox_Sequenced">
-        <property name="title">
-         <string>Sequenced</string>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="leftMargin">
+         <number>0</number>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_8">
-         <item>
-          <widget class="QListWidget" name="ListWidget_SequencedNodes"/>
-         </item>
-        </layout>
-       </widget>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QGroupBox" name="GroupBox_Unsequenced">
+          <property name="title">
+           <string>Unsequenced</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <item>
+            <widget class="QListWidget" name="ListWidget_UnsequencedNodes"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="PushButton_Sequence">
+            <property name="text">
+             <string>-&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="PushButton_Unsequence">
+            <property name="text">
+             <string>&lt;-</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="CheckBox_HideDataNodes">
+            <property name="text">
+             <string>Hide Data Nodes</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="GroupBox_Sequenced">
+          <property name="title">
+           <string>Sequenced</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <item>
+            <widget class="QListWidget" name="ListWidget_SequencedNodes"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>

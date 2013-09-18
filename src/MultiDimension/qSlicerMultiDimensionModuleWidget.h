@@ -46,6 +46,10 @@ public slots:
   void onSequenceButtonClicked();
   void onUnsequenceButtonClicked();
 
+  void onRemoveSequenceNodeButtonClicked();
+  void onHideDataNodesChecked();
+  void onAddSequenceNodeButtonClicked();
+
 protected:
   QScopedPointer<qSlicerMultiDimensionModuleWidgetPrivate> d_ptr;
   

@@ -52,11 +52,16 @@ public:
   void DeleteMultiDimensionRootNode(vtkMRMLHierarchyNode*);
 
   void AddDataNodeAtValue(vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue);
+  vtkMRMLHierarchyNode* CreateSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
   void RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-  vtkCollection* GetDataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
   void RemoveDataNodeAtValue( vtkMRMLHierarchyNode*, vtkMRMLNode*, const char* );
+
+  vtkCollection* GetDataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
   vtkCollection* GetNondataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
   vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
+
+  void SetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, bool, const char* );
+  bool GetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, const char* );
 
 protected:
   vtkSlicerMultiDimensionLogic();

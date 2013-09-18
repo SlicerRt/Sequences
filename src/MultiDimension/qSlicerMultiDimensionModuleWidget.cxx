@@ -17,6 +17,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QtGui>
 
 // SlicerQt includes
 #include "qSlicerMultiDimensionModuleWidget.h"
@@ -91,6 +92,10 @@ void qSlicerMultiDimensionModuleWidget::setup()
 
   connect( d->PushButton_Sequence, SIGNAL( clicked() ), this, SLOT( onSequenceButtonClicked() ) );
   connect( d->PushButton_Unsequence, SIGNAL( clicked() ), this, SLOT( onUnsequenceButtonClicked() ) );
+
+  connect( d->PushButton_RemoveSequenceNode, SIGNAL( clicked() ), this, SLOT( onRemoveSequenceNodeButtonClicked() ) );
+  connect( d->CheckBox_HideDataNodes, SIGNAL( stateChanged( int ) ), this, SLOT( onHideDataNodesChecked() ) );
+  connect( d->PushButton_AddSequenceNode, SIGNAL( clicked() ), this, SLOT( onAddSequenceNodeButtonClicked() ) );
 }
 
 
@@ -175,6 +180,90 @@ void qSlicerMultiDimensionModuleWidget::onUnsequenceButtonClicked()
 
   this->UpdateSequenceNode();
 }
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onRemoveSequenceNodeButtonClicked()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Get the selected nodes
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+
+  d->logic()->RemoveSequenceNodeAtValue( currentRoot, currentValue );
+
+  this->UpdateRootNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onHideDataNodesChecked()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Get the selected nodes
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+
+  d->logic()->SetDataNodesHiddenAtValue( currentRoot, d->CheckBox_HideDataNodes->checkState() == Qt::Checked, currentValue );
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onAddSequenceNodeButtonClicked()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  // Get the new value
+  QString value = QInputDialog::getText( this, tr("Sequence Value"), tr("Input value for new sequence node:") );
+  if ( value.isNull() )
+  {
+    return;
+  }
+
+  d->logic()->CreateSequenceNodeAtValue( currentRoot, value.toStdString().c_str() );
+
+  this->UpdateRootNode();
+}
+
+
 
 
 //-----------------------------------------------------------------------------
@@ -292,6 +381,15 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
   {
     vtkMRMLNode* currentNode = vtkMRMLNode::SafeDownCast( currentNondataNodes->GetItemAsObject( i ));
     d->ListWidget_UnsequencedNodes->addItem( QString::fromStdString( currentNode->GetName() ) );
-  } 
+  }
+
+  if ( d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) )
+  {
+    d->CheckBox_HideDataNodes->setCheckState( Qt::Checked );
+  }
+  else
+  {
+    d->CheckBox_HideDataNodes->setCheckState( Qt::Unchecked );
+  }
 
 }
