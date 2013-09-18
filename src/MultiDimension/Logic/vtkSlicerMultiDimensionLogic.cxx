@@ -188,16 +188,47 @@ void vtkSlicerMultiDimensionLogic
   
   dataNode->SetName( dataNodeName.c_str() );
   dataNode->SetHideFromEditors(true);
-  this->GetMRMLScene()->AddNode( dataNode );
+  if ( this->GetMRMLScene()->IsNodePresent( dataNode ) == 0 ) // Note: return value is position - 1
+  {
+    this->GetMRMLScene()->AddNode( dataNode );
+  }
   dataConnectorNode->SetAssociatedNodeID( dataNode->GetID() );
 }
 
 
 //---------------------------------------------------------------------------
 void vtkSlicerMultiDimensionLogic
-::RemoveSequenceNodeAtValue(vtkMRMLHierarchyNode* rNode, const char* value )
+::RemoveDataNodeAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* value )
 {
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(rNode);
+  // Note that this function doesn't delete the data node, it just removes it from the hierarchy
+  if ( ! rootNode )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( this->GetSequenceNodeAtValue( rootNode, value ) );
+
+  // Delete the data connector node
+  for ( int i = 0; i < sequenceNode->GetNumberOfChildrenNodes(); i++ )
+  {
+    vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) );
+    if ( this->IsDataConnectorNode( dataConnectorNode ) && strcmp( dataConnectorNode->GetAssociatedNodeID(), dataNode->GetID() ) == 0 )
+    {
+      this->GetMRMLScene()->RemoveNode( dataConnectorNode );
+      dataConnectorNode->SetAssociatedNodeID( "" );
+      dataConnectorNode->SetParentNodeID( "" );
+      dataConnectorNode->Delete();
+    }
+  }
+
+}
+
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionLogic
+::RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode* rootNode, const char* value )
+{
+
   if ( ! rootNode )
   {
     return;
@@ -259,6 +290,45 @@ vtkCollection* vtkSlicerMultiDimensionLogic
 
   return dataNodeCollection;
 }
+
+
+//---------------------------------------------------------------------------
+vtkCollection* vtkSlicerMultiDimensionLogic
+::GetNondataNodesAtValue( vtkMRMLHierarchyNode* rootNode, const char* value )
+{
+  // TODO: replace this method by one that takes a vtkCollection as input, as it's dangerous to return a collection (the caller might forget to delete it)
+  if ( ! rootNode )
+  {
+    return NULL;
+  }
+
+  // Return all of the nodes in the 
+  vtkCollection* dataNodeCollection = this->GetDataNodesAtValue( rootNode, value );
+  vtkCollection* nondataNodeCollection = vtkCollection::New();
+
+  for ( int i = 0; i < this->GetMRMLScene()->GetNumberOfNodes(); i++ )
+  {
+    vtkMRMLNode* currentNode = vtkMRMLNode::SafeDownCast( this->GetMRMLScene()->GetNthNode( i ) );
+    
+    bool isSequenced = false;
+    for ( int j = 0; j < dataNodeCollection->GetNumberOfItems(); j++ )
+    {
+      vtkMRMLNode* testDataNode = vtkMRMLNode::SafeDownCast( dataNodeCollection->GetItemAsObject( j ) );
+      if ( strcmp( currentNode->GetID(), testDataNode->GetID() ) == 0 )
+      {
+        isSequenced = true;
+      }
+    }
+
+    if ( ! isSequenced )
+    {
+      nondataNodeCollection->AddItem( currentNode );
+    }
+  }
+
+  return nondataNodeCollection;
+}
+
 
 //---------------------------------------------------------------------------
 bool vtkSlicerMultiDimensionLogic

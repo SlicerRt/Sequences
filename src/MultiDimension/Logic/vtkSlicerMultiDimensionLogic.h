@@ -54,6 +54,8 @@ public:
   void AddDataNodeAtValue(vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue);
   void RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
   vtkCollection* GetDataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
+  void RemoveDataNodeAtValue( vtkMRMLHierarchyNode*, vtkMRMLNode*, const char* );
+  vtkCollection* GetNondataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
   vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
 
 protected:

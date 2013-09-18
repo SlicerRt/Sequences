@@ -43,10 +43,18 @@ public slots:
   void onRootNodeChanged();
   void onSequenceNodeChanged();
 
+  void onSequenceButtonClicked();
+  void onUnsequenceButtonClicked();
+
 protected:
   QScopedPointer<qSlicerMultiDimensionModuleWidgetPrivate> d_ptr;
   
   virtual void setup();
+
+protected slots:
+
+  void UpdateRootNode();
+  void UpdateSequenceNode();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerMultiDimensionModuleWidget);

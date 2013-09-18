@@ -88,11 +88,97 @@ void qSlicerMultiDimensionModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_MultiDimensionRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
   connect( d->TableWidget_SequenceNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
+
+  connect( d->PushButton_Sequence, SIGNAL( clicked() ), this, SLOT( onSequenceButtonClicked() ) );
+  connect( d->PushButton_Unsequence, SIGNAL( clicked() ), this, SLOT( onUnsequenceButtonClicked() ) );
 }
 
 
 //-----------------------------------------------------------------------------
 void qSlicerMultiDimensionModuleWidget::onRootNodeChanged()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  this->UpdateRootNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onSequenceNodeChanged()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  this->UpdateSequenceNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onSequenceButtonClicked()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Get the selected nodes
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  vtkCollection* currentUnsequencedNodes = d->logic()->GetNondataNodesAtValue( currentRoot, currentValue );
+
+  int row = d->ListWidget_UnsequencedNodes->currentRow();
+  vtkMRMLNode* currentUnsequencedNode = vtkMRMLNode::SafeDownCast( currentUnsequencedNodes->GetItemAsObject( row ) );
+  d->logic()->AddDataNodeAtValue( currentRoot, currentUnsequencedNode, currentValue );
+
+  this->UpdateSequenceNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onUnsequenceButtonClicked()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Get the selected nodes
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  vtkCollection* currentSequencedNodes = d->logic()->GetDataNodesAtValue( currentRoot, currentValue );
+
+  int row = d->ListWidget_SequencedNodes->currentRow();
+  vtkMRMLNode* currentSequencedNode = vtkMRMLNode::SafeDownCast( currentSequencedNodes->GetItemAsObject( row ) );
+  d->logic()->RemoveDataNodeAtValue( currentRoot, currentSequencedNode, currentValue );
+
+  this->UpdateSequenceNode();
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
 {
   Q_D(qSlicerMultiDimensionModuleWidget);
 
@@ -141,12 +227,12 @@ void qSlicerMultiDimensionModuleWidget::onRootNodeChanged()
 
   d->TableWidget_SequenceNodes->resizeRowsToContents();  
 
+  this->UpdateSequenceNode();
 }
 
 
-
 //-----------------------------------------------------------------------------
-void qSlicerMultiDimensionModuleWidget::onSequenceNodeChanged()
+void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
 {
   Q_D(qSlicerMultiDimensionModuleWidget);
 
@@ -188,5 +274,24 @@ void qSlicerMultiDimensionModuleWidget::onSequenceNodeChanged()
   }
 
   d->TableWidget_DataNodes->resizeRowsToContents();
+
+
+  // Display the sequenced and unsequenced nodes
+  d->ListWidget_SequencedNodes->clear();
+
+  for ( int i = 0; i < currentDataNodes->GetNumberOfItems(); i++ )
+  {
+    vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( i ) );
+    d->ListWidget_SequencedNodes->addItem( QString::fromStdString( currentDataNode->GetName() ) );
+  }
+
+  vtkCollection* currentNondataNodes = d->logic()->GetNondataNodesAtValue( currentRoot, currentValue );
+  d->ListWidget_UnsequencedNodes->clear();
+
+  for ( int i = 0; i < currentNondataNodes->GetNumberOfItems(); i++ )
+  {
+    vtkMRMLNode* currentNode = vtkMRMLNode::SafeDownCast( currentNondataNodes->GetItemAsObject( i ));
+    d->ListWidget_UnsequencedNodes->addItem( QString::fromStdString( currentNode->GetName() ) );
+  } 
 
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>525</width>
-    <height>708</height>
+    <width>677</width>
+    <height>892</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,6 +26,15 @@
          <string>vtkMRMLHierarchyNode</string>
         </stringlist>
        </property>
+       <property name="noneEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="editEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="renameEnabled">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
      <item row="0" column="0">
@@ -38,7 +47,7 @@
     </layout>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton_Display">
      <property name="text">
       <string>Display</string>
      </property>
@@ -75,6 +84,63 @@
         <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
           <widget class="QTableWidget" name="TableWidget_DataNodes"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CTKCollapsibleButton_Edit">
+     <property name="text">
+      <string>Edit</string>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QGroupBox" name="GroupBox_Unsequenced">
+        <property name="title">
+         <string>Unsequenced</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_7">
+         <item>
+          <widget class="QListWidget" name="ListWidget_UnsequencedNodes"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="PushButton_Sequence">
+          <property name="text">
+           <string>-&gt;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="PushButton_Unsequence">
+          <property name="text">
+           <string>&lt;-</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="GroupBox_Sequenced">
+        <property name="title">
+         <string>Sequenced</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <widget class="QListWidget" name="ListWidget_SequencedNodes"/>
          </item>
         </layout>
        </widget>
