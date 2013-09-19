@@ -89,56 +89,12 @@ vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
   vtkSmartPointer<vtkMRMLHierarchyNode> rootNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
   rootNode->AllowMultipleChildrenOn();
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
-  rootNode->SetAttribute("MultiDimension.Name", "<Undefined>");
-  rootNode->SetAttribute("MultiDimension.Unit", "<Undefined>");
+  rootNode->SetAttribute("MultiDimension.Name", "[Undefined]");
+  rootNode->SetAttribute("MultiDimension.Unit", "[Undefined]");
   this->GetMRMLScene()->AddNode(rootNode);
   rootNode->SetName("MultiDimensionHierarchy");
 
   return rootNode;
-}
-
-//---------------------------------------------------------------------------
-vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
-::SetMultiDimensionRootNode(vtkMRMLHierarchyNode* node)
-{
-  // TODO: remove this method
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(node);
-  if (!rootNode)
-  {
-    return NULL;
-  }
-
-  rootNode->AllowMultipleChildrenOn();
-  rootNode->SetAttribute("HierarchyType", "MultiDimension");
-  rootNode->SetAttribute("MultiDimension.Name", "Time");
-  rootNode->SetAttribute("MultiDimension.Unit", "Sec");
-  //rootNode->SetName( "MultiDimensionHierarchy" );
-
-  if (!this->GetMRMLScene()->GetNodeByID(rootNode->GetID()))
-  {
-    this->GetMRMLScene()->AddNode(rootNode);
-  }
-
-  return rootNode;
-}
-
-//---------------------------------------------------------------------------
-void vtkSlicerMultiDimensionLogic
-::DeleteMultiDimensionRootNode(vtkMRMLHierarchyNode* node)
-{
-  // TODO: remove this method
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(node);
-  if (!rootNode)
-  {
-    return;
-  }
-  const char* hierarchyType = rootNode->GetAttribute("HierarchyType");
-  if (hierarchyType == NULL || strcmp(hierarchyType, "MultiDimension") != 0)
-  {
-    return;
-  }
-  this->GetMRMLScene()->RemoveNode(rootNode);
-  rootNode->Delete();
 }
 
 //---------------------------------------------------------------------------
@@ -274,29 +230,39 @@ void vtkSlicerMultiDimensionLogic
 
 
 //---------------------------------------------------------------------------
-vtkCollection* vtkSlicerMultiDimensionLogic
-::GetDataNodesAtValue(vtkMRMLHierarchyNode* rootNode, const char* parameterValue )
+void vtkSlicerMultiDimensionLogic
+::GetDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue)
 {
-  // TODO: replace this method by one that takes a vtkCollection as input, as it's dangerous to return a collection (the caller might forget to delete it)
-  if ( ! rootNode )
+  if (rootNode==NULL)
   {
-    return NULL;
+    vtkWarningMacro("GetDataNodesAtValue failed, invalid root node"); 
+    return;
+  }
+  if (foundNodes==NULL)
+  {
+    vtkErrorMacro("GetDataNodesAtValue failed, invalid output collection"); 
+    return;
+  }
+  if (parameterValue==NULL)
+  {
+    vtkErrorMacro("GetDataNodesAtValue failed, invalid parameter value"); 
+    return;
   }
 
   // Return all of the child nodes that are not connector nodes
   vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( this->GetSequenceNodeAtValue( rootNode, parameterValue ) );
-  vtkCollection* dataNodeCollection = vtkCollection::New();
 
   if ( sequenceNode == NULL )
   {
-    return dataNodeCollection;
+    vtkWarningMacro("GetDataNodesAtValue failed, no sequence not has been found with value "<<parameterValue);
+    return;
   }
 
   int numChildNodes = sequenceNode->GetNumberOfChildrenNodes();
 
   if ( numChildNodes == 0 && sequenceNode->GetAssociatedNode() != NULL )
   {
-    dataNodeCollection->AddItem( sequenceNode->GetAssociatedNode() );
+    foundNodes->AddItem( sequenceNode->GetAssociatedNode() );
   }
 
   for ( int i = 0; i < numChildNodes; i++ )
@@ -304,27 +270,34 @@ vtkCollection* vtkSlicerMultiDimensionLogic
     vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) ); 
     if ( dataConnectorNode != NULL && this->IsDataConnectorNode( dataConnectorNode ) )
     {
-      dataNodeCollection->AddItem( dataConnectorNode->GetAssociatedNode() );
+      foundNodes->AddItem( dataConnectorNode->GetAssociatedNode() );
     }
-  }
-
-  return dataNodeCollection;
+  }  
 }
 
-
 //---------------------------------------------------------------------------
-vtkCollection* vtkSlicerMultiDimensionLogic
-::GetNondataNodesAtValue( vtkMRMLHierarchyNode* rootNode, const char* value )
+void vtkSlicerMultiDimensionLogic
+::GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue)
 {
-  // TODO: replace this method by one that takes a vtkCollection as input, as it's dangerous to return a collection (the caller might forget to delete it)
-  if ( ! rootNode )
+  if (rootNode==NULL)
   {
-    return NULL;
+    vtkWarningMacro("GetNonDataNodesAtValue failed, invalid root node"); 
+    return;
+  }
+  if (foundNodes==NULL)
+  {
+    vtkErrorMacro("GetNonDataNodesAtValue failed, invalid output collection"); 
+    return;
+  }
+  if (parameterValue==NULL)
+  {
+    vtkErrorMacro("GetNonDataNodesAtValue failed, invalid parameter value"); 
+    return;
   }
 
   // Return all of the nodes in the 
-  vtkCollection* dataNodeCollection = this->GetDataNodesAtValue( rootNode, value );
-  vtkCollection* nondataNodeCollection = vtkCollection::New();
+  vtkSmartPointer<vtkCollection> dataNodeCollection = vtkSmartPointer<vtkCollection>::New();
+  this->GetDataNodesAtValue( dataNodeCollection, rootNode, parameterValue );    
 
   for ( int i = 0; i < this->GetMRMLScene()->GetNumberOfNodes(); i++ )
   {
@@ -342,11 +315,9 @@ vtkCollection* vtkSlicerMultiDimensionLogic
 
     if ( ! isSequenced )
     {
-      nondataNodeCollection->AddItem( currentNode );
+      foundNodes->AddItem( currentNode );
     }
   }
-
-  return nondataNodeCollection;
 }
 
 
@@ -412,7 +383,8 @@ void vtkSlicerMultiDimensionLogic
     return;
   }
 
-  vtkCollection* dataNodes = this->GetDataNodesAtValue( rootNode, value );
+  vtkSmartPointer<vtkCollection> dataNodes = vtkSmartPointer<vtkCollection>::New();
+  this->GetDataNodesAtValue( dataNodes, rootNode, value );
 
   for ( int i = 0; i < dataNodes->GetNumberOfItems(); i++ )
   {
@@ -433,7 +405,8 @@ bool vtkSlicerMultiDimensionLogic
     return false;
   }
 
-  vtkCollection* dataNodes = this->GetDataNodesAtValue( rootNode, value );
+  vtkSmartPointer<vtkCollection> dataNodes = vtkSmartPointer<vtkCollection>::New();
+  this->GetDataNodesAtValue( dataNodes, rootNode, value );
 
   for ( int i = 0; i < dataNodes->GetNumberOfItems(); i++ )
   {
@@ -446,4 +419,3 @@ bool vtkSlicerMultiDimensionLogic
 
   return true;
 }
-

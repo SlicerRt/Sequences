@@ -138,7 +138,7 @@ void qSlicerMultiDimensionBrowserModuleWidget::enter()
       this->mrmlScene()->AddNode(newBrowserNode);
       vtkSmartPointer<vtkMRMLHierarchyNode> newVirtualOutputNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
       newVirtualOutputNode->SetAttribute("HierarchyType","MultiDimension");
-      newVirtualOutputNode->SetAttribute("MultiDimension.SourceHierarchy","<Undefined>");
+      newVirtualOutputNode->SetAttribute("MultiDimension.SourceHierarchy","[Undefined]");
       this->mrmlScene()->AddNode(newVirtualOutputNode);
       newVirtualOutputNode->SetName(d->MRMLNodeComboBox_VirtualOutput->baseName().toLatin1().constData());
       newBrowserNode->SetAndObserveVirtualOutputNodeID(newVirtualOutputNode->GetID());

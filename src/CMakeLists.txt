@@ -19,8 +19,5 @@ add_subdirectory(MultiDimension)
 add_subdirectory(MultiDimensionBrowser)
 add_subdirectory(MetafileImporter)
 
-add_subdirectory(MultiDimensionComposer)
-add_subdirectory(MultiDimensionExplorer)
-
 #-----------------------------------------------------------------------------
 include(${Slicer_EXTENSION_CPACK})

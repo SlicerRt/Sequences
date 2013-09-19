@@ -48,16 +48,14 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   vtkMRMLHierarchyNode* CreateMultiDimensionRootNode();
-  vtkMRMLHierarchyNode* SetMultiDimensionRootNode(vtkMRMLHierarchyNode*);
-  void DeleteMultiDimensionRootNode(vtkMRMLHierarchyNode*);
 
   void AddDataNodeAtValue(vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue);
   vtkMRMLHierarchyNode* CreateSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
   void RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
   void RemoveDataNodeAtValue( vtkMRMLHierarchyNode*, vtkMRMLNode*, const char* );
 
-  vtkCollection* GetDataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
-  vtkCollection* GetNondataNodesAtValue( vtkMRMLHierarchyNode*, const char* );
+  void GetDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue);
+  void GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue);
   vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
 
   void SetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, bool, const char* );
