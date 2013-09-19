@@ -122,6 +122,7 @@ void vtkSlicerMultiDimensionLogic
   dataConnectorNode->SetAttribute( "MultiDimension.SourceDataName", dataNode->GetName() );
   dataConnectorNode->SetHideFromEditors(true);
   this->GetMRMLScene()->AddNode( dataConnectorNode );
+  dataConnectorNode->SetScene( this->GetMRMLScene() );
   dataConnectorNode->SetParentNodeID( sequenceNode->GetID() );
   std::string dataConnectorNodeName=dataNodeName+" connector";
   dataConnectorNode->SetName(dataConnectorNodeName.c_str());
@@ -133,6 +134,7 @@ void vtkSlicerMultiDimensionLogic
   if ( this->GetMRMLScene()->IsNodePresent( dataNode ) == 0 ) // Note: return value is position - 1 // TODO: This may not be optimal
   {
     this->GetMRMLScene()->AddNode( dataNode );
+    dataNode->SetScene( this->GetMRMLScene() );
   }
   dataConnectorNode->SetAssociatedNodeID( dataNode->GetID() );
 }
@@ -162,6 +164,7 @@ vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
 
     sequenceNode->SetHideFromEditors(true);
     this->GetMRMLScene()->AddNode( sequenceNode );
+    sequenceNode->SetScene( this->GetMRMLScene() );
     sequenceNode->Delete(); // ownership passed to the scene
     sequenceNode->SetParentNodeID( rootNode->GetID() );    
     std::string sequenceNodeName=std::string(rootNode->GetName())+sequenceNamePostfix+" sequence";
@@ -190,10 +193,9 @@ void vtkSlicerMultiDimensionLogic
     vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) );
     if ( this->IsDataConnectorNode( dataConnectorNode ) && strcmp( dataConnectorNode->GetAssociatedNodeID(), dataNode->GetID() ) == 0 )
     {
-      this->GetMRMLScene()->RemoveNode( dataConnectorNode );
       dataConnectorNode->SetAssociatedNodeID( "" );
       dataConnectorNode->SetParentNodeID( "" );
-      dataConnectorNode->Delete();
+      this->GetMRMLScene()->RemoveNode( dataConnectorNode );
     }
   }
 
@@ -215,17 +217,18 @@ void vtkSlicerMultiDimensionLogic
   // Delete all the child data connector nodes
   for ( int i = 0; i < sequenceNode->GetNumberOfChildrenNodes(); i++ )
   {
-    vtkMRMLNode* dataConnectorNode = sequenceNode->GetNthChildNode( i );
+    vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) );
     if ( this->IsDataConnectorNode( dataConnectorNode ) )
     {
-      dataConnectorNode->Delete();
+      dataConnectorNode->SetAssociatedNodeID( "" );
+      dataConnectorNode->SetParentNodeID( "" );
+      this->GetMRMLScene()->RemoveNode( dataConnectorNode );
     }
   }
 
-  this->GetMRMLScene()->RemoveNode( sequenceNode );
   sequenceNode->SetAssociatedNodeID( "" );
   sequenceNode->SetParentNodeID( "" );
-  sequenceNode->Delete();
+  this->GetMRMLScene()->RemoveNode( sequenceNode );
 }
 
 
@@ -254,7 +257,7 @@ void vtkSlicerMultiDimensionLogic
 
   if ( sequenceNode == NULL )
   {
-    vtkWarningMacro("GetDataNodesAtValue failed, no sequence not has been found with value "<<parameterValue);
+    vtkWarningMacro("GetDataNodesAtValue failed, no sequence node has been found with value "<<parameterValue);
     return;
   }
 

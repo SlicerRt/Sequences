@@ -43,11 +43,11 @@ public slots:
   void onRootNodeChanged();
   void onSequenceNodeChanged();
 
-  void onSequenceButtonClicked();
-  void onUnsequenceButtonClicked();
+  void onAddDataNodeButtonClicked();
+  void onRemoveDataNodeButtonClicked();
 
   void onRemoveSequenceNodeButtonClicked();
-  void onHideDataNodesChecked();
+  //void onHideDataNodesChecked();
   void onAddSequenceNodeButtonClicked();
 
 protected:
