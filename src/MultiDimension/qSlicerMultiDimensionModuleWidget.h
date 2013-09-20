@@ -43,6 +43,12 @@ public slots:
   void onRootNodeChanged();
   void onSequenceNodeChanged();
 
+  void onParameterNameEdited();
+  void onParameterUnitEdited();
+
+  void onSequenceNodeEdited( int row, int column );
+  void onDataNodeEdited( int row, int column );
+
   void onAddDataNodeButtonClicked();
   void onRemoveDataNodeButtonClicked();
 

@@ -92,6 +92,12 @@ void qSlicerMultiDimensionModuleWidget::setup()
   connect( d->MRMLNodeComboBox_MultiDimensionRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
   connect( d->TableWidget_SequenceNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
 
+  connect( d->LineEdit_ParameterName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterNameEdited() ) );
+  connect( d->LineEdit_ParameterUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterUnitEdited() ) );
+
+  connect( d->TableWidget_SequenceNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
+
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
   connect( d->PushButton_RemoveDataNode, SIGNAL( clicked() ), this, SLOT( onRemoveDataNodeButtonClicked() ) );
 
@@ -114,6 +120,142 @@ void qSlicerMultiDimensionModuleWidget::onRootNodeChanged()
 void qSlicerMultiDimensionModuleWidget::onSequenceNodeChanged()
 {
   Q_D(qSlicerMultiDimensionModuleWidget);
+
+  this->UpdateSequenceNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onParameterNameEdited()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  QString qName = d->LineEdit_ParameterName->text();
+  std::string sName = qName.toStdString();
+  const char* cName = sName.c_str();
+  currentRoot->SetAttribute( "MultiDimension.Name", cName );
+
+  this->UpdateRootNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onParameterUnitEdited()
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  QString qUnit = d->LineEdit_ParameterUnit->text();
+  std::string sUnit = qUnit.toStdString();
+  const char* cUnit = sUnit.c_str();
+  currentRoot->SetAttribute( "MultiDimension.Unit", cUnit );
+
+  this->UpdateRootNode();
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onSequenceNodeEdited( int row, int column )
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  // Ensure that the user is editing, not the cell changed programmatically
+  if ( d->TableWidget_SequenceNodes->currentRow() != row || d->TableWidget_SequenceNodes->currentColumn() != column )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( row );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Grab the tex from the modified item
+  QTableWidgetItem* qItem = d->TableWidget_SequenceNodes->item( row, column );
+  QString qText = qItem->text();
+  std::string sText = qText.toStdString();
+  const char* cText = sText.c_str();
+
+  if ( column == 0 )
+  {
+    currentSequenceNode->SetName( cText );
+  }
+
+  if ( column == 1 )
+  {
+    currentSequenceNode->SetAttribute( "MultiDimension.Value", cText ); // TODO: Should this be propagated to data node names?
+  }
+
+  this->UpdateRootNode();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onDataNodeEdited( int row, int column )
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  // Ensure that the user is editing, not the cell changed programmatically
+  if ( d->TableWidget_DataNodes->currentRow() != row || d->TableWidget_DataNodes->currentColumn() != column )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  // Get the data node
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
+  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
+  vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
+
+  // Grab the text from the modified item
+  QTableWidgetItem* qItem = d->TableWidget_DataNodes->item( row, column );
+  QString qText = qItem->text();
+  std::string sText = qText.toStdString();
+  const char* cText = sText.c_str();
+
+  if ( column == 0 )
+  {
+    currentDataNode->SetName( cText );
+  }
 
   this->UpdateSequenceNode();
 }
@@ -278,6 +420,11 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
 
   if ( currentRoot == NULL )
   {
+    d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( "" ) );
+    d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( "" ) );
+    d->TableWidget_SequenceNodes->clear();
+    d->TableWidget_SequenceNodes->setRowCount( 0 );
+    d->TableWidget_SequenceNodes->setColumnCount( 0 );
     return;
   }
 
@@ -327,6 +474,10 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
 
   if ( currentSequenceNode == NULL )
   {
+    d->TableWidget_DataNodes->clear();
+    d->TableWidget_DataNodes->setRowCount( 0 );
+    d->TableWidget_DataNodes->setColumnCount( 0 );
+    d->ListWidget_NonDataNodes->clear();
     return;
   }
 
