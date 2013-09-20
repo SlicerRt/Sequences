@@ -29,9 +29,6 @@
 // VTK includes
 #include <vtkNew.h>
 
-// STD includes
-#include <cassert>
-
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMultiDimensionBrowserLogic);
 
@@ -65,22 +62,29 @@ void vtkSlicerMultiDimensionBrowserLogic::SetMRMLSceneInternal(vtkMRMLScene * ne
 //-----------------------------------------------------------------------------
 void vtkSlicerMultiDimensionBrowserLogic::RegisterNodes()
 {
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
   vtkMRMLMultiDimensionBrowserNode* browserNode = vtkMRMLMultiDimensionBrowserNode::New();
   this->GetMRMLScene()->RegisterNodeClass(browserNode);
   browserNode->Delete();
-
-  assert(this->GetMRMLScene() != 0);
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerMultiDimensionBrowserLogic::UpdateFromMRMLScene()
 {
-  assert(this->GetMRMLScene() != 0);
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
+  // TODO: probably we need to add observer to all vtkMRMLMultiDimensionBrowserNode-type nodes
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMultiDimensionBrowserLogic
-::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
+void vtkSlicerMultiDimensionBrowserLogic::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
 {
   if (node==NULL)
   {
@@ -90,14 +94,13 @@ void vtkSlicerMultiDimensionBrowserLogic
   if (node->IsA("vtkMRMLMultiDimensionBrowserNode"))
   {
     vtkDebugMacro("OnMRMLSceneNodeAdded: Have a vtkMRMLMultiDimensionBrowserNode node");
-    //vtkUnObserveMRMLNodeMacro(node); // remove any previous observation that might have been added
+    vtkUnObserveMRMLNodeMacro(node); // remove any previous observation that might have been added
     vtkObserveMRMLNodeMacro(node);
   }
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMultiDimensionBrowserLogic
-::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
+void vtkSlicerMultiDimensionBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 {
   if (node==NULL)
   {
@@ -112,32 +115,7 @@ void vtkSlicerMultiDimensionBrowserLogic
 }
 
 //---------------------------------------------------------------------------
-vtkMRMLNode* vtkSlicerMultiDimensionBrowserLogic
-::SetMultiDimensionBrowserRootNode(vtkMRMLNode* node)
-{
-  vtkMRMLHierarchyNode* rootNode = vtkMRMLHierarchyNode::SafeDownCast(node);
-  if (!rootNode)
-  {
-    return NULL;
-  }
-
-  rootNode->AllowMultipleChildrenOn();
-  rootNode->SetAttribute("HierarchyType", "MultiDimension");
-  rootNode->SetAttribute("MultiDimension.Name", "Time");
-  rootNode->SetAttribute("MultiDimension.Unit", "Sec");
-  //rootNode->SetName( "MultiDimensionHierarchy" );
-
-  if (!this->GetMRMLScene()->GetNodeByID(rootNode->GetID()))
-  {
-    this->GetMRMLScene()->AddNode(rootNode);
-  }
-
-  return rootNode;
-}
-
-//---------------------------------------------------------------------------
-void vtkSlicerMultiDimensionBrowserLogic
-::UpdateVirtualOutputNode(vtkMRMLMultiDimensionBrowserNode* browserNode)
+void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDimensionBrowserNode* browserNode)
 {
   vtkMRMLHierarchyNode* virtualOutputNode=browserNode->GetVirtualOutputNode();
   if (virtualOutputNode==NULL)

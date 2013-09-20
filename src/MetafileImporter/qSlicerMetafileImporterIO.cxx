@@ -19,6 +19,7 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QDebug>
 
 // SlicerQt includes
 #include "qSlicerMetafileImporterIO.h"
@@ -87,7 +88,10 @@ QStringList qSlicerMetafileImporterIO::extensions() const
 bool qSlicerMetafileImporterIO::load(const IOProperties& properties)
 {
   Q_D(qSlicerMetafileImporterIO);
-  Q_ASSERT( properties.contains("fileName") );
+  if (!properties.contains("fileName"))
+  {
+    qCritical() << "qSlicerMetafileImporterIO::load did not receive fileName property";
+  }
   QString fileName = properties["fileName"].toString();
   
   d->MetafileImporterLogic->Read( fileName.toStdString() );

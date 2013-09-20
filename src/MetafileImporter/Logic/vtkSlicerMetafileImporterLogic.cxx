@@ -26,6 +26,7 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
+#include "vtkMRMLNRRDStorageNode.h"
 
 // VTK includes
 #include <vtkNew.h>
@@ -38,8 +39,8 @@
 #endif
 
 // STD includes
-#include <cassert>
 #include <sstream>
+#include <algorithm>
 
 static const char IMAGE_NODE_BASE_NAME[]="Image";
 
@@ -83,13 +84,21 @@ void vtkSlicerMetafileImporterLogic::SetMRMLSceneInternal(vtkMRMLScene * newScen
 //-----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic::RegisterNodes()
 {
-  assert(this->GetMRMLScene() != 0);
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic::UpdateFromMRMLScene()
 {
-  assert(this->GetMRMLScene() != 0);
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -348,6 +357,7 @@ void vtkSlicerMetafileImporterLogic
     std::string paramValueString=this->FrameNumberToParameterValueMap[frameNumber];
     this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, slice, paramValueString.c_str() );
 
+    // Create display node
     // TODO: add the display node to the MultiDimension hierarchy?
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
     displayNode->SetDefaultColorMap();
@@ -356,6 +366,23 @@ void vtkSlicerMetafileImporterLogic
     displayNode->SetName(displayNodeName.c_str());
     this->GetMRMLScene()->AddNode( displayNode );
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );   
+
+    // Create storage node
+    vtkMRMLStorageNode *storageNode = slice->CreateDefaultStorageNode();    
+    if (storageNode)
+    {
+      this->GetMRMLScene()->AddNode(storageNode);
+      storageNode->Delete(); // now the scene owns the storage node
+      slice->SetAndObserveStorageNodeID(storageNode->GetID());
+      std::string filename=std::string(slice->GetName())+".nrrd";
+      storageNode->SetFileName(filename.c_str());
+      slice->StorableModified(); // marks as modified, so the volume will be written to file on save
+    }
+    else
+    {
+      vtkErrorMacro("Failed to create storage node for the imported slice");
+    }
+
   }
 }
 

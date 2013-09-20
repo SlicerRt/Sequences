@@ -47,8 +47,6 @@ public:
   vtkTypeMacro(vtkSlicerMultiDimensionBrowserLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  vtkMRMLNode* SetMultiDimensionBrowserRootNode(vtkMRMLNode*);
-
   void UpdateVirtualOutputNode(vtkMRMLMultiDimensionBrowserNode* browserNode);
 
 protected:

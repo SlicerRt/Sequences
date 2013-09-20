@@ -26,9 +26,6 @@
 // VTK includes
 #include <vtkNew.h>
 
-// STD includes
-#include <cassert>
-
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMultiDimensionLogic);
 
@@ -61,13 +58,21 @@ void vtkSlicerMultiDimensionLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 //-----------------------------------------------------------------------------
 void vtkSlicerMultiDimensionLogic::RegisterNodes()
 {
-  assert(this->GetMRMLScene() != 0);
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerMultiDimensionLogic::UpdateFromMRMLScene()
 {
-  assert(this->GetMRMLScene() != 0);
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -89,6 +94,7 @@ vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
   vtkSmartPointer<vtkMRMLHierarchyNode> rootNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
   rootNode->AllowMultipleChildrenOn();
   rootNode->SetAttribute("HierarchyType", "MultiDimension");
+  rootNode->SetAttribute("MultiDimension.NodeType", "Root");
   rootNode->SetAttribute("MultiDimension.Name", "[Undefined]");
   rootNode->SetAttribute("MultiDimension.Unit", "[Undefined]");
   this->GetMRMLScene()->AddNode(rootNode);
@@ -119,6 +125,7 @@ void vtkSlicerMultiDimensionLogic
   vtkSmartPointer<vtkMRMLHierarchyNode> dataConnectorNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
   dataConnectorNode->AllowMultipleChildrenOff();
   dataConnectorNode->SetAttribute( "HierarchyType", "MultiDimension" );
+  dataConnectorNode->SetAttribute( "MultiDimension.NodeType", "DataConnector");
   dataConnectorNode->SetAttribute( "MultiDimension.SourceDataName", dataNode->GetName() );
   dataConnectorNode->SetHideFromEditors(true);
   this->GetMRMLScene()->AddNode( dataConnectorNode );
@@ -160,6 +167,7 @@ vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
     sequenceNode = vtkMRMLHierarchyNode::New();
     sequenceNode->AllowMultipleChildrenOn();
     sequenceNode->SetAttribute( "HierarchyType", "MultiDimension" );
+    sequenceNode->SetAttribute( "MultiDimension.NodeType", "Sequence");
     sequenceNode->SetAttribute( "MultiDimension.Value", parameterValue );
 
     sequenceNode->SetHideFromEditors(true);
@@ -345,6 +353,12 @@ bool vtkSlicerMultiDimensionLogic
     return false;
   }
 
+  const char* nodeType = hierarchyNode->GetAttribute( "MultiDimension.NodeType" );
+  if ( nodeType == NULL || strcmp( nodeType, "DataConnector" ) != 0 )
+  {
+    return false;
+  }
+
   return true;
 }
 
@@ -371,6 +385,7 @@ vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
     }
   }
 
+  // not found
   return NULL;
 }
 
