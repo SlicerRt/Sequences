@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QtPlugin>
 #include <QDebug>
 #include <QtGui>
 
@@ -97,6 +98,7 @@ void qSlicerMultiDimensionModuleWidget::setup()
 
   connect( d->TableWidget_SequenceNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
   connect( d->PushButton_RemoveDataNode, SIGNAL( clicked() ), this, SLOT( onRemoveDataNodeButtonClicked() ) );
@@ -356,9 +358,9 @@ void qSlicerMultiDimensionModuleWidget::onRemoveSequenceNodeButtonClicked()
 }
 
 
-/*
+
 //-----------------------------------------------------------------------------
-void qSlicerMultiDimensionModuleWidget::onHideDataNodesChecked()
+void qSlicerMultiDimensionModuleWidget::onHideDataNodeClicked( int row, int column )
 {
   Q_D(qSlicerMultiDimensionModuleWidget);
 
@@ -378,10 +380,15 @@ void qSlicerMultiDimensionModuleWidget::onHideDataNodesChecked()
 
   // Get the selected nodes
   const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
+  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
 
-  d->logic()->SetDataNodesHiddenAtValue( currentRoot, d->CheckBox_HideDataNodes->checkState() == Qt::Checked, currentValue );
+  vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
+  currentDataNode->SetHideFromEditors( ! currentDataNode->GetHideFromEditors() );
+
+  this->UpdateSequenceNode();
 }
-*/
+
 
 
 //-----------------------------------------------------------------------------
@@ -441,7 +448,6 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
   QStringList SequenceNodesTableHeader;
   SequenceNodesTableHeader << "Name" << valueHeader.str().c_str();
   d->TableWidget_SequenceNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );
-  d->TableWidget_SequenceNodes->horizontalHeader()->setResizeMode( QHeaderView::Stretch );
 
   for ( int i = 0; i < currentRoot->GetNumberOfChildrenNodes(); i++ )
   {
@@ -452,6 +458,7 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
     d->TableWidget_SequenceNodes->setItem( i, 1, valueItem );
   }
 
+  d->TableWidget_SequenceNodes->resizeColumnsToContents();  
   d->TableWidget_SequenceNodes->resizeRowsToContents();  
 
   this->UpdateSequenceNode();
@@ -488,21 +495,39 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
   // Display all of the data nodes
   d->TableWidget_DataNodes->clear();
   d->TableWidget_DataNodes->setRowCount( currentDataNodes->GetNumberOfItems() );
-  d->TableWidget_DataNodes->setColumnCount( 2 );
+  d->TableWidget_DataNodes->setColumnCount( 3 );
   QStringList SequenceNodesTableHeader;
-  SequenceNodesTableHeader << "Name" << "Type";
+  SequenceNodesTableHeader << "Name" << "Type" << "Vis";
   d->TableWidget_DataNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );
-  d->TableWidget_DataNodes->horizontalHeader()->setResizeMode( QHeaderView::Stretch );
 
   for ( int i = 0; i < currentDataNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( i ) );
+
     QTableWidgetItem* nameItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetName() ) );
+
     QTableWidgetItem* typeItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetClassName() ) );
+    typeItem->setFlags( typeItem->flags() & ~Qt::ItemIsEditable );
+
+    // Display the "hiddenness" of the data nodes
+    QTableWidgetItem* hiddenItem = new QTableWidgetItem( QString( "" ) );
+    hiddenItem->setFlags( hiddenItem->flags() & ~Qt::ItemIsEditable );
+    if ( currentDataNode->GetHideFromEditors() )
+    {
+      hiddenItem->setIcon( QIcon( ":/Icons/DataNodeHidden.png" ) );
+    }
+    else
+    {
+      hiddenItem->setIcon( QIcon( ":/Icons/DataNodeUnhidden.png" ) );
+    }
+
+
     d->TableWidget_DataNodes->setItem( i, 0, nameItem );
     d->TableWidget_DataNodes->setItem( i, 1, typeItem );
+    d->TableWidget_DataNodes->setItem( i, 2, hiddenItem );
   }
 
+  d->TableWidget_DataNodes->resizeColumnsToContents();
   d->TableWidget_DataNodes->resizeRowsToContents();
 
 

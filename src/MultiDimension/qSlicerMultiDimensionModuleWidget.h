@@ -48,6 +48,7 @@ public slots:
 
   void onSequenceNodeEdited( int row, int column );
   void onDataNodeEdited( int row, int column );
+  void onHideDataNodeClicked( int row, int column );
 
   void onAddDataNodeButtonClicked();
   void onRemoveDataNodeButtonClicked();

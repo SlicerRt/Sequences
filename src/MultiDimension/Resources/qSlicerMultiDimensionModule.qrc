@@ -1,5 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
   <qresource>
     <file>Icons/MultiDimension.png</file>
+    <file>Icons/DataNodeUnhidden.png</file>
+    <file>Icons/DataNodeHidden.png</file>
   </qresource>
 </RCC>
