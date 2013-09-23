@@ -23,6 +23,8 @@
 
 #include "qSlicerMultiDimensionModuleExport.h"
 
+#include <QtGui>
+
 class qSlicerMultiDimensionModuleWidgetPrivate;
 class vtkMRMLNode;
 
@@ -47,14 +49,15 @@ public slots:
   void onParameterUnitEdited();
 
   void onSequenceNodeEdited( int row, int column );
+  void onHideSequenceNodeClicked( int row, int column );
   void onDataNodeEdited( int row, int column );
   void onHideDataNodeClicked( int row, int column );
+
 
   void onAddDataNodeButtonClicked();
   void onRemoveDataNodeButtonClicked();
 
   void onRemoveSequenceNodeButtonClicked();
-  //void onHideDataNodesChecked();
   void onAddSequenceNodeButtonClicked();
 
 protected:
@@ -66,6 +69,8 @@ protected slots:
 
   void UpdateRootNode();
   void UpdateSequenceNode();
+
+  void CreateVisItem( QTableWidgetItem*, bool );
 
 private:
   Q_DECLARE_PRIVATE(qSlicerMultiDimensionModuleWidget);

@@ -63,29 +63,26 @@
         <property name="title">
          <string>Root Node</string>
         </property>
-        <layout class="QFormLayout" name="formLayout_2">
-         <property name="fieldGrowthPolicy">
-          <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-         </property>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="LineEdit_ParameterUnit"/>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="LineEdit_ParameterName"/>
-         </item>
-         <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
           <widget class="QLabel" name="Label_ParameterName">
            <property name="text">
             <string>Parameter Name</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item>
+          <widget class="QLineEdit" name="LineEdit_ParameterName"/>
+         </item>
+         <item>
           <widget class="QLabel" name="Label_ParameterUnit">
            <property name="text">
             <string>Parameter Unit</string>
            </property>
           </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="LineEdit_ParameterUnit"/>
          </item>
         </layout>
        </widget>
@@ -97,7 +94,14 @@
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
-          <widget class="QTableWidget" name="TableWidget_SequenceNodes"/>
+          <widget class="QTableWidget" name="TableWidget_SequenceNodes">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
          </item>
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -167,7 +171,7 @@
            <item>
             <widget class="QTableWidget" name="TableWidget_DataNodes">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -225,7 +229,7 @@
            <item>
             <widget class="QListWidget" name="ListWidget_NonDataNodes">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
+              <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -247,8 +251,8 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>0</width>
-       <height>0</height>
+       <width>20</width>
+       <height>40</height>
       </size>
      </property>
     </spacer>

@@ -420,7 +420,7 @@ bool vtkSlicerMultiDimensionLogic
   if ( rootNode==NULL )
   {
     vtkErrorMacro("GetDataNodesHiddenAtValue failed: rootNode is invalid");
-    return false;
+    return true;
   }
 
   vtkSmartPointer<vtkCollection> dataNodes = vtkSmartPointer<vtkCollection>::New();

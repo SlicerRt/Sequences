@@ -18,11 +18,12 @@
 // Qt includes
 #include <QtPlugin>
 #include <QDebug>
-#include <QtGui>
 
 // SlicerQt includes
 #include "qSlicerMultiDimensionModuleWidget.h"
 #include "ui_qSlicerMultiDimensionModuleWidget.h"
+#include "qSlicerApplication.h"
+#include "qSlicerLayoutManager.h"
 
 // VTK includes
 #include "vtkMRMLHierarchyNode.h"
@@ -31,6 +32,16 @@
 #include "vtkSlicerMultiDimensionLogic.h"
 
 #define FROM_STD_STRING_SAFE(unsafeString) QString::fromStdString( unsafeString==NULL?"":unsafeString )
+
+static const int SEQUENCE_NODE_COLUMNS = 3;
+static const int SEQUENCE_NODE_VIS_COLUMN = 0;
+static const int SEQUENCE_NODE_NAME_COLUMN = 1;
+static const int SEQUENCE_NODE_VALUE_COLUMN = 2;
+
+static const int DATA_NODE_COLUMNS = 3;
+static const int DATA_NODE_VIS_COLUMN = 0;
+static const int DATA_NODE_NAME_COLUMN = 1;
+static const int DATA_NODE_TYPE_COLUMN = 2;
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -97,6 +108,7 @@ void qSlicerMultiDimensionModuleWidget::setup()
   connect( d->LineEdit_ParameterUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterUnitEdited() ) );
 
   connect( d->TableWidget_SequenceNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideSequenceNodeClicked( int, int ) ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
@@ -202,12 +214,12 @@ void qSlicerMultiDimensionModuleWidget::onSequenceNodeEdited( int row, int colum
   std::string sText = qText.toStdString();
   const char* cText = sText.c_str();
 
-  if ( column == 0 )
+  if ( column == SEQUENCE_NODE_NAME_COLUMN )
   {
     currentSequenceNode->SetName( cText );
   }
 
-  if ( column == 1 )
+  if ( column == SEQUENCE_NODE_VALUE_COLUMN )
   {
     currentSequenceNode->SetAttribute( "MultiDimension.Value", cText ); // TODO: Should this be propagated to data node names?
   }
@@ -254,7 +266,7 @@ void qSlicerMultiDimensionModuleWidget::onDataNodeEdited( int row, int column )
   std::string sText = qText.toStdString();
   const char* cText = sText.c_str();
 
-  if ( column == 0 )
+  if ( column == DATA_NODE_NAME_COLUMN )
   {
     currentDataNode->SetName( cText );
   }
@@ -358,6 +370,45 @@ void qSlicerMultiDimensionModuleWidget::onRemoveSequenceNodeButtonClicked()
 }
 
 
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::onHideSequenceNodeClicked( int row, int column )
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultiDimensionRoot->currentNode() );
+
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
+
+  if ( currentSequenceNode == NULL )
+  {
+    return;
+  }
+
+  if ( column != SEQUENCE_NODE_VIS_COLUMN )
+  {
+    return;
+  }
+
+  // Get the selected nodes
+  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+
+  d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ), currentValue );
+
+  // Change the eye for the current sequence node
+  QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
+  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
+  d->TableWidget_SequenceNodes->setItem( row, SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current cell to NULL
+  d->TableWidget_SequenceNodes->setCurrentCell( row, column ); // Reset the current cell so updating the sequence node works
+
+  this->UpdateSequenceNode();
+}
+
+
 
 //-----------------------------------------------------------------------------
 void qSlicerMultiDimensionModuleWidget::onHideDataNodeClicked( int row, int column )
@@ -378,6 +429,11 @@ void qSlicerMultiDimensionModuleWidget::onHideDataNodeClicked( int row, int colu
     return;
   }
 
+  if ( column != DATA_NODE_VIS_COLUMN )
+  {
+    return;
+  }
+  
   // Get the selected nodes
   const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
@@ -385,6 +441,16 @@ void qSlicerMultiDimensionModuleWidget::onHideDataNodeClicked( int row, int colu
 
   vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
   currentDataNode->SetHideFromEditors( ! currentDataNode->GetHideFromEditors() );
+  qSlicerApplication::application()->layoutManager()->setMRMLScene( this->mrmlScene() );
+
+  // Change the eye for the current sequence node
+  int sequenceRow = d->TableWidget_SequenceNodes->currentRow();
+  int sequenceColumn = d->TableWidget_SequenceNodes->currentColumn();
+  QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
+  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
+  d->TableWidget_SequenceNodes->setItem( d->TableWidget_SequenceNodes->currentRow(), SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current cell to NULL
+  d->TableWidget_SequenceNodes->setCurrentCell( sequenceRow, sequenceColumn ); // Reset the current cell so updating the sequence node works
+
 
   this->UpdateSequenceNode();
 }
@@ -442,20 +508,30 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
   // Display all of the sequence nodes
   d->TableWidget_SequenceNodes->clear();
   d->TableWidget_SequenceNodes->setRowCount( currentRoot->GetNumberOfChildrenNodes() );
-  d->TableWidget_SequenceNodes->setColumnCount( 2 );
+  d->TableWidget_SequenceNodes->setColumnCount( SEQUENCE_NODE_COLUMNS );
   std::stringstream valueHeader;
   valueHeader << currentRoot->GetAttribute( "MultiDimension.Name" ) << " (" << currentRoot->GetAttribute( "MultiDimension.Unit" ) << ")";
   QStringList SequenceNodesTableHeader;
-  SequenceNodesTableHeader << "Name" << valueHeader.str().c_str();
+  SequenceNodesTableHeader.insert( SEQUENCE_NODE_VIS_COLUMN, "Vis" );
+  SequenceNodesTableHeader.insert( SEQUENCE_NODE_NAME_COLUMN, "Name" );
+  SequenceNodesTableHeader.insert( SEQUENCE_NODE_VALUE_COLUMN, valueHeader.str().c_str() );
   d->TableWidget_SequenceNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );
 
   for ( int i = 0; i < currentRoot->GetNumberOfChildrenNodes(); i++ )
   {
     vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( i );
+    const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+
+    // Display the data node information
+    QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
+    this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
+
     QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentSequenceNode->GetName() ) );
-    QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) ) );
-    d->TableWidget_SequenceNodes->setItem( i, 0, nameItem );
-    d->TableWidget_SequenceNodes->setItem( i, 1, valueItem );
+    QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentValue ) );
+
+    d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_VIS_COLUMN, visItem );
+    d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_NAME_COLUMN, nameItem );
+    d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_VALUE_COLUMN, valueItem );
   }
 
   d->TableWidget_SequenceNodes->resizeColumnsToContents();  
@@ -495,36 +571,29 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
   // Display all of the data nodes
   d->TableWidget_DataNodes->clear();
   d->TableWidget_DataNodes->setRowCount( currentDataNodes->GetNumberOfItems() );
-  d->TableWidget_DataNodes->setColumnCount( 3 );
-  QStringList SequenceNodesTableHeader;
-  SequenceNodesTableHeader << "Name" << "Type" << "Vis";
-  d->TableWidget_DataNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );
+  d->TableWidget_DataNodes->setColumnCount( DATA_NODE_COLUMNS );
+  QStringList DataNodesTableHeader;
+  DataNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
+  DataNodesTableHeader.insert( DATA_NODE_NAME_COLUMN, "Name" );
+  DataNodesTableHeader.insert( DATA_NODE_TYPE_COLUMN, "Type" );
+  d->TableWidget_DataNodes->setHorizontalHeaderLabels( DataNodesTableHeader );
 
   for ( int i = 0; i < currentDataNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( i ) );
+
+    // Display the data node information
+    QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
+    this->CreateVisItem( visItem, currentDataNode->GetHideFromEditors() );
 
     QTableWidgetItem* nameItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetName() ) );
 
     QTableWidgetItem* typeItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetClassName() ) );
     typeItem->setFlags( typeItem->flags() & ~Qt::ItemIsEditable );
 
-    // Display the "hiddenness" of the data nodes
-    QTableWidgetItem* hiddenItem = new QTableWidgetItem( QString( "" ) );
-    hiddenItem->setFlags( hiddenItem->flags() & ~Qt::ItemIsEditable );
-    if ( currentDataNode->GetHideFromEditors() )
-    {
-      hiddenItem->setIcon( QIcon( ":/Icons/DataNodeHidden.png" ) );
-    }
-    else
-    {
-      hiddenItem->setIcon( QIcon( ":/Icons/DataNodeUnhidden.png" ) );
-    }
-
-
-    d->TableWidget_DataNodes->setItem( i, 0, nameItem );
-    d->TableWidget_DataNodes->setItem( i, 1, typeItem );
-    d->TableWidget_DataNodes->setItem( i, 2, hiddenItem );
+    d->TableWidget_DataNodes->setItem( i, DATA_NODE_VIS_COLUMN, visItem );
+    d->TableWidget_DataNodes->setItem( i, DATA_NODE_NAME_COLUMN, nameItem );
+    d->TableWidget_DataNodes->setItem( i, DATA_NODE_TYPE_COLUMN, typeItem );
   }
 
   d->TableWidget_DataNodes->resizeColumnsToContents();
@@ -552,5 +621,24 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
     d->CheckBox_HideDataNodes->setCheckState( Qt::Unchecked );
   }
   */
+
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionModuleWidget::CreateVisItem( QTableWidgetItem* visItem, bool hidden )
+{
+  Q_D(qSlicerMultiDimensionModuleWidget);
+
+  // Display the "hiddenness" of the data nodes
+  visItem->setFlags( visItem->flags() & ~Qt::ItemIsEditable );
+  if ( hidden )
+  {
+    visItem->setIcon( QIcon( ":/Icons/DataNodeHidden.png" ) );
+  }
+  else
+  {
+    visItem->setIcon( QIcon( ":/Icons/DataNodeUnhidden.png" ) );
+  }
 
 }
