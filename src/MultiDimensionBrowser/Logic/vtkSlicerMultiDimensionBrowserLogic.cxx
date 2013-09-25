@@ -25,9 +25,11 @@
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLScene.h"
 
-
 // VTK includes
 #include <vtkNew.h>
+
+// STL includes
+#include <algorithm>
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMultiDimensionBrowserLogic);
@@ -138,8 +140,9 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     return;
   }
 
-  std::vector<vtkMRMLHierarchyNode*> outputConnectorNodes;
+  std::vector<vtkMRMLHierarchyNode*> outputConnectorNodes;  
   virtualOutputNode->GetAllChildrenNodes(outputConnectorNodes);
+  std::vector<vtkMRMLHierarchyNode*> validOutputConnectorNodes;
   int numberOfSourceChildNodes=selectedSequenceNode->GetNumberOfChildrenNodes();
   for (int sourceChildNodeIndex=0; sourceChildNodeIndex<numberOfSourceChildNodes; ++sourceChildNodeIndex)
   {    
@@ -172,6 +175,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
         if (outputNode==NULL)
         {
           vtkErrorMacro("A connector node found without an associated node");
+          validOutputConnectorNodes.push_back(*outputConnectorNodeIt);
           continue;
         }
         targetOutputNode=outputNode;
@@ -193,6 +197,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       outputConnectorNode->SetAttribute("MultiDimension.SourceDataName", sourceDataName);
       outputConnectorNode->SetParentNodeID(virtualOutputNode->GetID());
       outputConnectorNode->SetAssociatedNodeID(targetOutputNode->GetID());
+      validOutputConnectorNodes.push_back(outputConnectorNode);
       std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+sourceDataName+" connector";
       outputConnectorNode->SetName(outputConnectorNodeName.c_str());
       outputConnectorNode->SetHideFromEditors(true);
@@ -239,6 +244,18 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     targetOutputNode->SetName("");
     targetOutputNode->SetName(name.c_str());
     //targetOutputNode->SetName(sourceDataName);
+  }
+
+  // Remove orphaned connector nodes and associated data nodes 
+  for (std::vector<vtkMRMLHierarchyNode*>::iterator outputConnectorNodeIt=outputConnectorNodes.begin(); outputConnectorNodeIt!=outputConnectorNodes.end(); ++outputConnectorNodeIt)
+  {
+    if (std::find(validOutputConnectorNodes.begin(), validOutputConnectorNodes.end(), (*outputConnectorNodeIt))==validOutputConnectorNodes.end())
+    {
+      // this output connector node is not in the list of valid connector nodes (no corresponding data for the current parameter value)
+      // so, remove the connector node and data node from the scene
+      scene->RemoveNode((*outputConnectorNodeIt)->GetAssociatedNode());
+      scene->RemoveNode(*outputConnectorNodeIt);
+    }
   }
 }
 
