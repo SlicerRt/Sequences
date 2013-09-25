@@ -102,6 +102,9 @@ void qSlicerMultiDimensionModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  d->MRMLNodeComboBox_MultiDimensionRoot->addAttribute( "vtkMRMLHierarchyNode", "HierarchyType", "MultiDimension" );
+  d->MRMLNodeComboBox_MultiDimensionRoot->addAttribute( "vtkMRMLHierarchyNode", "MultiDimension.NodeType", "Root" );
+
   connect( d->MRMLNodeComboBox_MultiDimensionRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
   connect( d->TableWidget_SequenceNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
 
