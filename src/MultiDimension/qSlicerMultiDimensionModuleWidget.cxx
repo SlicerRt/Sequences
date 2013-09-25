@@ -32,6 +32,7 @@
 #include "vtkSlicerMultiDimensionLogic.h"
 
 #define FROM_STD_STRING_SAFE(unsafeString) QString::fromStdString( unsafeString==NULL?"":unsafeString )
+#define FROM_ATTRIBUTE_SAFE(unsafeString) ( unsafeString==NULL?"":unsafeString )
 
 static const int SEQUENCE_NODE_COLUMNS = 3;
 static const int SEQUENCE_NODE_VIS_COLUMN = 0;
@@ -255,7 +256,7 @@ void qSlicerMultiDimensionModuleWidget::onDataNodeEdited( int row, int column )
   }
 
   // Get the data node
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
   d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
   vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
@@ -296,7 +297,7 @@ void qSlicerMultiDimensionModuleWidget::onAddDataNodeButtonClicked()
   }
 
   // Get the selected nodes
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
   vtkSmartPointer<vtkCollection> currentNonDataNodes = vtkSmartPointer<vtkCollection>::New();
   d->logic()->GetNonDataNodesAtValue( currentNonDataNodes, currentRoot, currentValue );
 
@@ -329,7 +330,7 @@ void qSlicerMultiDimensionModuleWidget::onRemoveDataNodeButtonClicked()
   }
 
   // Get the selected nodes
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
   d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
 
@@ -362,7 +363,7 @@ void qSlicerMultiDimensionModuleWidget::onRemoveSequenceNodeButtonClicked()
   }
 
   // Get the selected nodes
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
 
   d->logic()->RemoveSequenceNodeAtValue( currentRoot, currentValue );
 
@@ -395,7 +396,7 @@ void qSlicerMultiDimensionModuleWidget::onHideSequenceNodeClicked( int row, int 
   }
 
   // Get the selected nodes
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
 
   d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ), currentValue );
 
@@ -435,7 +436,7 @@ void qSlicerMultiDimensionModuleWidget::onHideDataNodeClicked( int row, int colu
   }
   
   // Get the selected nodes
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
   d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
 
@@ -510,7 +511,8 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
   d->TableWidget_SequenceNodes->setRowCount( currentRoot->GetNumberOfChildrenNodes() );
   d->TableWidget_SequenceNodes->setColumnCount( SEQUENCE_NODE_COLUMNS );
   std::stringstream valueHeader;
-  valueHeader << currentRoot->GetAttribute( "MultiDimension.Name" ) << " (" << currentRoot->GetAttribute( "MultiDimension.Unit" ) << ")";
+  valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetAttribute( "MultiDimension.Name" ) ); 
+  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetAttribute( "MultiDimension.Unit" ) ) << ")";
   QStringList SequenceNodesTableHeader;
   SequenceNodesTableHeader.insert( SEQUENCE_NODE_VIS_COLUMN, "Vis" );
   SequenceNodesTableHeader.insert( SEQUENCE_NODE_NAME_COLUMN, "Name" );
@@ -520,7 +522,7 @@ void qSlicerMultiDimensionModuleWidget::UpdateRootNode()
   for ( int i = 0; i < currentRoot->GetNumberOfChildrenNodes(); i++ )
   {
     vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( i );
-    const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+    const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
 
     // Display the data node information
     QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
@@ -564,7 +566,7 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
     return;
   }
 
-  const char* currentValue = currentSequenceNode->GetAttribute( "MultiDimension.Value" );
+  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultiDimension.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
   d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
 
