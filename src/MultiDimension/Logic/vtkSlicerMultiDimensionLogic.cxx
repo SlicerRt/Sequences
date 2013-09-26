@@ -126,7 +126,7 @@ void vtkSlicerMultiDimensionLogic
   dataConnectorNode->AllowMultipleChildrenOff();
   dataConnectorNode->SetAttribute( "HierarchyType", "MultiDimension" );
   dataConnectorNode->SetAttribute( "MultiDimension.NodeType", "DataConnector");
-  dataConnectorNode->SetAttribute( "MultiDimension.SourceDataName", dataNode->GetName() );
+  dataConnectorNode->SetAttribute( "MultiDimension.DataRole", dataNode->GetName() );
   dataConnectorNode->SetHideFromEditors(true);
   this->GetMRMLScene()->AddNode( dataConnectorNode );
   dataConnectorNode->SetScene( this->GetMRMLScene() );
@@ -362,7 +362,7 @@ const char* vtkSlicerMultiDimensionLogic
     return "";
   }
 
-  return dataConnectorNode->GetAttribute( "MultiDimension.SourceDataName" );
+  return dataConnectorNode->GetAttribute( "MultiDimension.DataRole" );
 }
 
 
@@ -395,7 +395,7 @@ void vtkSlicerMultiDimensionLogic
     return;
   }
 
-  dataConnectorNode->SetAttribute( "MultiDimension.SourceDataName", role );
+  dataConnectorNode->SetAttribute( "MultiDimension.DataRole", role );
 }
 
 

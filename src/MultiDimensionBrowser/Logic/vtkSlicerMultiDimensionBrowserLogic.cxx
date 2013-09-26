@@ -153,22 +153,22 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       continue;
     }
     vtkMRMLNode* sourceNode=selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex)->GetAssociatedNode();
-    const char* sourceDataName=sourceConnectorNode->GetAttribute("MultiDimension.SourceDataName");
-    if (sourceDataName==NULL)
+    const char* dataRole=sourceConnectorNode->GetAttribute("MultiDimension.DataRole");
+    if (dataRole==NULL)
     {
-      vtkErrorMacro("MultiDimension.SourceDataName is missing");
+      vtkErrorMacro("MultiDimension.DataRole is missing");
       continue;
     }
     vtkMRMLNode* targetOutputNode=NULL;
     for (std::vector<vtkMRMLHierarchyNode*>::iterator outputConnectorNodeIt=outputConnectorNodes.begin(); outputConnectorNodeIt!=outputConnectorNodes.end(); ++outputConnectorNodeIt)
     {
-      const char* outputSourceDataName=(*outputConnectorNodeIt)->GetAttribute("MultiDimension.SourceDataName");
-      if (outputSourceDataName==NULL)
+      const char* outputDataRole=(*outputConnectorNodeIt)->GetAttribute("MultiDimension.DataRole");
+      if (outputDataRole==NULL)
       {
-        vtkErrorMacro("MultiDimension.SourceDataName is missing from a virtual output node");
+        vtkErrorMacro("MultiDimension.DataRole is missing from a virtual output node");
         continue;
       }
-      if (strcmp(sourceDataName,outputSourceDataName)==0)
+      if (strcmp(dataRole,outputDataRole)==0)
       {
         // found a node with the same name in the hierarchy => reuse that
         vtkMRMLNode* outputNode=(*outputConnectorNodeIt)->GetAssociatedNode();
@@ -194,10 +194,10 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       vtkMRMLHierarchyNode* outputConnectorNode=vtkMRMLHierarchyNode::New();
       scene->AddNode(outputConnectorNode);
       outputConnectorNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-      outputConnectorNode->SetAttribute("MultiDimension.SourceDataName", sourceDataName);
+      outputConnectorNode->SetAttribute("MultiDimension.DataRole", dataRole);
       outputConnectorNode->SetParentNodeID(virtualOutputNode->GetID());
       outputConnectorNode->SetAssociatedNodeID(targetOutputNode->GetID());
-      std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+sourceDataName+" connector";
+      std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+dataRole+" connector";
       outputConnectorNode->SetName(outputConnectorNodeName.c_str());
       outputConnectorNode->SetHideFromEditors(true);
       outputConnectorNodes.push_back(outputConnectorNode);
@@ -243,7 +243,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     std::string name=targetOutputNode->GetName();
     targetOutputNode->SetName("");
     targetOutputNode->SetName(name.c_str());
-    //targetOutputNode->SetName(sourceDataName);
+    //targetOutputNode->SetName(dataRole);
   }
 
   // Remove orphaned connector nodes and associated data nodes 
