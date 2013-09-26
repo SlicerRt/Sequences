@@ -58,6 +58,9 @@ public:
   void GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue);
   vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
 
+  const char* GetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue );
+  void SetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue, const char* role );
+
   void SetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, bool, const char* );
   bool GetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, const char* );
 
@@ -73,6 +76,8 @@ protected:
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
   bool IsDataConnectorNode(vtkMRMLNode*);
+  vtkMRMLHierarchyNode* GetDataConnectorNode( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue );
+
 private:
 
   vtkSlicerMultiDimensionLogic(const vtkSlicerMultiDimensionLogic&); // Not implemented

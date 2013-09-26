@@ -39,10 +39,11 @@ static const int SEQUENCE_NODE_VIS_COLUMN = 0;
 static const int SEQUENCE_NODE_NAME_COLUMN = 1;
 static const int SEQUENCE_NODE_VALUE_COLUMN = 2;
 
-static const int DATA_NODE_COLUMNS = 3;
+static const int DATA_NODE_COLUMNS = 4;
 static const int DATA_NODE_VIS_COLUMN = 0;
 static const int DATA_NODE_NAME_COLUMN = 1;
-static const int DATA_NODE_TYPE_COLUMN = 2;
+static const int DATA_NODE_ROLE_COLUMN = 2;
+static const int DATA_NODE_TYPE_COLUMN = 3;
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -273,6 +274,11 @@ void qSlicerMultiDimensionModuleWidget::onDataNodeEdited( int row, int column )
   if ( column == DATA_NODE_NAME_COLUMN )
   {
     currentDataNode->SetName( cText );
+  }
+
+  if ( column == DATA_NODE_ROLE_COLUMN )
+  {
+    d->logic()->SetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue, cText );
   }
 
   this->UpdateSequenceNode();
@@ -580,6 +586,7 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
   QStringList DataNodesTableHeader;
   DataNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
   DataNodesTableHeader.insert( DATA_NODE_NAME_COLUMN, "Name" );
+  DataNodesTableHeader.insert( DATA_NODE_ROLE_COLUMN, "Role" );
   DataNodesTableHeader.insert( DATA_NODE_TYPE_COLUMN, "Type" );
   d->TableWidget_DataNodes->setHorizontalHeaderLabels( DataNodesTableHeader );
 
@@ -591,13 +598,17 @@ void qSlicerMultiDimensionModuleWidget::UpdateSequenceNode()
     QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
     this->CreateVisItem( visItem, currentDataNode->GetHideFromEditors() );
 
-    QTableWidgetItem* nameItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetName() ) );
+    QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetName() ) );
 
-    QTableWidgetItem* typeItem = new QTableWidgetItem( QString::fromStdString( currentDataNode->GetClassName() ) );
+    const char* role = d->logic()->GetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue );
+    QTableWidgetItem* roleItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( role ) );
+
+    QTableWidgetItem* typeItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetClassName() ) );
     typeItem->setFlags( typeItem->flags() & ~Qt::ItemIsEditable );
 
     d->TableWidget_DataNodes->setItem( i, DATA_NODE_VIS_COLUMN, visItem );
     d->TableWidget_DataNodes->setItem( i, DATA_NODE_NAME_COLUMN, nameItem );
+    d->TableWidget_DataNodes->setItem( i, DATA_NODE_ROLE_COLUMN, roleItem );
     d->TableWidget_DataNodes->setItem( i, DATA_NODE_TYPE_COLUMN, typeItem );
   }
 

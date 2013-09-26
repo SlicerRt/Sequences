@@ -286,6 +286,7 @@ void vtkSlicerMultiDimensionLogic
   }  
 }
 
+
 //---------------------------------------------------------------------------
 void vtkSlicerMultiDimensionLogic
 ::GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue)
@@ -333,6 +334,72 @@ void vtkSlicerMultiDimensionLogic
 
 
 //---------------------------------------------------------------------------
+const char* vtkSlicerMultiDimensionLogic
+::GetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue)
+{
+  if (rootNode==NULL)
+  {
+    vtkWarningMacro("GetDataNodeRoleAtValue failed, invalid root node"); 
+    return "";
+  }
+  if (dataNode==NULL)
+  {
+    vtkErrorMacro("GetDataNodeRoleAtValue failed, invalid input data node"); 
+    return "";
+  }
+  if (parameterValue==NULL)
+  {
+    vtkErrorMacro("GetDataNodeRoleAtValue failed, invalid parameter value"); 
+    return "";
+  }
+
+  // Return all of the child nodes that are not connector nodes
+  vtkMRMLHierarchyNode* dataConnectorNode = this->GetDataConnectorNode( rootNode, dataNode, parameterValue );
+
+  if ( dataConnectorNode == NULL )
+  {
+    vtkWarningMacro("GetDataNodeRoleAtValue failed, no data connector node has been found with value "<<parameterValue);
+    return "";
+  }
+
+  return dataConnectorNode->GetAttribute( "MultiDimension.SourceDataName" );
+}
+
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionLogic
+::SetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue, const char* role )
+{
+  if (rootNode==NULL)
+  {
+    vtkWarningMacro("GetDataNodeRoleAtValue failed, invalid root node"); 
+    return;
+  }
+  if (dataNode==NULL)
+  {
+    vtkErrorMacro("GetDataNodeRoleAtValue failed, invalid input data node"); 
+    return;
+  }
+  if (parameterValue==NULL)
+  {
+    vtkErrorMacro("GetDataNodeRoleAtValue failed, invalid parameter value"); 
+    return;
+  }
+
+  // Return all of the child nodes that are not connector nodes
+  vtkMRMLHierarchyNode* dataConnectorNode = this->GetDataConnectorNode( rootNode, dataNode, parameterValue );
+
+  if ( dataConnectorNode == NULL )
+  {
+    vtkWarningMacro("GetDataNodeRoleAtValue failed, no data connector node has been found with value "<<parameterValue);
+    return;
+  }
+
+  dataConnectorNode->SetAttribute( "MultiDimension.SourceDataName", role );
+}
+
+
+//---------------------------------------------------------------------------
 bool vtkSlicerMultiDimensionLogic
 ::IsDataConnectorNode( vtkMRMLNode* node )
 {
@@ -360,6 +427,29 @@ bool vtkSlicerMultiDimensionLogic
   }
 
   return true;
+}
+
+
+//---------------------------------------------------------------------------
+vtkMRMLHierarchyNode* vtkSlicerMultiDimensionLogic
+::GetDataConnectorNode( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue )
+{
+  // Return all of the child nodes that are not connector nodes
+  vtkMRMLHierarchyNode* sequenceNode = vtkMRMLHierarchyNode::SafeDownCast( this->GetSequenceNodeAtValue( rootNode, parameterValue ) );
+
+  int numChildNodes = sequenceNode->GetNumberOfChildrenNodes();
+
+  for ( int i = 0; i < numChildNodes; i++ )
+  {
+    vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) ); 
+    if ( dataConnectorNode != NULL && this->IsDataConnectorNode( dataConnectorNode ) && strcmp( dataConnectorNode->GetAssociatedNodeID(), dataNode->GetID() ) == 0 )
+    {
+      return dataConnectorNode;
+    }
+  }
+
+  // not found
+  return NULL;
 }
 
 
