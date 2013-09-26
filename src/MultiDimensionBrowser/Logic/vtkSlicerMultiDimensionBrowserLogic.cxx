@@ -175,9 +175,9 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
         if (outputNode==NULL)
         {
           vtkErrorMacro("A connector node found without an associated node");
-          validOutputConnectorNodes.push_back(*outputConnectorNodeIt);
           continue;
         }
+        validOutputConnectorNodes.push_back(*outputConnectorNodeIt);
         targetOutputNode=outputNode;
         break;
       }      
@@ -197,11 +197,11 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       outputConnectorNode->SetAttribute("MultiDimension.SourceDataName", sourceDataName);
       outputConnectorNode->SetParentNodeID(virtualOutputNode->GetID());
       outputConnectorNode->SetAssociatedNodeID(targetOutputNode->GetID());
-      validOutputConnectorNodes.push_back(outputConnectorNode);
       std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+sourceDataName+" connector";
       outputConnectorNode->SetName(outputConnectorNodeName.c_str());
       outputConnectorNode->SetHideFromEditors(true);
       outputConnectorNodes.push_back(outputConnectorNode);
+      validOutputConnectorNodes.push_back(outputConnectorNode);
     }
 
     // Update the target node with the contents of the source node
