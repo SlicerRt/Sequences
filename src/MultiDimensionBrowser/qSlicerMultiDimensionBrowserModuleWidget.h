@@ -43,17 +43,23 @@ public:
   void setActiveBrowserNode(vtkMRMLMultiDimensionBrowserNode* browserNode);
   void setMultiDimensionRootNode(vtkMRMLHierarchyNode* multiDimensionRootNode);
   void setVirtualOutputNode(vtkMRMLHierarchyNode* virtualOutputNode);  
-  void setParameterValueIndex(int paramValue);
 
 public slots:
+  void setParameterValueIndex(int paramValue);
+  void setPlaybackEnabled(bool play);
+  void setPlaybackRateFps(double playbackRateFps);
+  void setPlaybackLoopEnabled(bool loopEnabled);  
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);
   void multiDimensionRootNodeChanged(vtkMRMLNode*);
   void virtualOutputNodeChanged(vtkMRMLNode*);
-  void parameterValueIndexChanged(int);
   void onMRMLInputMultiDimensionInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
+  void onVcrFirst();
+  void onVcrPrevious();
+  void onVcrNext();
+  void onVcrLast();
 
 protected:
   void updateWidgetFromMRML();

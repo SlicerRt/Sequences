@@ -17,6 +17,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QTimer>
 
 // SlicerQt includes
 #include "qSlicerMultiDimensionBrowserModuleWidget.h"
@@ -45,6 +46,7 @@ public:
   bool ModuleWindowInitialized;
 
   vtkMRMLMultiDimensionBrowserNode* ActiveBrowserNode;
+  QTimer* PlaybackTimer; 
 };
 
 //-----------------------------------------------------------------------------
@@ -55,6 +57,7 @@ qSlicerMultiDimensionBrowserModuleWidgetPrivate::qSlicerMultiDimensionBrowserMod
   : q_ptr(&object)
   , ModuleWindowInitialized(false)
   , ActiveBrowserNode(NULL)
+  , PlaybackTimer(NULL)
 {
 }
 
@@ -80,6 +83,9 @@ qSlicerMultiDimensionBrowserModuleWidget::qSlicerMultiDimensionBrowserModuleWidg
   : Superclass( _parent )
   , d_ptr( new qSlicerMultiDimensionBrowserModuleWidgetPrivate(*this) )
 {
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  d->PlaybackTimer=new QTimer(this);
+  d->PlaybackTimer->setSingleShot(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -120,7 +126,15 @@ void qSlicerMultiDimensionBrowserModuleWidget::setup()
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_MultiDimensionRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multiDimensionRootNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_VirtualOutput, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(virtualOutputNodeChanged(vtkMRMLNode*)) );
-  connect( d->slider_ParameterValue, SIGNAL(valueChanged(int)), this, SLOT(parameterValueIndexChanged(int)) );  
+  connect( d->slider_ParameterValue, SIGNAL(valueChanged(int)), this, SLOT(setParameterValueIndex(int)) );  
+  connect( d->pushButton_VcrFirst, SIGNAL(clicked()), this, SLOT(onVcrFirst()) );
+  connect( d->pushButton_VcrPrevious, SIGNAL(clicked()), this, SLOT(onVcrPrevious()) );
+  connect( d->pushButton_VcrNext, SIGNAL(clicked()), this, SLOT(onVcrNext()) );
+  connect( d->pushButton_VcrLast, SIGNAL(clicked()), this, SLOT(onVcrLast()) );
+  connect( d->pushButton_VcrPlayPause, SIGNAL(toggled(bool)), this, SLOT(setPlaybackEnabled(bool)) );
+  connect( d->pushButton_VcrLoop, SIGNAL(toggled(bool)), this, SLOT(setPlaybackLoopEnabled(bool)) );
+  connect( d->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), this, SLOT(setPlaybackRateFps(double)) );
+  d->PlaybackTimer->connect(d->PlaybackTimer, SIGNAL(timeout()),this, SLOT(onVcrNext()));  
 }
 
 //-----------------------------------------------------------------------------
@@ -176,12 +190,6 @@ void qSlicerMultiDimensionBrowserModuleWidget::virtualOutputNodeChanged(vtkMRMLN
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerMultiDimensionBrowserModuleWidget::parameterValueIndexChanged(int paramValue)
-{
-  setParameterValueIndex(paramValue);   
-}
-
-//-----------------------------------------------------------------------------
 void qSlicerMultiDimensionBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
   updateWidgetFromMRML();
@@ -191,6 +199,109 @@ void qSlicerMultiDimensionBrowserModuleWidget::onActiveBrowserNodeModified(vtkOb
 void qSlicerMultiDimensionBrowserModuleWidget::onMRMLInputMultiDimensionInputNodeModified(vtkObject* inputNode)
 {
   updateWidgetFromMRML();  
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::onVcrFirst()
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  d->slider_ParameterValue->setValue(d->slider_ParameterValue->minimum());
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::onVcrLast()
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  d->slider_ParameterValue->setValue(d->slider_ParameterValue->maximum());
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::onVcrPrevious()
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  int sliderValueToSet=d->slider_ParameterValue->value()-1;
+  if (sliderValueToSet>=d->slider_ParameterValue->minimum())
+  {
+    d->slider_ParameterValue->setValue(sliderValueToSet);
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::onVcrNext()
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  int sliderValueToSet=d->slider_ParameterValue->value()+1;
+  if (sliderValueToSet<=d->slider_ParameterValue->maximum())
+  {
+    d->slider_ParameterValue->setValue(sliderValueToSet);
+  }
+  else
+  {
+      if (d->ActiveBrowserNode==NULL)
+      {
+        qCritical() << "onVcrNext failed: no active browser node is selected";
+      }
+      else
+      {
+        if (d->ActiveBrowserNode->GetPlaybackLooped())
+        {
+          onVcrFirst();
+        }
+        else
+        {
+          d->ActiveBrowserNode->SetPlaybackActive(false);
+          onVcrFirst();
+        }
+      }
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::setPlaybackEnabled(bool play)
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  if (d->ActiveBrowserNode==NULL)
+  {
+    qCritical() << "onVcrPlayPauseStateChanged failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
+  }
+  if (play!=d->ActiveBrowserNode->GetPlaybackActive())
+  {
+    d->ActiveBrowserNode->SetPlaybackActive(play);
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::setPlaybackLoopEnabled(bool loopEnabled)
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  if (d->ActiveBrowserNode==NULL)
+  {
+    qCritical() << "onVcrPlaybackLoopStateChanged failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
+  }
+  if (loopEnabled!=d->ActiveBrowserNode->GetPlaybackLooped())
+  {
+    d->ActiveBrowserNode->SetPlaybackLooped(loopEnabled);
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultiDimensionBrowserModuleWidget::setPlaybackRateFps(double playbackRateFps)
+{
+  Q_D(qSlicerMultiDimensionBrowserModuleWidget);
+  if (d->ActiveBrowserNode==NULL)
+  {
+    qCritical() << "setPlaybackRateFps failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
+  }
+  if (playbackRateFps!=d->ActiveBrowserNode->GetPlaybackRateFps())
+  {
+    d->ActiveBrowserNode->SetPlaybackRateFps(playbackRateFps);
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -218,8 +329,10 @@ void qSlicerMultiDimensionBrowserModuleWidget::setMultiDimensionRootNode(vtkMRML
   if (d->ActiveBrowserNode==NULL)
   {
     qCritical() << "setMultiDimensionRootNode failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
   }
-  else if (multiDimensionRootNode!=d->ActiveBrowserNode->GetRootNode())
+  if (multiDimensionRootNode!=d->ActiveBrowserNode->GetRootNode())
   {
     // Reconnect the input node's Modified() event observer
     this->qvtkReconnect(d->ActiveBrowserNode->GetRootNode(), multiDimensionRootNode, vtkCommand::ModifiedEvent,
@@ -230,9 +343,7 @@ void qSlicerMultiDimensionBrowserModuleWidget::setMultiDimensionRootNode(vtkMRML
 
     // Update d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID
     setParameterValueIndex(0);
-  }
-  
-  updateWidgetFromMRML();
+  }   
 }
 
 // --------------------------------------------------------------------------
@@ -242,13 +353,14 @@ void qSlicerMultiDimensionBrowserModuleWidget::setVirtualOutputNode(vtkMRMLHiera
   if (d->ActiveBrowserNode==NULL)
   {
     qCritical() << "setVirtualOutputNode failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
   }
-  else if (virtualOutputNode!=d->ActiveBrowserNode->GetVirtualOutputNode())
+  if (virtualOutputNode!=d->ActiveBrowserNode->GetVirtualOutputNode())
   {
     char* virtualOutputNodeId = virtualOutputNode==NULL ? NULL : virtualOutputNode->GetID();
     d->ActiveBrowserNode->SetAndObserveVirtualOutputNodeID(virtualOutputNodeId);
-  }
-  updateWidgetFromMRML();
+  }  
 }
 
 //-----------------------------------------------------------------------------
@@ -258,21 +370,23 @@ void qSlicerMultiDimensionBrowserModuleWidget::setParameterValueIndex(int paramV
   if (d->ActiveBrowserNode==NULL)
   {
     qCritical() << "setParameterValueIndex failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
   }
-  else
+  vtkMRMLHierarchyNode* rootNode=d->ActiveBrowserNode->GetRootNode();
+  const char* sequenceNodeId=NULL;
+  if (rootNode!=NULL && paramValue>=0)
   {
-    vtkMRMLHierarchyNode* rootNode=d->ActiveBrowserNode->GetRootNode();
-    vtkMRMLHierarchyNode* sequenceNode=NULL;
-    if (rootNode!=NULL && paramValue>=0)
+    if (paramValue<rootNode->GetNumberOfChildrenNodes())
     {
-      if (paramValue<rootNode->GetNumberOfChildrenNodes())
+      vtkMRMLHierarchyNode* sequenceNode=rootNode->GetNthChildNode(paramValue);
+      if (sequenceNode!=NULL)
       {
-        sequenceNode=rootNode->GetNthChildNode(paramValue);
+        sequenceNodeId=sequenceNode->GetID();
       }
     }
-    d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID(sequenceNode->GetID());
   }
-  updateWidgetFromMRML();  
+  d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID(sequenceNodeId);
 }
 
 //-----------------------------------------------------------------------------
@@ -281,6 +395,12 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
   Q_D(qSlicerMultiDimensionBrowserModuleWidget);  
   
   QString DEFAULT_PARAMETER_NAME_STRING=tr("Parameter");  
+  
+  QObjectList vcrControls;
+  vcrControls 
+    << d->pushButton_VcrFirst << d->pushButton_VcrLast << d->pushButton_VcrLoop
+    << d->pushButton_VcrNext << d->pushButton_VcrPlayPause << d->pushButton_VcrPrevious;
+  bool vcrControlsEnabled=false;  
 
   if (d->ActiveBrowserNode==NULL)
   {
@@ -288,7 +408,9 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
     d->MRMLNodeComboBox_VirtualOutput->setEnabled(false);
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
     d->label_ParameterUnit->setText("");
-    d->slider_ParameterValue->setEnabled(false);    
+    d->slider_ParameterValue->setEnabled(false);
+    foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
+    d->PlaybackTimer->stop();
     return;
   }
 
@@ -311,6 +433,8 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
     d->label_ParameterUnit->setText("");
     d->slider_ParameterValue->setEnabled(false);
+    foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
+    d->PlaybackTimer->stop();
     return;    
   }
 
@@ -337,19 +461,28 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
     qWarning() << "MultiDimension.Unit attribute is not specified in node "<<multiDimensionRootNode->GetID();
     d->label_ParameterUnit->setText("");
   }
-
+  
   int numberOfSequenceNodes=multiDimensionRootNode->GetNumberOfChildrenNodes();
   if (numberOfSequenceNodes>0)
   {
     d->slider_ParameterValue->setEnabled(true);
     d->slider_ParameterValue->setMinimum(0);      
-    d->slider_ParameterValue->setMaximum(numberOfSequenceNodes-1);
+    d->slider_ParameterValue->setMaximum(numberOfSequenceNodes-1);        
+    vcrControlsEnabled=true;
+    
+    bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
+    d->pushButton_VcrPlayPause->setChecked(d->ActiveBrowserNode->GetPlaybackActive());
+    d->pushButton_VcrPlayPause->blockSignals(pushButton_VcrPlayPauseBlockSignals);
+
+    bool pushButton_VcrLoopBlockSignals = d->pushButton_VcrLoop->blockSignals(true);
+    d->pushButton_VcrLoop->setChecked(d->ActiveBrowserNode->GetPlaybackLooped());
+    d->pushButton_VcrLoop->blockSignals(pushButton_VcrLoopBlockSignals);
   }
   else
   {
     qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<multiDimensionRootNode->GetID();
     d->slider_ParameterValue->setEnabled(false);
-  }  
+  }   
 
   vtkMRMLHierarchyNode* selectedSequenceNode=d->ActiveBrowserNode->GetSelectedSequenceNode();
 
@@ -373,5 +506,24 @@ void qSlicerMultiDimensionBrowserModuleWidget::updateWidgetFromMRML()
     d->label_ParameterValue->setText("");
     //setParameterValueIndex(0);
   }  
-
+  
+  foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
+  if (vcrControlsEnabled)
+  {
+    if (d->ActiveBrowserNode->GetPlaybackActive() && d->ActiveBrowserNode->GetPlaybackRateFps()>0)
+    {
+      int delayInMsec=1000.0/d->ActiveBrowserNode->GetPlaybackRateFps();
+      d->PlaybackTimer->start(delayInMsec);
+    }
+    else
+    {
+      d->PlaybackTimer->stop();
+    }
+  }
+  else
+  {
+    d->PlaybackTimer->stop();
+  }
 }
+
+

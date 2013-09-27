@@ -109,6 +109,100 @@
         </property>
        </widget>
       </item>
+      <item row="4" column="3">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrFirst">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrFirst24.png</normaloff>:/Icons/pqVcrFirst24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrPrevious">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrBack24.png</normaloff>:/Icons/pqVcrBack24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrPlayPause">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrPause24.png</normaloff>
+            <normalon>:/Icons/pqVcrPlay24.png</normalon>:/Icons/pqVcrPause24.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrNext">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrForward24.png</normaloff>:/Icons/pqVcrForward24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrLast">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrLast24.png</normaloff>:/Icons/pqVcrLast24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Playback rate (fps):</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_VcrPlaybackRate">
+          <property name="maximum">
+           <double>150.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>5.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrLoop">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerMultiDimensionBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrLoop24.png</normaloff>:/Icons/pqVcrLoop24.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>
@@ -192,7 +286,9 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../qSlicerMultiDimensionBrowserModule.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>qSlicerMultiDimensionBrowserModuleWidget</sender>

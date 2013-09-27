@@ -51,6 +51,9 @@ vtkMRMLMultiDimensionBrowserNode::vtkMRMLMultiDimensionBrowserNode()
   this->AddNodeReferenceRole(ROOT_NODE_REFERENCE_ROLE, ROOT_NODE_REFERENCE_ATTRIBUTE_NAME );
   this->AddNodeReferenceRole(SELECTED_SEQUENCE_NODE_REFERENCE_ROLE, SELECTED_SEQUENCE_NODE_REFERENCE_ATTRIBUTE_NAME ); 
   this->AddNodeReferenceRole(VIRTUAL_OUTPUT_NODE_REFERENCE_ROLE, VIRTUAL_OUTPUT_NODE_REFERENCE_ATTRIBUTE_NAME ); 
+  this->PlaybackActive=false;
+  this->PlaybackRateFps=5.0;
+  this->PlaybackLooped=true;
 }
 
 //----------------------------------------------------------------------------
@@ -63,6 +66,10 @@ vtkMRMLMultiDimensionBrowserNode::~vtkMRMLMultiDimensionBrowserNode()
 void vtkMRMLMultiDimensionBrowserNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent);
+  vtkIndent indent(nIndent);
+  of << indent << " playbackActive=\"" << (this->PlaybackActive ? "true" : "false") << "\"";
+  of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\""; 
+  of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
 }
 
 //----------------------------------------------------------------------------

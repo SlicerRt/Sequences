@@ -70,6 +70,20 @@ public:
   void SetAndObserveVirtualOutputNodeID(const char *virtualOutputNodeID);
   /// Get the selected output virtual node (that will contain the copy a specific parameter value)
   vtkMRMLHierarchyNode* GetVirtualOutputNode();
+
+  /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
+  vtkGetMacro(PlaybackActive, bool);
+  vtkSetMacro(PlaybackActive, bool);
+  vtkBooleanMacro(PlaybackActive, bool);
+
+  /// Get/Set playback rate in fps (frames per second)
+  vtkGetMacro(PlaybackRateFps, double);
+  vtkSetMacro(PlaybackRateFps, double);
+
+  /// Get/Set playback looping (restart from the first sequence node when reached the last one)
+  vtkGetMacro(PlaybackLooped, bool);
+  vtkSetMacro(PlaybackLooped, bool);
+  vtkBooleanMacro(PlaybackLooped, bool);
   
 protected:
   vtkMRMLMultiDimensionBrowserNode();
@@ -78,7 +92,9 @@ protected:
   void operator=(const vtkMRMLMultiDimensionBrowserNode&);
 
 protected:
-
+  bool PlaybackActive;
+  double PlaybackRateFps;
+  bool PlaybackLooped;
 };
 
 #endif
