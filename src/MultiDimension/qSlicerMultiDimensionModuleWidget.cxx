@@ -118,10 +118,16 @@ void qSlicerMultiDimensionModuleWidget::setup()
   connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
+  d->PushButton_AddDataNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowLeft ) );
   connect( d->PushButton_RemoveDataNode, SIGNAL( clicked() ), this, SLOT( onRemoveDataNodeButtonClicked() ) );
+  d->PushButton_RemoveDataNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowRight ) );
 
-  connect( d->PushButton_RemoveSequenceNode, SIGNAL( clicked() ), this, SLOT( onRemoveSequenceNodeButtonClicked() ) );
   connect( d->PushButton_AddSequenceNode, SIGNAL( clicked() ), this, SLOT( onAddSequenceNodeButtonClicked() ) );
+  d->PushButton_AddSequenceNode->setIcon( QIcon( ":/Icons/SequenceNodeAdd.png" ) );
+  connect( d->PushButton_RemoveSequenceNode, SIGNAL( clicked() ), this, SLOT( onRemoveSequenceNodeButtonClicked() ) );
+  d->PushButton_RemoveSequenceNode->setIcon( QIcon( ":/Icons/SequenceNodeDelete.png" ) );
+
+  d->ExpandButton_DataNodes->setChecked( false );
 }
 
 

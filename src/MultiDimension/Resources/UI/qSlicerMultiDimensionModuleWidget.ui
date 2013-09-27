@@ -111,7 +111,7 @@
            <item>
             <widget class="QPushButton" name="PushButton_AddSequenceNode">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -123,20 +123,20 @@
               </size>
              </property>
              <property name="text">
-              <string>+</string>
+              <string/>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QPushButton" name="PushButton_RemoveSequenceNode">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="text">
-              <string>-</string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -182,39 +182,6 @@
          </widget>
         </item>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_6">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="PushButton_AddDataNode">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>&lt;-</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="PushButton_RemoveDataNode">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>-&gt;</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <widget class="QGroupBox" name="GroupBox_NonDataNodes">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
@@ -225,7 +192,43 @@
           <property name="title">
            <string>Non-Data Nodes</string>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <property name="sizeConstraint">
+              <enum>QLayout::SetDefaultConstraint</enum>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QPushButton" name="PushButton_AddDataNode">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="PushButton_RemoveDataNode">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
            <item>
             <widget class="QListWidget" name="ListWidget_NonDataNodes">
              <property name="sizePolicy">
@@ -237,6 +240,16 @@
             </widget>
            </item>
           </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="ctkExpandButton" name="ExpandButton_DataNodes">
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="mirrorOnExpand">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
@@ -277,6 +290,11 @@
    <header>ctkCollapsibleButton.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ctkExpandButton</class>
+   <extends>QToolButton</extends>
+   <header>ctkExpandButton.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -293,6 +311,22 @@
     <hint type="destinationlabel">
      <x>262</x>
      <y>50</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ExpandButton_DataNodes</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GroupBox_NonDataNodes</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>681</x>
+     <y>472</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>510</x>
+     <y>473</y>
     </hint>
    </hints>
   </connection>
