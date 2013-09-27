@@ -157,10 +157,7 @@ void qSlicerMultiDimensionModuleWidget::onParameterNameEdited()
     return;
   }
 
-  QString qName = d->LineEdit_ParameterName->text();
-  std::string sName = qName.toStdString();
-  const char* cName = sName.c_str();
-  currentRoot->SetAttribute( "MultiDimension.Name", cName );
+  currentRoot->SetAttribute( "MultiDimension.Name", d->LineEdit_ParameterName->text().toLatin1().constData() );
 
   this->UpdateRootNode();
 }
@@ -179,10 +176,7 @@ void qSlicerMultiDimensionModuleWidget::onParameterUnitEdited()
     return;
   }
 
-  QString qUnit = d->LineEdit_ParameterUnit->text();
-  std::string sUnit = qUnit.toStdString();
-  const char* cUnit = sUnit.c_str();
-  currentRoot->SetAttribute( "MultiDimension.Unit", cUnit );
+  currentRoot->SetAttribute( "MultiDimension.Unit", d->LineEdit_ParameterUnit->text().toLatin1().constData() );
 
   this->UpdateRootNode();
 }
@@ -216,17 +210,15 @@ void qSlicerMultiDimensionModuleWidget::onSequenceNodeEdited( int row, int colum
   // Grab the tex from the modified item
   QTableWidgetItem* qItem = d->TableWidget_SequenceNodes->item( row, column );
   QString qText = qItem->text();
-  std::string sText = qText.toStdString();
-  const char* cText = sText.c_str();
 
   if ( column == SEQUENCE_NODE_NAME_COLUMN )
   {
-    currentSequenceNode->SetName( cText );
+    currentSequenceNode->SetName( qText.toLatin1().constData() );
   }
 
   if ( column == SEQUENCE_NODE_VALUE_COLUMN )
   {
-    currentSequenceNode->SetAttribute( "MultiDimension.Value", cText ); // TODO: Should this be propagated to data node names?
+    currentSequenceNode->SetAttribute( "MultiDimension.Value", qText.toLatin1().constData() ); // TODO: Should this be propagated to data node names?
   }
 
   this->UpdateRootNode();
@@ -268,17 +260,15 @@ void qSlicerMultiDimensionModuleWidget::onDataNodeEdited( int row, int column )
   // Grab the text from the modified item
   QTableWidgetItem* qItem = d->TableWidget_DataNodes->item( row, column );
   QString qText = qItem->text();
-  std::string sText = qText.toStdString();
-  const char* cText = sText.c_str();
 
   if ( column == DATA_NODE_NAME_COLUMN )
   {
-    currentDataNode->SetName( cText );
+    currentDataNode->SetName( qText.toLatin1().constData() );
   }
 
   if ( column == DATA_NODE_ROLE_COLUMN )
   {
-    d->logic()->SetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue, cText );
+    d->logic()->SetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue, qText.toLatin1().constData() );
   }
 
   this->UpdateSequenceNode();
