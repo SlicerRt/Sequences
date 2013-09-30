@@ -265,6 +265,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     // the source node may be hidden from editors and it would result in removing the target node
     // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
     targetOutputNode->SetName(sourceNode->GetName());
+    targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
     // Usually source nodes are hidden from editors, so make sure that they are visible
     targetOutputNode->SetHideFromEditors(false);
     // The following renaming a hack is for making sure the volume appears in the slice viewer GUI
