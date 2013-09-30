@@ -15,6 +15,10 @@
 
 ==============================================================================*/
 
+// Enable this define if the extension is used with a Slicer core
+// that supports dynamic changing of MRML node HideFromEditors property
+//#define DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
+
 // MultiDimension Logic includes
 #include "vtkSlicerMultiDimensionBrowserLogic.h"
 #include "vtkMRMLMultiDimensionBrowserNode.h"
@@ -188,6 +192,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       // haven't found a node in the virtual output node hierarchy that we could reuse,
       // so create a new targetOutputNode
       targetOutputNode=sourceNode->CreateNodeInstance();
+      targetOutputNode->SetHideFromEditors(false);
       scene->AddNode(targetOutputNode);
       targetOutputNode->Delete(); // ownership transferred to the scene, so we can release the pointer
       // now connect this new node to the virtualOutput hierarchy with a new connector node
@@ -229,14 +234,37 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     }
     else
     */
+
+#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
+    int targetInitialModify=targetOutputNode->StartModify();
+    if (sourceNode->GetHideFromEditors())
     {
-      // Slice browser is updated when there is a rename, but we want to avoid update, because
-      // the source node may be hidden from editors and it would result in removing the target node
-      // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
-      targetOutputNode->SetName(sourceNode->GetName());
+      // We need to carefully copy the source node to the target
+      // because we have to avoid the node having temporarily hidden
+      // from editors (as it leads to loss of selection status,
+      // e.g., deselected from the foreground/background slice view).
+      // Save source
+      int sourceInitialDisaleModified=sourceNode->GetDisableModifiedEvent();        
+      // Modify source
+      sourceNode->SetDisableModifiedEvent(1);
+      sourceNode->SetHideFromEditors(0);
+      // Copy source->target
+      targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
+      // Restore source
+      sourceNode->SetHideFromEditors(1);
+      sourceNode->SetDisableModifiedEvent(sourceInitialDisaleModified);
+    }
+    else
+    {
+      //targetOutputNode->SetName(sourceNode->GetName());
       targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);    
     }
-
+    targetOutputNode->EndModify(targetInitialModify);
+#else
+    // Slice browser is updated when there is a rename, but we want to avoid update, because
+    // the source node may be hidden from editors and it would result in removing the target node
+    // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
+    targetOutputNode->SetName(sourceNode->GetName());
     // Usually source nodes are hidden from editors, so make sure that they are visible
     targetOutputNode->SetHideFromEditors(false);
     // The following renaming a hack is for making sure the volume appears in the slice viewer GUI
@@ -244,6 +272,7 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     targetOutputNode->SetName("");
     targetOutputNode->SetName(name.c_str());
     //targetOutputNode->SetName(dataRole);
+#endif
   }
 
   // Remove orphaned connector nodes and associated data nodes 

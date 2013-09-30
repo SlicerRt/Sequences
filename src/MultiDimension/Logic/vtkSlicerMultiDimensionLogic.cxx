@@ -289,7 +289,10 @@ void vtkSlicerMultiDimensionLogic
     vtkMRMLHierarchyNode* dataConnectorNode = vtkMRMLHierarchyNode::SafeDownCast( sequenceNode->GetNthChildNode( i ) ); 
     if ( dataConnectorNode != NULL && this->IsDataConnectorNode( dataConnectorNode ) )
     {
-      foundNodes->AddItem( dataConnectorNode->GetAssociatedNode() );
+      if (dataConnectorNode->GetAssociatedNode()!=NULL)
+      {
+        foundNodes->AddItem( dataConnectorNode->GetAssociatedNode() );
+      }
     }
   }  
 }
