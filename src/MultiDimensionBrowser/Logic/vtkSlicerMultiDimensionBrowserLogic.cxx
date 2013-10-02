@@ -30,6 +30,7 @@
 #include "vtkMRMLScene.h"
 
 // VTK includes
+#include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 
 // STL includes
@@ -144,6 +145,9 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
     return;
   }
 
+  std::vector<vtkMRMLNode*> endModifyNodes;  
+  std::vector<int> endModifyValues;  
+
   std::vector<vtkMRMLHierarchyNode*> outputConnectorNodes;  
   virtualOutputNode->GetAllChildrenNodes(outputConnectorNodes);
   std::vector<vtkMRMLHierarchyNode*> validOutputConnectorNodes;
@@ -209,34 +213,12 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       validOutputConnectorNodes.push_back(outputConnectorNode);
     }
 
-    // Update the target node with the contents of the source node
-
-    /*if (targetOutputNode->IsA("vtkMRMLScalarVolumeNode"))
-    {
-      vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(targetOutputNode);
-      char* targetOutputDisplayNodeId=NULL;
-      if (targetScalarVolumeNode->GetDisplayNode()==NULL)
-      {
-        // there is no display node yet, so create one now
-        vtkMRMLScalarVolumeDisplayNode* displayNode=vtkMRMLScalarVolumeDisplayNode::New();
-        displayNode->SetDefaultColorMap();
-        scene->AddNode(displayNode);
-        displayNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-        targetOutputDisplayNodeId=displayNode->GetID();
-        displayNode->SetHideFromEditors(false); // TODO: remove this line, just for testing        
-      }
-      else
-      {
-        targetOutputDisplayNodeId=targetScalarVolumeNode->GetDisplayNode()->GetID();
-      }      
-      targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);    
-      targetScalarVolumeNode->SetAndObserveDisplayNodeID(targetOutputDisplayNodeId);
-    }
-    else
-    */
+    // Update the target node with the contents of the source node    
 
 #ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
     int targetInitialModify=targetOutputNode->StartModify();
+    endModifyValues.push_back(targetInitialModify);
+    endModifyNodes.push_back(targetOutputNode);
     if (sourceNode->GetHideFromEditors())
     {
       // We need to carefully copy the source node to the target
@@ -248,8 +230,8 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       // Modify source
       sourceNode->SetDisableModifiedEvent(1);
       sourceNode->SetHideFromEditors(0);
-      // Copy source->target
-      targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
+      // Copy source->target      
+      ShallowCopy(targetOutputNode,sourceNode);
       // Restore source
       sourceNode->SetHideFromEditors(1);
       sourceNode->SetDisableModifiedEvent(sourceInitialDisaleModified);
@@ -259,7 +241,8 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       //targetOutputNode->SetName(sourceNode->GetName());
       targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);    
     }
-    targetOutputNode->EndModify(targetInitialModify);
+    //targetOutputNode->EndModify(targetInitialModify);
+
 #else
     // Slice browser is updated when there is a rename, but we want to avoid update, because
     // the source node may be hidden from editors and it would result in removing the target node
@@ -287,6 +270,13 @@ void vtkSlicerMultiDimensionBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultiDi
       scene->RemoveNode(*outputConnectorNodeIt);
     }
   }
+
+  for (int i=endModifyNodes.size()-1; i>=0; i--)
+  {
+    endModifyNodes[i]->EndModify(endModifyValues[i]);  
+  }
+
+
 }
 
 //---------------------------------------------------------------------------
@@ -300,4 +290,46 @@ void vtkSlicerMultiDimensionBrowserLogic::ProcessMRMLNodesEvents(vtkObject *call
   }
 
   UpdateVirtualOutputNode(browserNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultiDimensionBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source)
+{
+  if (target->IsA("vtkMRMLScalarVolumeNode"))
+  {
+    vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
+    vtkMRMLScalarVolumeNode* sourceScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(source);
+    /*char* targetOutputDisplayNodeId=NULL;
+    if (targetScalarVolumeNode->GetDisplayNode()==NULL)
+    {
+      // there is no display node yet, so create one now
+      vtkMRMLScalarVolumeDisplayNode* displayNode=vtkMRMLScalarVolumeDisplayNode::New();
+      displayNode->SetDefaultColorMap();
+      scene->AddNode(displayNode);
+      displayNode->Delete(); // ownership transferred to the scene, so we can release the pointer
+      targetOutputDisplayNodeId=displayNode->GetID();
+      displayNode->SetHideFromEditors(false); // TODO: remove this line, just for testing        
+    }
+    else
+    {
+      targetOutputDisplayNodeId=targetScalarVolumeNode->GetDisplayNode()->GetID();
+    }     
+    target->CopyWithSingleModifiedEvent(source);    
+    targetScalarVolumeNode->SetAndObserveDisplayNodeID(targetOutputDisplayNodeId);*/
+    targetScalarVolumeNode->SetAndObserveDisplayNodeID(sourceScalarVolumeNode->GetDisplayNodeID());
+    targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData());
+    //targetScalarVolumeNode->SetAndObserveTransformNodeID(sourceScalarVolumeNode->GetTransformNodeID());
+    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
+    sourceScalarVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
+    targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
+    targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
+    targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
+    targetScalarVolumeNode->SetDisplayVisibility(sourceScalarVolumeNode->GetDisplayVisibility());
+
+      // TODO: copy attributes and node references, storage node?
+  }
+  else
+  {
+    target->CopyWithSingleModifiedEvent(source);
+  }
 }

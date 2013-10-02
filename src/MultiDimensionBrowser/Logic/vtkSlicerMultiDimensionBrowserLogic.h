@@ -63,6 +63,8 @@ protected:
 
   bool IsDataConnectorNode(vtkMRMLNode*);
 
+  void ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source);
+
 private:
 
   vtkSlicerMultiDimensionBrowserLogic(const vtkSlicerMultiDimensionBrowserLogic&); // Not implemented
