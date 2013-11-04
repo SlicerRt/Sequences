@@ -38,7 +38,7 @@
 
 // MetfileImporter includes
 #include "vtkSlicerMetafileImporterModuleLogicExport.h"
-#include "vtkSlicerMultiDimensionLogic.h"
+#include "vtkSlicerMultidimDataLogic.h"
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_METAFILEIMPORTER_MODULE_LOGIC_EXPORT vtkSlicerMetafileImporterLogic :
@@ -49,7 +49,7 @@ public:
   static vtkSlicerMetafileImporterLogic *New();
   vtkTypeMacro(vtkSlicerMetafileImporterLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic* multiDimensionLogic);
+  void SetMultidimDataLogic(vtkSlicerMultidimDataLogic* multiDimensionLogic);
 
 protected:
   vtkSlicerMetafileImporterLogic();
@@ -82,8 +82,8 @@ protected:
   /*! Generate a node name that contains the hierarchy name and parameter value */
   std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& parameterValue);
 
-  /*! Logic for MultiDimension hierarchy to manipulate nodes */
-  vtkSlicerMultiDimensionLogic* MultiDimensionLogic;
+  /*! Logic for MultidimData hierarchy to manipulate nodes */
+  vtkSlicerMultidimDataLogic* MultidimDataLogic;
 
   /*! The root node for the multi-dimension hierarchy */
   vtkMRMLHierarchyNode* RootNode;

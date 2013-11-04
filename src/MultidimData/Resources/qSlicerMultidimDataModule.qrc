@@ -1,0 +1,9 @@
+<!DOCTYPE RCC><RCC version="1.0">
+  <qresource>
+    <file>Icons/MultidimData.png</file>
+    <file>Icons/DataNodeUnhidden.png</file>
+    <file>Icons/DataNodeHidden.png</file>
+    <file>Icons/SequenceNodeAdd.png</file>
+    <file>Icons/SequenceNodeDelete.png</file>
+  </qresource>
+</RCC>

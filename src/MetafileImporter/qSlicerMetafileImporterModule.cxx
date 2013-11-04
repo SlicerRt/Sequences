@@ -20,7 +20,7 @@
 
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
-#include "vtkSlicerMultiDimensionLogic.h"
+#include "vtkSlicerMultidimDataLogic.h"
 
 // MetafileImporter includes
 #include "qSlicerMetafileImporterModule.h"
@@ -70,7 +70,7 @@ qSlicerMetafileImporterModule::~qSlicerMetafileImporterModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::helpText()const
 {
-  return "This module is to import sequence metafiles into MultiDimension hierarchies. For help on how to use this module please visit: <a href='http://www.slicerrt.org/'>SlicerRT</a>";
+  return "This module is to import sequence metafiles into MultidimData hierarchies. For help on how to use this module please visit: <a href='http://www.slicerrt.org/'>SlicerRT</a>";
 }
 
 //-----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ QStringList qSlicerMetafileImporterModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::dependencies() const
 {
-  return QStringList() << "MultiDimension";
+  return QStringList() << "MultidimData";
 }
 
 //-----------------------------------------------------------------------------
@@ -113,11 +113,11 @@ void qSlicerMetafileImporterModule::setup()
   qSlicerCoreApplication* app = qSlicerCoreApplication::application();
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
-  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "MultiDimension" );
+  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "MultidimData" );
 
   if ( multiDimensionModule )
   {
-    metafileImporterLogic->SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic::SafeDownCast( multiDimensionModule->logic() ));
+    metafileImporterLogic->SetMultidimDataLogic(vtkSlicerMultidimDataLogic::SafeDownCast( multiDimensionModule->logic() ));
   }
 
   // Register the IO

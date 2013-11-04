@@ -19,7 +19,7 @@
 
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
-#include "vtkSlicerMultiDimensionLogic.h"
+#include "vtkSlicerMultidimDataLogic.h"
 
 // MRML includes
 #include "vtkMRMLHierarchyNode.h"
@@ -51,7 +51,7 @@ vtkStandardNewMacro(vtkSlicerMetafileImporterLogic);
 vtkSlicerMetafileImporterLogic
 ::vtkSlicerMetafileImporterLogic() 
 {
-  this->MultiDimensionLogic = NULL;
+  this->MultidimDataLogic = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -66,9 +66,9 @@ void vtkSlicerMetafileImporterLogic::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic::SetMultiDimensionLogic(vtkSlicerMultiDimensionLogic* multiDimensionLogic)
+void vtkSlicerMetafileImporterLogic::SetMultidimDataLogic(vtkSlicerMultidimDataLogic* multiDimensionLogic)
 {
-  this->MultiDimensionLogic=multiDimensionLogic;
+  this->MultidimDataLogic=multiDimensionLogic;
 }
 
 //---------------------------------------------------------------------------
@@ -302,7 +302,7 @@ void vtkSlicerMetafileImporterLogic
     {
       vtkMRMLLinearTransformNode* transform=(*transformIt);
       // The transform name at this point is simply the field name (e.g., ProbeToTracker), need to generate a full name (ProbeToTracker time=123.43s)     
-      this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, transform, paramValueString.c_str() );
+      this->MultidimDataLogic->AddDataNodeAtValue( this->RootNode, transform, paramValueString.c_str() );
       transform->Delete(); // ownership transferred to the scene
     }
   }  
@@ -355,10 +355,10 @@ void vtkSlicerMetafileImporterLogic
     slice->SetAndObserveImageData(sliceImageData);
 
     std::string paramValueString=this->FrameNumberToParameterValueMap[frameNumber];
-    this->MultiDimensionLogic->AddDataNodeAtValue( this->RootNode, slice, paramValueString.c_str() );
+    this->MultidimDataLogic->AddDataNodeAtValue( this->RootNode, slice, paramValueString.c_str() );
 
     // Create display node
-    // TODO: add the display node to the MultiDimension hierarchy?
+    // TODO: add the display node to the MultidimData hierarchy?
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
     displayNode->SetDefaultColorMap();
     displayNode->SetHideFromEditors(true);
@@ -393,9 +393,9 @@ void vtkSlicerMetafileImporterLogic
 //  this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
 
   // Setup hierarchy structure
-  this->RootNode = this->MultiDimensionLogic->CreateMultiDimensionRootNode();
-  this->RootNode->SetAttribute("MultiDimension.Name", "time");
-  this->RootNode->SetAttribute("MultiDimension.Unit", "s");
+  this->RootNode = this->MultidimDataLogic->CreateMultidimDataRootNode();
+  this->RootNode->SetAttribute("MultidimData.Name", "time");
+  this->RootNode->SetAttribute("MultidimData.Unit", "s");
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
   std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
