@@ -30,20 +30,26 @@
 
 // MultidimData includes
 #include "vtkSlicerMultidimDataLogic.h"
+#include "vtkMRMLMultidimDataNode.h"
 
 #define FROM_STD_STRING_SAFE(unsafeString) QString::fromStdString( unsafeString==NULL?"":unsafeString )
 #define FROM_ATTRIBUTE_SAFE(unsafeString) ( unsafeString==NULL?"":unsafeString )
 
-static const int SEQUENCE_NODE_COLUMNS = 3;
-static const int SEQUENCE_NODE_VIS_COLUMN = 0;
-static const int SEQUENCE_NODE_NAME_COLUMN = 1;
-static const int SEQUENCE_NODE_VALUE_COLUMN = 2;
+enum
+{
+  SEQUENCE_NODE_VIS_COLUMN=0,
+  SEQUENCE_NODE_VALUE_COLUMN,
+  SEQUENCE_NODE_NUMBER_OF_COLUMNS // this must be the last line in this enum
+};
 
-static const int DATA_NODE_COLUMNS = 4;
-static const int DATA_NODE_VIS_COLUMN = 0;
-static const int DATA_NODE_NAME_COLUMN = 1;
-static const int DATA_NODE_ROLE_COLUMN = 2;
-static const int DATA_NODE_TYPE_COLUMN = 3;
+enum
+{
+  DATA_NODE_VIS_COLUMN = 0,
+  DATA_NODE_NAME_COLUMN,
+  DATA_NODE_ROLE_COLUMN,
+  DATA_NODE_TYPE_COLUMN,
+  DATA_NODE_NUMBER_OF_COLUMNS // this must be the last line in this enum
+};
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -58,6 +64,9 @@ public:
   ~qSlicerMultidimDataModuleWidgetPrivate();
 
   vtkSlicerMultidimDataLogic* logic() const;
+  
+  /// Get a list of MLRML nodes that are in the scene but not added to the multidimensional data node at the chosen parameterValue
+  void GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLMultidimDataNode* rootNode, const char* parameterValue);
 };
 
 //-----------------------------------------------------------------------------
@@ -82,6 +91,61 @@ vtkSlicerMultidimDataLogic* qSlicerMultidimDataModuleWidgetPrivate::logic() cons
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerMultidimDataModuleWidgetPrivate::GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLMultidimDataNode* rootNode, const char* parameterValue)
+{
+  Q_Q( const qSlicerMultidimDataModuleWidget );
+
+  if (foundNodes==NULL)
+  {
+    qCritical() << "GetNonDataNodesAtValue failed, invalid output collection"; 
+    return;
+  }
+  foundNodes->RemoveAllItems();
+  if (rootNode==NULL)
+  {
+    qCritical() << "GetNonDataNodesAtValue failed, invalid root node"; 
+    return;
+  }
+  if (parameterValue==NULL)
+  {
+    qCritical() << "GetNonDataNodesAtValue failed, invalid parameter value"; 
+    return;
+  }
+
+  // Return all of the nodes in the 
+  vtkSmartPointer<vtkCollection> dataNodeCollection = vtkSmartPointer<vtkCollection>::New();
+  rootNode->GetDataNodesAtValue( dataNodeCollection, parameterValue );    
+
+  for ( int i = 0; i < rootNode->GetScene()->GetNumberOfNodes(); i++ )
+  {
+    vtkMRMLNode* currentNode = vtkMRMLNode::SafeDownCast( rootNode->GetScene()->GetNthNode( i ) );
+    
+    if (currentNode->GetHideFromEditors())
+    {
+      // don't show hidden nodes, they would clutter the view
+      continue;
+    }
+    
+    bool alreadyInMultidimData=false;
+    for ( int j = 0; j < dataNodeCollection->GetNumberOfItems(); j++ )
+    {
+      vtkMRMLNode* testDataNode = vtkMRMLNode::SafeDownCast( dataNodeCollection->GetItemAsObject( j ) );
+      if ( currentNode==testDataNode)
+      {
+        // already in the multidimensional data bundle
+        alreadyInMultidimData=true;
+        break;
+      }
+    }
+
+    if (!alreadyInMultidimData)
+    {
+      foundNodes->AddItem( currentNode );
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------
 // qSlicerMultidimDataModuleWidget methods
 
 //-----------------------------------------------------------------------------
@@ -103,19 +167,16 @@ void qSlicerMultidimDataModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
-  d->MRMLNodeComboBox_MultidimDataRoot->addAttribute( "vtkMRMLHierarchyNode", "HierarchyType", "MultidimData" );
-  d->MRMLNodeComboBox_MultidimDataRoot->addAttribute( "vtkMRMLHierarchyNode", "MultidimData.NodeType", "Root" );
-
   connect( d->MRMLNodeComboBox_MultidimDataRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
-  connect( d->TableWidget_SequenceNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( currentBundleChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
 
   connect( d->LineEdit_ParameterName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterNameEdited() ) );
   connect( d->LineEdit_ParameterUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterUnitEdited() ) );
 
-  connect( d->TableWidget_SequenceNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
-  connect( d->TableWidget_SequenceNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideSequenceNodeClicked( int, int ) ) );
-  connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
-  connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( bundleChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( bundleClicked( int, int ) ), this, SLOT( onHideSequenceNodeClicked( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( bundleChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( bundleClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
   d->PushButton_AddDataNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowLeft ) );
@@ -156,14 +217,13 @@ void qSlicerMultidimDataModuleWidget::onParameterNameEdited()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  currentRoot->SetAttribute( "MultidimData.Name", d->LineEdit_ParameterName->text().toLatin1().constData() );
+  currentRoot->SetDimensionName(d->LineEdit_ParameterName->text().toLatin1().constData() );
 
   this->UpdateRootNode();
 }
@@ -175,14 +235,13 @@ void qSlicerMultidimDataModuleWidget::onParameterUnitEdited()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  currentRoot->SetAttribute( "MultidimData.Unit", d->LineEdit_ParameterUnit->text().toLatin1().constData() );
+  currentRoot->SetUnit( d->LineEdit_ParameterUnit->text().toLatin1().constData() );
 
   this->UpdateRootNode();
 }
@@ -193,22 +252,20 @@ void qSlicerMultidimDataModuleWidget::onSequenceNodeEdited( int row, int column 
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  // Ensure that the user is editing, not the cell changed programmatically
+  // Ensure that the user is editing, not the bundle changed programmatically
   if ( d->TableWidget_SequenceNodes->currentRow() != row || d->TableWidget_SequenceNodes->currentColumn() != column )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( row );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
@@ -217,14 +274,10 @@ void qSlicerMultidimDataModuleWidget::onSequenceNodeEdited( int row, int column 
   QTableWidgetItem* qItem = d->TableWidget_SequenceNodes->item( row, column );
   QString qText = qItem->text();
 
-  if ( column == SEQUENCE_NODE_NAME_COLUMN )
-  {
-    currentSequenceNode->SetName( qText.toLatin1().constData() );
-  }
-
   if ( column == SEQUENCE_NODE_VALUE_COLUMN )
   {
-    currentSequenceNode->SetAttribute( "MultidimData.Value", qText.toLatin1().constData() ); // TODO: Should this be propagated to data node names?
+    currentRoot->UpdateParameterValue( currentParameterValue.c_str(), qText.toLatin1().constData() );
+    // TODO: Should this be propagated to data node names?
   }
 
   this->UpdateRootNode();
@@ -237,30 +290,27 @@ void qSlicerMultidimDataModuleWidget::onDataNodeEdited( int row, int column )
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  // Ensure that the user is editing, not the cell changed programmatically
+  // Ensure that the user is editing, not the bundle changed programmatically
   if ( d->TableWidget_DataNodes->currentRow() != row || d->TableWidget_DataNodes->currentColumn() != column )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
 
   // Get the data node
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
+  currentRoot->GetDataNodesAtValue( currentDataNodes, currentParameterValue.c_str() );
   vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
 
   // Grab the text from the modified item
@@ -274,41 +324,36 @@ void qSlicerMultidimDataModuleWidget::onDataNodeEdited( int row, int column )
 
   if ( column == DATA_NODE_ROLE_COLUMN )
   {
-    d->logic()->SetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue, qText.toLatin1().constData() );
+    currentRoot->SetDataNodeAtValue(currentDataNode, qText.toLatin1().constData(), currentParameterValue.c_str());
   }
 
   this->UpdateSequenceNode();
 }
-
-
 
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataModuleWidget::onAddDataNodeButtonClicked()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
 
   // Get the selected nodes
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
   vtkSmartPointer<vtkCollection> currentNonDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetNonDataNodesAtValue( currentNonDataNodes, currentRoot, currentValue );
+  d->GetNonDataNodesAtValue( currentNonDataNodes, currentRoot, currentParameterValue.c_str() );
 
   int row = d->ListWidget_NonDataNodes->currentRow();
   vtkMRMLNode* currentNonDataNode = vtkMRMLNode::SafeDownCast( currentNonDataNodes->GetItemAsObject( row ) );
-  d->logic()->AddDataNodeAtValue( currentRoot, currentNonDataNode, currentValue );
+  currentRoot->SetDataNodeAtValue(currentNonDataNode, currentNonDataNode->GetName(), currentParameterValue.c_str() );
 
   this->UpdateSequenceNode();
 }
@@ -320,28 +365,25 @@ void qSlicerMultidimDataModuleWidget::onRemoveDataNodeButtonClicked()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
 
   // Get the selected nodes
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
+  currentRoot->GetDataNodesAtValue( currentDataNodes, currentParameterValue.c_str() );
 
   int row = d->TableWidget_DataNodes->currentRow();
   vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
-  d->logic()->RemoveDataNodeAtValue( currentRoot, currentDataNode, currentValue );
+  currentRoot->RemoveDataNodeAtValue(currentDataNode, currentParameterValue.c_str() );
 
   this->UpdateSequenceNode();
 }
@@ -353,24 +395,22 @@ void qSlicerMultidimDataModuleWidget::onRemoveSequenceNodeButtonClicked()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
 
   // Get the selected nodes
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
 
-  d->logic()->RemoveSequenceNodeAtValue( currentRoot, currentValue );
+
+  currentRoot->RemoveAllDataNodesAtValue( currentParameterValue.c_str() );
 
   this->UpdateRootNode();
 }
@@ -381,16 +421,14 @@ void qSlicerMultidimDataModuleWidget::onHideSequenceNodeClicked( int row, int co
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
@@ -401,14 +439,13 @@ void qSlicerMultidimDataModuleWidget::onHideSequenceNodeClicked( int row, int co
   }
 
   // Get the selected nodes
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
 
-  d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ), currentValue );
+  d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentParameterValue.c_str() ), currentParameterValue.c_str() );
 
   // Change the eye for the current sequence node
   QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
-  d->TableWidget_SequenceNodes->setItem( row, SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current cell to NULL
+  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentParameterValue.c_str() ) );
+  d->TableWidget_SequenceNodes->setItem( row, SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current bundle to NULL
   d->TableWidget_SequenceNodes->setCurrentCell( row, column ); // Reset the current cell so updating the sequence node works
 
   this->UpdateSequenceNode();
@@ -421,16 +458,14 @@ void qSlicerMultidimDataModuleWidget::onHideDataNodeClicked( int row, int column
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )
   {
     return;
   }
@@ -441,9 +476,8 @@ void qSlicerMultidimDataModuleWidget::onHideDataNodeClicked( int row, int column
   }
   
   // Get the selected nodes
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
+  currentRoot->GetDataNodesAtValue( currentDataNodes, currentParameterValue.c_str() );
 
   vtkMRMLNode* currentDataNode = vtkMRMLNode::SafeDownCast( currentDataNodes->GetItemAsObject( row ) );
   currentDataNode->SetHideFromEditors( ! currentDataNode->GetHideFromEditors() );
@@ -453,10 +487,9 @@ void qSlicerMultidimDataModuleWidget::onHideDataNodeClicked( int row, int column
   int sequenceRow = d->TableWidget_SequenceNodes->currentRow();
   int sequenceColumn = d->TableWidget_SequenceNodes->currentColumn();
   QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
-  d->TableWidget_SequenceNodes->setItem( d->TableWidget_SequenceNodes->currentRow(), SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current cell to NULL
+  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentParameterValue.c_str() ) );
+  d->TableWidget_SequenceNodes->setItem( d->TableWidget_SequenceNodes->currentRow(), SEQUENCE_NODE_VIS_COLUMN, visItem ); // This changes current bundle to NULL
   d->TableWidget_SequenceNodes->setCurrentCell( sequenceRow, sequenceColumn ); // Reset the current cell so updating the sequence node works
-
 
   this->UpdateSequenceNode();
 }
@@ -468,8 +501,7 @@ void qSlicerMultidimDataModuleWidget::onAddSequenceNodeButtonClicked()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
@@ -482,12 +514,10 @@ void qSlicerMultidimDataModuleWidget::onAddSequenceNodeButtonClicked()
     return;
   }
 
-  d->logic()->CreateSequenceNodeAtValue( currentRoot, value.toStdString().c_str() );
+  currentRoot->AddBundle(value.toStdString().c_str() );
 
   this->UpdateRootNode();
 }
-
-
 
 
 //-----------------------------------------------------------------------------
@@ -495,7 +525,7 @@ void qSlicerMultidimDataModuleWidget::UpdateRootNode()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
 
   if ( currentRoot == NULL )
   {
@@ -508,36 +538,32 @@ void qSlicerMultidimDataModuleWidget::UpdateRootNode()
   }
 
   // Put the correct properties in the root node table
-  d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( currentRoot->GetAttribute( "MultidimData.Name" ) ) );
-  d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( currentRoot->GetAttribute( "MultidimData.Unit" ) ) );
+  d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( currentRoot->GetDimensionName() ) );
+  d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( currentRoot->GetUnit() ) );
 
   // Display all of the sequence nodes
   d->TableWidget_SequenceNodes->clear();
-  d->TableWidget_SequenceNodes->setRowCount( currentRoot->GetNumberOfChildrenNodes() );
-  d->TableWidget_SequenceNodes->setColumnCount( SEQUENCE_NODE_COLUMNS );
+  d->TableWidget_SequenceNodes->setRowCount( currentRoot->GetNumberOfBundles() );
+  d->TableWidget_SequenceNodes->setColumnCount( SEQUENCE_NODE_NUMBER_OF_COLUMNS );
   std::stringstream valueHeader;
-  valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetAttribute( "MultidimData.Name" ) ); 
-  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetAttribute( "MultidimData.Unit" ) ) << ")";
+  valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetDimensionName() ); 
+  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetUnit() ) << ")";
   QStringList SequenceNodesTableHeader;
   SequenceNodesTableHeader.insert( SEQUENCE_NODE_VIS_COLUMN, "Vis" );
-  SequenceNodesTableHeader.insert( SEQUENCE_NODE_NAME_COLUMN, "Name" );
   SequenceNodesTableHeader.insert( SEQUENCE_NODE_VALUE_COLUMN, valueHeader.str().c_str() );
   d->TableWidget_SequenceNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );
 
-  for ( int i = 0; i < currentRoot->GetNumberOfChildrenNodes(); i++ )
+  for ( int i = 0; i < currentRoot->GetNumberOfBundles(); i++ )
   {
-    vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( i );
-    const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
+    std::string currentValue = currentRoot->GetNthParameterValue( i );
 
     // Display the data node information
     QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-    this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) );
+    this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue.c_str() ) );
 
-    QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentSequenceNode->GetName() ) );
-    QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentValue ) );
+    QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentValue.c_str() ) );
 
     d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_VIS_COLUMN, visItem );
-    d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_NAME_COLUMN, nameItem );
     d->TableWidget_SequenceNodes->setItem( i, SEQUENCE_NODE_VALUE_COLUMN, valueItem );
   }
 
@@ -553,16 +579,14 @@ void qSlicerMultidimDataModuleWidget::UpdateSequenceNode()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
 
-  vtkMRMLHierarchyNode* currentRoot = vtkMRMLHierarchyNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
-
+  vtkMRMLMultidimDataNode* currentRoot = vtkMRMLMultidimDataNode::SafeDownCast( d->MRMLNodeComboBox_MultidimDataRoot->currentNode() );
   if ( currentRoot == NULL )
   {
     return;
   }
 
-  vtkMRMLHierarchyNode* currentSequenceNode = currentRoot->GetNthChildNode( d->TableWidget_SequenceNodes->currentRow() );
-
-  if ( currentSequenceNode == NULL )
+  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_SequenceNodes->currentRow() );
+  if ( currentParameterValue.empty() )  
   {
     d->TableWidget_DataNodes->clear();
     d->TableWidget_DataNodes->setRowCount( 0 );
@@ -571,14 +595,13 @@ void qSlicerMultidimDataModuleWidget::UpdateSequenceNode()
     return;
   }
 
-  const char* currentValue = FROM_ATTRIBUTE_SAFE( currentSequenceNode->GetAttribute( "MultidimData.Value" ) );
   vtkSmartPointer<vtkCollection> currentDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetDataNodesAtValue( currentDataNodes, currentRoot, currentValue );
+  currentRoot->GetDataNodesAtValue( currentDataNodes, currentParameterValue.c_str() );
 
   // Display all of the data nodes
   d->TableWidget_DataNodes->clear();
   d->TableWidget_DataNodes->setRowCount( currentDataNodes->GetNumberOfItems() );
-  d->TableWidget_DataNodes->setColumnCount( DATA_NODE_COLUMNS );
+  d->TableWidget_DataNodes->setColumnCount( DATA_NODE_NUMBER_OF_COLUMNS );
   QStringList DataNodesTableHeader;
   DataNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
   DataNodesTableHeader.insert( DATA_NODE_NAME_COLUMN, "Name" );
@@ -596,8 +619,8 @@ void qSlicerMultidimDataModuleWidget::UpdateSequenceNode()
 
     QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetName() ) );
 
-    const char* role = d->logic()->GetDataNodeRoleAtValue( currentRoot, currentDataNode, currentValue );
-    QTableWidgetItem* roleItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( role ) );
+    std::string role = currentRoot->GetDataNodeRoleAtValue( currentDataNode, currentParameterValue.c_str() );
+    QTableWidgetItem* roleItem = new QTableWidgetItem( role.c_str() );
 
     QTableWidgetItem* typeItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetClassName() ) );
     typeItem->setFlags( typeItem->flags() & ~Qt::ItemIsEditable );
@@ -614,7 +637,7 @@ void qSlicerMultidimDataModuleWidget::UpdateSequenceNode()
 
   // Display the non-data nodes
   vtkSmartPointer<vtkCollection> currentNonDataNodes = vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetNonDataNodesAtValue( currentNonDataNodes, currentRoot, currentValue );
+  d->GetNonDataNodesAtValue( currentNonDataNodes, currentRoot, currentParameterValue.c_str() );
   d->ListWidget_NonDataNodes->clear();
 
   for ( int i = 0; i < currentNonDataNodes->GetNumberOfItems(); i++ )

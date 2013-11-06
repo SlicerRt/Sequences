@@ -32,7 +32,7 @@
 
 #include "vtkSlicerMultidimDataBrowserModuleLogicExport.h"
 
-class vtkMRMLHierarchyNode;
+class vtkMRMLMultidimDataNode;
 
 class VTK_SLICER_MULTIDIMDATABROWSER_MODULE_LOGIC_EXPORT vtkMRMLMultidimDataBrowserNode : public vtkMRMLNode
 {
@@ -56,21 +56,11 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "MultidimDataBrowser";};
 
-  /// Set the multi-dimension hierarchy node root
+  /// Set the multidimensional data node root
   void SetAndObserveRootNodeID(const char *rootNodeID);
-  /// Get the multi-dimension hierarchy node root
-  vtkMRMLHierarchyNode* GetRootNode();
+  /// Get the multidimensional data node root
+  vtkMRMLMultidimDataNode* GetRootNode();
   
-  /// Set the selected sequence node (branch in the hierarchy, corresponding to a specific parameter value)
-  void SetAndObserveSelectedSequenceNodeID(const char *selectedSequenceNodeID);
-  /// Get the selected sequence node (branch in the hierarchy, corresponding to a specific parameter value)
-  vtkMRMLHierarchyNode* GetSelectedSequenceNode();
-
-  /// Set the selected output virtual node (that will contain the copy a specific parameter value)
-  void SetAndObserveVirtualOutputNodeID(const char *virtualOutputNodeID);
-  /// Get the selected output virtual node (that will contain the copy a specific parameter value)
-  vtkMRMLHierarchyNode* GetVirtualOutputNode();
-
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);
   vtkSetMacro(PlaybackActive, bool);
@@ -85,6 +75,20 @@ public:
   vtkSetMacro(PlaybackLooped, bool);
   vtkBooleanMacro(PlaybackLooped, bool);
   
+  /// Get/Set selected bundle index
+  vtkGetMacro(SelectedBundleIndex, int);
+  vtkSetMacro(SelectedBundleIndex, int);
+
+  void RemoveAllVirtualOutputNodes();
+
+  vtkMRMLNode* GetVirtualOutputNode(const char* dataRole);
+
+  void AddVirtualOutputNode(vtkMRMLNode* targetOutputNode, const char* dataRole);
+
+  void GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* > nodes);
+
+  void RemoveVirtualOutputNode(vtkMRMLNode* node);
+
 protected:
   vtkMRMLMultidimDataBrowserNode();
   ~vtkMRMLMultidimDataBrowserNode();
@@ -95,6 +99,8 @@ protected:
   bool PlaybackActive;
   double PlaybackRateFps;
   bool PlaybackLooped;
+  int SelectedBundleIndex;
+  std::set< std::string > VirtualNodeRoleNames;
 };
 
 #endif

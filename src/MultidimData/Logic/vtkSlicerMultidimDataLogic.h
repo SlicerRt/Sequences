@@ -35,7 +35,7 @@
 #include "vtkSlicerMultidimDataModuleLogicExport.h"
 
 class vtkMRMLNode;
-class vtkMRMLHierarchyNode;
+class vtkMRMLMultidimDataNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_MULTIDIMDATA_MODULE_LOGIC_EXPORT vtkSlicerMultidimDataLogic :
@@ -46,23 +46,9 @@ public:
   static vtkSlicerMultidimDataLogic *New();
   vtkTypeMacro(vtkSlicerMultidimDataLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
-
-  vtkMRMLHierarchyNode* CreateMultidimDataRootNode();
-
-  void AddDataNodeAtValue(vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue);
-  vtkMRMLHierarchyNode* CreateSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-  void RemoveSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-  void RemoveDataNodeAtValue( vtkMRMLHierarchyNode*, vtkMRMLNode*, const char* );
-
-  void GetDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue);
-  void GetNonDataNodesAtValue(vtkCollection* foundNodes, vtkMRMLHierarchyNode* rootNode, const char* parameterValue);
-  vtkMRMLHierarchyNode* GetSequenceNodeAtValue( vtkMRMLHierarchyNode*, const char* );
-
-  const char* GetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue );
-  void SetDataNodeRoleAtValue( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue, const char* role );
-
-  void SetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, bool, const char* );
-  bool GetDataNodesHiddenAtValue( vtkMRMLHierarchyNode*, const char* );
+  
+  void SetDataNodesHiddenAtValue( vtkMRMLMultidimDataNode* rootNode, bool hidden, const char* value );
+  bool GetDataNodesHiddenAtValue( vtkMRMLMultidimDataNode* rootNode, const char* value );
 
 protected:
   vtkSlicerMultidimDataLogic();
@@ -74,9 +60,6 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
-
-  bool IsDataConnectorNode(vtkMRMLNode*);
-  vtkMRMLHierarchyNode* GetDataConnectorNode( vtkMRMLHierarchyNode* rootNode, vtkMRMLNode* dataNode, const char* parameterValue );
 
 private:
 

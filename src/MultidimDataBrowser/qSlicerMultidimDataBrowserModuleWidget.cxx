@@ -23,12 +23,10 @@
 #include "qSlicerMultidimDataBrowserModuleWidget.h"
 #include "ui_qSlicerMultidimDataBrowserModuleWidget.h"
 
-// Slicer MRML includes
-#include "vtkMRMLHierarchyNode.h"
-
 // MultidimData includes
 #include "vtkSlicerMultidimDataBrowserLogic.h"
 #include "vtkMRMLMultidimDataBrowserNode.h"
+#include "vtkMRMLMultidimDataNode.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_MultidimData
@@ -120,13 +118,9 @@ void qSlicerMultidimDataBrowserModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
   
-  d->MRMLNodeComboBox_MultidimDataRoot->addAttribute("vtkMRMLHierarchyNode","MultidimData.NodeType","Root");
-  d->MRMLNodeComboBox_VirtualOutput->addAttribute("vtkMRMLHierarchyNode","MultidimData.NodeType","VirtualOutput");
-
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
-  connect( d->MRMLNodeComboBox_MultidimDataRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multiDimensionRootNodeChanged(vtkMRMLNode*)) );
-  connect( d->MRMLNodeComboBox_VirtualOutput, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(virtualOutputNodeChanged(vtkMRMLNode*)) );
-  connect( d->slider_ParameterValue, SIGNAL(valueChanged(int)), this, SLOT(setParameterValueIndex(int)) );  
+  connect( d->MRMLNodeComboBox_MultidimDataRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multidimDataRootNodeChanged(vtkMRMLNode*)) );
+  connect( d->slider_ParameterValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedBundleIndex(int)) );  
   connect( d->pushButton_VcrFirst, SIGNAL(clicked()), this, SLOT(onVcrFirst()) );
   connect( d->pushButton_VcrPrevious, SIGNAL(clicked()), this, SLOT(onVcrPrevious()) );
   connect( d->pushButton_VcrNext, SIGNAL(clicked()), this, SLOT(onVcrNext()) );
@@ -149,13 +143,7 @@ void qSlicerMultidimDataBrowserModuleWidget::enter()
     if (node==NULL)
     {
       vtkSmartPointer<vtkMRMLMultidimDataBrowserNode> newBrowserNode = vtkSmartPointer<vtkMRMLMultidimDataBrowserNode>::New();
-      this->mrmlScene()->AddNode(newBrowserNode);
-      vtkSmartPointer<vtkMRMLHierarchyNode> newVirtualOutputNode = vtkSmartPointer<vtkMRMLHierarchyNode>::New();
-      newVirtualOutputNode->SetAttribute("HierarchyType","MultidimData");
-      newVirtualOutputNode->SetAttribute("MultidimData.NodeType","VirtualOutput");
-      this->mrmlScene()->AddNode(newVirtualOutputNode);
-      newVirtualOutputNode->SetName(d->MRMLNodeComboBox_VirtualOutput->baseName().toLatin1().constData());
-      newBrowserNode->SetAndObserveVirtualOutputNodeID(newVirtualOutputNode->GetID());
+      this->mrmlScene()->AddNode(newBrowserNode);      
       setActiveBrowserNode(newBrowserNode);
     }  
   }
@@ -176,17 +164,10 @@ void qSlicerMultidimDataBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNod
 
 
 //-----------------------------------------------------------------------------
-void qSlicerMultidimDataBrowserModuleWidget::multiDimensionRootNodeChanged(vtkMRMLNode* inputNode)
+void qSlicerMultidimDataBrowserModuleWidget::multidimDataRootNodeChanged(vtkMRMLNode* inputNode)
 {
-  vtkMRMLHierarchyNode* multiDimensionRootNode = vtkMRMLHierarchyNode::SafeDownCast(inputNode);  
-  setMultidimDataRootNode(multiDimensionRootNode);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerMultidimDataBrowserModuleWidget::virtualOutputNodeChanged(vtkMRMLNode* outputNode)
-{
-  vtkMRMLHierarchyNode* virtualOutputNode = vtkMRMLHierarchyNode::SafeDownCast(outputNode);  
-  setVirtualOutputNode(virtualOutputNode);
+  vtkMRMLMultidimDataNode* multidimDataRootNode = vtkMRMLMultidimDataNode::SafeDownCast(inputNode);  
+  setMultidimDataRootNode(multidimDataRootNode);
 }
 
 //-----------------------------------------------------------------------------
@@ -323,7 +304,7 @@ void qSlicerMultidimDataBrowserModuleWidget::setActiveBrowserNode(vtkMRMLMultidi
 
 
 // --------------------------------------------------------------------------
-void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLHierarchyNode* multiDimensionRootNode)
+void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLMultidimDataNode* multidimDataRootNode)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
   if (d->ActiveBrowserNode==NULL)
@@ -332,61 +313,40 @@ void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLHier
     updateWidgetFromMRML();
     return;
   }
-  if (multiDimensionRootNode!=d->ActiveBrowserNode->GetRootNode())
+  if (multidimDataRootNode!=d->ActiveBrowserNode->GetRootNode())
   {
     // Reconnect the input node's Modified() event observer
-    this->qvtkReconnect(d->ActiveBrowserNode->GetRootNode(), multiDimensionRootNode, vtkCommand::ModifiedEvent,
+    this->qvtkReconnect(d->ActiveBrowserNode->GetRootNode(), multidimDataRootNode, vtkCommand::ModifiedEvent,
       this, SLOT(onMRMLInputMultidimDataInputNodeModified(vtkObject*)));
 
-    char* multiDimensionRootNodeId = multiDimensionRootNode==NULL ? NULL : multiDimensionRootNode->GetID();
-    d->ActiveBrowserNode->SetAndObserveRootNodeID(multiDimensionRootNodeId);
+    char* multidimDataRootNodeId = multidimDataRootNode==NULL ? NULL : multidimDataRootNode->GetID();
+    d->ActiveBrowserNode->SetAndObserveRootNodeID(multidimDataRootNodeId);
 
     // Update d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID
-    setParameterValueIndex(0);
+    setSelectedBundleIndex(0);
   }   
 }
 
-// --------------------------------------------------------------------------
-void qSlicerMultidimDataBrowserModuleWidget::setVirtualOutputNode(vtkMRMLHierarchyNode* virtualOutputNode)
-{
-  Q_D(qSlicerMultidimDataBrowserModuleWidget);
-  if (d->ActiveBrowserNode==NULL)
-  {
-    qCritical() << "setVirtualOutputNode failed: no active browser node is selected";
-    updateWidgetFromMRML();
-    return;
-  }
-  if (virtualOutputNode!=d->ActiveBrowserNode->GetVirtualOutputNode())
-  {
-    char* virtualOutputNodeId = virtualOutputNode==NULL ? NULL : virtualOutputNode->GetID();
-    d->ActiveBrowserNode->SetAndObserveVirtualOutputNodeID(virtualOutputNodeId);
-  }  
-}
-
 //-----------------------------------------------------------------------------
-void qSlicerMultidimDataBrowserModuleWidget::setParameterValueIndex(int paramValue)
+void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIndex)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);    
   if (d->ActiveBrowserNode==NULL)
   {
-    qCritical() << "setParameterValueIndex failed: no active browser node is selected";
+    qCritical() << "setSelectedBundleIndex failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
-  vtkMRMLHierarchyNode* rootNode=d->ActiveBrowserNode->GetRootNode();
-  const char* sequenceNodeId=NULL;
-  if (rootNode!=NULL && paramValue>=0)
+  int selectedBundleIndex=-1;
+  vtkMRMLMultidimDataNode* rootNode=d->ActiveBrowserNode->GetRootNode();  
+  if (rootNode!=NULL && bundleIndex>=0)
   {
-    if (paramValue<rootNode->GetNumberOfChildrenNodes())
+    if (bundleIndex<rootNode->GetNumberOfBundles())
     {
-      vtkMRMLHierarchyNode* sequenceNode=rootNode->GetNthChildNode(paramValue);
-      if (sequenceNode!=NULL)
-      {
-        sequenceNodeId=sequenceNode->GetID();
-      }
+      selectedBundleIndex=bundleIndex;
     }
   }
-  d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID(sequenceNodeId);
+  d->ActiveBrowserNode->SetSelectedBundleIndex(selectedBundleIndex);
 }
 
 //-----------------------------------------------------------------------------
@@ -405,7 +365,6 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   if (d->ActiveBrowserNode==NULL)
   {
     d->MRMLNodeComboBox_MultidimDataRoot->setEnabled(false);
-    d->MRMLNodeComboBox_VirtualOutput->setEnabled(false);
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
     d->label_ParameterUnit->setText("");
     d->slider_ParameterValue->setEnabled(false);
@@ -416,19 +375,13 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
 
   // A valid active browser node is selected
   
-  vtkMRMLHierarchyNode* multiDimensionRootNode = d->ActiveBrowserNode->GetRootNode();  
+  vtkMRMLMultidimDataNode* multidimDataRootNode = d->ActiveBrowserNode->GetRootNode();  
   d->MRMLNodeComboBox_MultidimDataRoot->setEnabled(true);  
-  d->MRMLNodeComboBox_MultidimDataRoot->setCurrentNode(multiDimensionRootNode);
-  d->MRMLNodeComboBox_VirtualOutput->setEnabled(true);
+  d->MRMLNodeComboBox_MultidimDataRoot->setCurrentNode(multidimDataRootNode);
 
-  // Set up the virtual output selector
+  // Set up the multidimensional input section (root node selector and sequence slider)
 
-  vtkMRMLHierarchyNode* virtualOutputNode=d->ActiveBrowserNode->GetVirtualOutputNode();
-  d->MRMLNodeComboBox_VirtualOutput->setCurrentNode(virtualOutputNode);
-
-  // Set up the multi-dimension input section (root node selector and sequence slider)
-
-  if (multiDimensionRootNode==NULL)
+  if (multidimDataRootNode==NULL)
   {
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
     d->label_ParameterUnit->setText("");
@@ -438,36 +391,36 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     return;    
   }
 
-  // A valid multi-dimension root node is selected
+  // A valid multidimensional root node is selected
 
-  const char* parameterName=multiDimensionRootNode->GetAttribute("MultidimData.Name");
+  const char* parameterName=multidimDataRootNode->GetDimensionName();
   if (parameterName!=NULL)
   {
     d->label_ParameterName->setText(parameterName);
   }
   else
   {
-    qWarning() << "MultidimData.Name attribute is not specified in node "<<multiDimensionRootNode->GetID();
+    qWarning() << "Dimension name is not specified in node "<<multidimDataRootNode->GetID();
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
   }
 
-  const char* parameterUnit=multiDimensionRootNode->GetAttribute("MultidimData.Unit");    
+  const char* parameterUnit=multidimDataRootNode->GetUnit();
   if (parameterUnit!=NULL)
   {
     d->label_ParameterUnit->setText(parameterUnit);
   }
   else
   {
-    qWarning() << "MultidimData.Unit attribute is not specified in node "<<multiDimensionRootNode->GetID();
+    qWarning() << "Unit is not specified in node "<<multidimDataRootNode->GetID();
     d->label_ParameterUnit->setText("");
   }
   
-  int numberOfSequenceNodes=multiDimensionRootNode->GetNumberOfChildrenNodes();
-  if (numberOfSequenceNodes>0)
+  int numberOfBundles=multidimDataRootNode->GetNumberOfBundles();
+  if (numberOfBundles>0)
   {
     d->slider_ParameterValue->setEnabled(true);
     d->slider_ParameterValue->setMinimum(0);      
-    d->slider_ParameterValue->setMaximum(numberOfSequenceNodes-1);        
+    d->slider_ParameterValue->setMaximum(numberOfBundles-1);        
     vcrControlsEnabled=true;
     
     bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
@@ -480,31 +433,28 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   }
   else
   {
-    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<multiDimensionRootNode->GetID();
+    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<multidimDataRootNode->GetID();
     d->slider_ParameterValue->setEnabled(false);
   }   
 
-  vtkMRMLHierarchyNode* selectedSequenceNode=d->ActiveBrowserNode->GetSelectedSequenceNode();
-
-  if (selectedSequenceNode!=NULL)
+  int selectedBundleIndex=d->ActiveBrowserNode->GetSelectedBundleIndex();
+  if (selectedBundleIndex>0)
   {
-    // TODO: get parameterValueIndex from selectedSequenceNode and update the slider accordingly
-    //setParameterValueIndex(parameterValueIndex);
-    const char* parameterValue=selectedSequenceNode->GetAttribute("MultidimData.Value");    
-    if (parameterValue!=NULL)
+    std::string parameterValue=multidimDataRootNode->GetNthParameterValue(selectedBundleIndex);
+    if (!parameterValue.empty())
     {
-      d->label_ParameterValue->setText(parameterValue);
+      d->label_ParameterValue->setText(parameterValue.c_str());
     }
     else
     {
-      qWarning() << "MultidimData.Value attribute is not specified in node "<<selectedSequenceNode->GetID();
+      qWarning() << "Bundle "<<selectedBundleIndex<<" has no parameter value defined";
       d->label_ParameterValue->setText("");
     }  
   }
   else
   {
     d->label_ParameterValue->setText("");
-    //setParameterValueIndex(0);
+    //setSelectedBundleIndex(0);
   }  
   
   foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
@@ -525,5 +475,3 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     d->PlaybackTimer->stop();
   }
 }
-
-

@@ -23,7 +23,7 @@
       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_MultidimDataRoot">
        <property name="nodeTypes">
         <stringlist>
-         <string>vtkMRMLHierarchyNode</string>
+         <string>vtkMRMLMultidimDataNode</string>
         </stringlist>
        </property>
        <property name="noneEnabled">

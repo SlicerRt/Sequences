@@ -1,7 +1,7 @@
 
 #-----------------------------------------------------------------------------
 set(MODULE_NAME MultidimDataBrowser)
-set(MODULE_TITLE "Multi-dimension browser")
+set(MODULE_TITLE "Multidimensional data browser")
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 

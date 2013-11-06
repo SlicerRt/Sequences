@@ -19,8 +19,9 @@
 
 ==============================================================================*/
 
-// MRMLMultidimDataBrowser includes
+// MRMLMultidim includes
 #include "vtkMRMLMultidimDataBrowserNode.h"
+#include "vtkMRMLMultidimDataNode.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -36,10 +37,6 @@
 
 static const char* ROOT_NODE_REFERENCE_ROLE = "root";
 static const char* ROOT_NODE_REFERENCE_ATTRIBUTE_NAME = "rootNodeRef"; 
-static const char* SELECTED_SEQUENCE_NODE_REFERENCE_ROLE = "selectedSequence";
-static const char* SELECTED_SEQUENCE_NODE_REFERENCE_ATTRIBUTE_NAME = "selectedSequenceNodeRef"; 
-static const char* VIRTUAL_OUTPUT_NODE_REFERENCE_ROLE = "virtualOutput";
-static const char* VIRTUAL_OUTPUT_NODE_REFERENCE_ATTRIBUTE_NAME = "virtualOutputNodeRef"; 
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLMultidimDataBrowserNode);
@@ -49,11 +46,10 @@ vtkMRMLMultidimDataBrowserNode::vtkMRMLMultidimDataBrowserNode()
 {
   this->SetHideFromEditors(false);
   this->AddNodeReferenceRole(ROOT_NODE_REFERENCE_ROLE, ROOT_NODE_REFERENCE_ATTRIBUTE_NAME );
-  this->AddNodeReferenceRole(SELECTED_SEQUENCE_NODE_REFERENCE_ROLE, SELECTED_SEQUENCE_NODE_REFERENCE_ATTRIBUTE_NAME ); 
-  this->AddNodeReferenceRole(VIRTUAL_OUTPUT_NODE_REFERENCE_ROLE, VIRTUAL_OUTPUT_NODE_REFERENCE_ATTRIBUTE_NAME ); 
   this->PlaybackActive=false;
   this->PlaybackRateFps=5.0;
   this->PlaybackLooped=true;
+  this->SelectedBundleIndex=0;
 }
 
 //----------------------------------------------------------------------------
@@ -99,34 +95,70 @@ void vtkMRMLMultidimDataBrowserNode::SetAndObserveRootNodeID(const char *rootNod
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::SetAndObserveSelectedSequenceNodeID(const char *selectedSequenceNodeID)
+vtkMRMLMultidimDataNode* vtkMRMLMultidimDataBrowserNode::GetRootNode()
 {
-  this->SetAndObserveNodeReferenceID(SELECTED_SEQUENCE_NODE_REFERENCE_ROLE, selectedSequenceNodeID);
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::SetAndObserveVirtualOutputNodeID(const char *virtualOutputNodeID)
-{
-  this->SetAndObserveNodeReferenceID(VIRTUAL_OUTPUT_NODE_REFERENCE_ROLE, virtualOutputNodeID);
-}
-
-//----------------------------------------------------------------------------
-vtkMRMLHierarchyNode* vtkMRMLMultidimDataBrowserNode::GetRootNode()
-{
-  vtkMRMLHierarchyNode* node=vtkMRMLHierarchyNode::SafeDownCast(this->GetNodeReference(ROOT_NODE_REFERENCE_ROLE));
+  vtkMRMLMultidimDataNode* node=vtkMRMLMultidimDataNode::SafeDownCast(this->GetNodeReference(ROOT_NODE_REFERENCE_ROLE));
   return node;
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLHierarchyNode* vtkMRMLMultidimDataBrowserNode::GetSelectedSequenceNode()
+void vtkMRMLMultidimDataBrowserNode::RemoveAllVirtualOutputNodes()
 {
-  vtkMRMLHierarchyNode* node=vtkMRMLHierarchyNode::SafeDownCast(this->GetNodeReference(SELECTED_SEQUENCE_NODE_REFERENCE_ROLE));
-  return node;
+  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
+    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  {
+    RemoveAllNodeReferenceIDs(roleNameIt->c_str());
+  }
+  this->VirtualNodeRoleNames.clear();
 }
-  
+
 //----------------------------------------------------------------------------
-vtkMRMLHierarchyNode* vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode()
+vtkMRMLNode* vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode(const char* dataRole)
 {
-  vtkMRMLHierarchyNode* node=vtkMRMLHierarchyNode::SafeDownCast(this->GetNodeReference(VIRTUAL_OUTPUT_NODE_REFERENCE_ROLE));
-  return node;
+  if (dataRole==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode failed: dataRole is invalid");
+    return NULL;
+  }
+  return this->GetNodeReference(dataRole);
+}
+
+//----------------------------------------------------------------------------
+void  vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNode(vtkMRMLNode* targetOutputNode, const char* dataRole)
+{
+  this->VirtualNodeRoleNames.insert(dataRole);
+  this->SetNodeReferenceID(dataRole, targetOutputNode->GetID());
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* > nodes)
+{
+  nodes.clear();
+  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
+    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  {
+    nodes.push_back(this->GetNodeReference(roleNameIt->c_str()));
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode(vtkMRMLNode* node)
+{
+  if (node==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: node is invalid");
+    return;
+  }
+  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
+    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  {
+    if (GetNodeReference(roleNameIt->c_str())==node)
+    {
+      // found
+      this->VirtualNodeRoleNames.erase(*roleNameIt);
+      RemoveAllNodeReferenceIDs(roleNameIt->c_str());
+      return;
+    }
+  }
+  vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: node is not found");
 }

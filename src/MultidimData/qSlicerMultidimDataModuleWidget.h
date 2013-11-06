@@ -63,7 +63,7 @@ public slots:
 protected:
   QScopedPointer<qSlicerMultidimDataModuleWidgetPrivate> d_ptr;
   
-  virtual void setup();
+  virtual void setup();  
 
 protected slots:
 

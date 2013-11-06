@@ -22,9 +22,9 @@
 // MultidimData Logic includes
 #include "vtkSlicerMultidimDataBrowserLogic.h"
 #include "vtkMRMLMultidimDataBrowserNode.h"
+#include "vtkMRMLMultidimDataNode.h"
 
 // MRML includes
-#include "vtkMRMLHierarchyNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLScene.h"
@@ -122,96 +122,76 @@ void vtkSlicerMultidimDataBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultidimDataBrowserNode* browserNode)
+void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode)
 {
-  vtkMRMLHierarchyNode* virtualOutputNode=browserNode->GetVirtualOutputNode();
-  if (virtualOutputNode==NULL)
+  if (browserNode==NULL)
   {
-    // there is no valid output node, so there is nothing to update
+    vtkWarningMacro("vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes failed: browserNode is invalid");
+    return;
+  }
+  
+  if (browserNode->GetRootNode()==NULL)
+  {
+    browserNode->RemoveAllVirtualOutputNodes();
     return;
   }
 
-  vtkMRMLHierarchyNode* selectedSequenceNode=browserNode->GetSelectedSequenceNode();
-  if (selectedSequenceNode==NULL)
-  {
-    // no selected sequence node
-    return;
-  }
-
-  vtkMRMLScene* scene=virtualOutputNode->GetScene();
+  vtkMRMLScene* scene=browserNode->GetScene();
   if (scene==NULL)
   {
-    vtkErrorMacro("Scene is invalid");
+    vtkErrorMacro("vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes failed: scene is invalid");
     return;
   }
 
+  vtkSmartPointer<vtkCollection> nodesInSelectedBundle=vtkSmartPointer<vtkCollection>::New();
+  int selectedBundleIndex=browserNode->GetSelectedBundleIndex();
+  std::string parameterValue;
+  if (selectedBundleIndex>=0)
+  {
+    parameterValue=browserNode->GetRootNode()->GetNthParameterValue(selectedBundleIndex);
+    browserNode->GetRootNode()->GetDataNodesAtValue(nodesInSelectedBundle, parameterValue.c_str());
+  }
+  
+#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
+  // Vectors for calling EndModify() events at once, at the end
   std::vector<vtkMRMLNode*> endModifyNodes;  
   std::vector<int> endModifyValues;  
+#endif
 
-  std::vector<vtkMRMLHierarchyNode*> outputConnectorNodes;  
-  virtualOutputNode->GetAllChildrenNodes(outputConnectorNodes);
-  std::vector<vtkMRMLHierarchyNode*> validOutputConnectorNodes;
-  int numberOfSourceChildNodes=selectedSequenceNode->GetNumberOfChildrenNodes();
-  for (int sourceChildNodeIndex=0; sourceChildNodeIndex<numberOfSourceChildNodes; ++sourceChildNodeIndex)
-  {    
-    vtkMRMLHierarchyNode* sourceConnectorNode=selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex);
-    if (sourceConnectorNode==NULL || sourceConnectorNode->GetAssociatedNode()==NULL)
+  // Keep track of virtual nodes that we use and remove the ones that are not used in the selected bundle
+  std::set<vtkMRMLNode*> virtualOutputNodesToKeep;
+
+  vtkMRMLNode* sourceNode=NULL;
+  vtkCollectionSimpleIterator it;
+  for (nodesInSelectedBundle->InitTraversal(it); (sourceNode = (vtkMRMLNode*)nodesInSelectedBundle->GetNextItemAsObject(it)) ;)
+  {
+    std::string dataRole=browserNode->GetRootNode()->GetDataNodeRoleAtValue(sourceNode, parameterValue.c_str());
+    if (dataRole.empty())
     {
-      vtkErrorMacro("Invalid sequence node");
+      vtkErrorMacro("Role of node "<< (sourceNode->GetName()?sourceNode->GetName():"(undefined)") <<" is unknown");
       continue;
     }
-    vtkMRMLNode* sourceNode=selectedSequenceNode->GetNthChildNode(sourceChildNodeIndex)->GetAssociatedNode();
-    const char* dataRole=sourceConnectorNode->GetAttribute("MultidimData.DataRole");
-    if (dataRole==NULL)
+    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputNode(dataRole.c_str());
+    if (targetOutputNode!=NULL)
     {
-      vtkErrorMacro("MultidimData.DataRole is missing");
-      continue;
-    }
-    vtkMRMLNode* targetOutputNode=NULL;
-    for (std::vector<vtkMRMLHierarchyNode*>::iterator outputConnectorNodeIt=outputConnectorNodes.begin(); outputConnectorNodeIt!=outputConnectorNodes.end(); ++outputConnectorNodeIt)
-    {
-      const char* outputDataRole=(*outputConnectorNodeIt)->GetAttribute("MultidimData.DataRole");
-      if (outputDataRole==NULL)
+      // a virtual output node with the requested role exists already
+      if (strcmp(targetOutputNode->GetClassName(),sourceNode->GetClassName())!=0)
       {
-        vtkErrorMacro("MultidimData.DataRole is missing from a virtual output node");
-        continue;
+        // this node is of a different class, cannot be reused
+        targetOutputNode=NULL;
       }
-      if (strcmp(dataRole,outputDataRole)==0)
-      {
-        // found a node with the same name in the hierarchy => reuse that
-        vtkMRMLNode* outputNode=(*outputConnectorNodeIt)->GetAssociatedNode();
-        if (outputNode==NULL)
-        {
-          vtkErrorMacro("A connector node found without an associated node");
-          continue;
-        }
-        validOutputConnectorNodes.push_back(*outputConnectorNodeIt);
-        targetOutputNode=outputNode;
-        break;
-      }      
     }
-
     if (targetOutputNode==NULL)
     {
-      // haven't found a node in the virtual output node hierarchy that we could reuse,
-      // so create a new targetOutputNode
+      // haven't found virtual output node that we could reuse, so create a new targetOutputNode
       targetOutputNode=sourceNode->CreateNodeInstance();
       targetOutputNode->SetHideFromEditors(false);
       scene->AddNode(targetOutputNode);
       targetOutputNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-      // now connect this new node to the virtualOutput hierarchy with a new connector node
-      vtkMRMLHierarchyNode* outputConnectorNode=vtkMRMLHierarchyNode::New();
-      scene->AddNode(outputConnectorNode);
-      outputConnectorNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-      outputConnectorNode->SetAttribute("MultidimData.DataRole", dataRole);
-      outputConnectorNode->SetParentNodeID(virtualOutputNode->GetID());
-      outputConnectorNode->SetAssociatedNodeID(targetOutputNode->GetID());
-      std::string outputConnectorNodeName=std::string(virtualOutputNode->GetName())+" "+dataRole+" connector";
-      outputConnectorNode->SetName(outputConnectorNodeName.c_str());
-      outputConnectorNode->SetHideFromEditors(true);
-      outputConnectorNodes.push_back(outputConnectorNode);
-      validOutputConnectorNodes.push_back(outputConnectorNode);
+      // add this new node to the virtual outputs
+      browserNode->AddVirtualOutputNode(targetOutputNode,dataRole.c_str());
     }
+    virtualOutputNodesToKeep.insert(targetOutputNode);
 
     // Update the target node with the contents of the source node    
 
@@ -259,23 +239,25 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNode(vtkMRMLMultidimD
 #endif
   }
 
-  // Remove orphaned connector nodes and associated data nodes 
-  for (std::vector<vtkMRMLHierarchyNode*>::iterator outputConnectorNodeIt=outputConnectorNodes.begin(); outputConnectorNodeIt!=outputConnectorNodes.end(); ++outputConnectorNodeIt)
+  // Remove orphaned virtual output nodes
+  std::vector<vtkMRMLNode*> virtualNodes;
+  browserNode->GetAllVirtualOutputNodes(virtualNodes);
+  for (std::vector<vtkMRMLNode*>::iterator virtualNodeIt=virtualNodes.begin(); virtualNodeIt!=virtualNodes.end(); ++virtualNodeIt)
   {
-    if (std::find(validOutputConnectorNodes.begin(), validOutputConnectorNodes.end(), (*outputConnectorNodeIt))==validOutputConnectorNodes.end())
+    if (virtualOutputNodesToKeep.find(*virtualNodeIt)==virtualOutputNodesToKeep.end())
     {
       // this output connector node is not in the list of valid connector nodes (no corresponding data for the current parameter value)
       // so, remove the connector node and data node from the scene
-      scene->RemoveNode((*outputConnectorNodeIt)->GetAssociatedNode());
-      scene->RemoveNode(*outputConnectorNodeIt);
+      browserNode->RemoveVirtualOutputNode(*virtualNodeIt);
     }
   }
 
+#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
   for (int i=endModifyNodes.size()-1; i>=0; i--)
   {
     endModifyNodes[i]->EndModify(endModifyValues[i]);  
   }
-
+#endif
 
 }
 
@@ -289,7 +271,7 @@ void vtkSlicerMultidimDataBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller
     return;
   }
 
-  UpdateVirtualOutputNode(browserNode);
+  UpdateVirtualOutputNodes(browserNode);
 }
 
 //---------------------------------------------------------------------------

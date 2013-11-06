@@ -47,7 +47,8 @@ public:
   vtkTypeMacro(vtkSlicerMultidimDataBrowserLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  void UpdateVirtualOutputNode(vtkMRMLMultidimDataBrowserNode* browserNode);
+  /// Updates the contents of all the virtual output nodes (all the nodes copied from the selected bundle to the scene)
+  void UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode);
 
 protected:
   vtkSlicerMultidimDataBrowserLogic();

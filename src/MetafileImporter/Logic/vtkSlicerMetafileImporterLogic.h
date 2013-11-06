@@ -40,6 +40,8 @@
 #include "vtkSlicerMetafileImporterModuleLogicExport.h"
 #include "vtkSlicerMultidimDataLogic.h"
 
+class vtkMRMLMultidimDataNode;
+
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_METAFILEIMPORTER_MODULE_LOGIC_EXPORT vtkSlicerMetafileImporterLogic :
   public vtkSlicerModuleLogic
@@ -85,8 +87,8 @@ protected:
   /*! Logic for MultidimData hierarchy to manipulate nodes */
   vtkSlicerMultidimDataLogic* MultidimDataLogic;
 
-  /*! The root node for the multi-dimension hierarchy */
-  vtkMRMLHierarchyNode* RootNode;
+  /*! The root node for the multidimensional data */
+  vtkMRMLMultidimDataNode* RootNode;
 
   /*! Map the frame numbers to timestamps */
   std::map< int, std::string > FrameNumberToParameterValueMap;

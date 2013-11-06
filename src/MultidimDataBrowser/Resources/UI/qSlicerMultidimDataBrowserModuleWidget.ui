@@ -92,7 +92,7 @@
        <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_MultidimDataRoot">
         <property name="nodeTypes">
          <stringlist>
-          <string>vtkMRMLHierarchyNode</string>
+          <string>vtkMRMLMultidimDataNode</string>
          </stringlist>
         </property>
         <property name="noneEnabled">
@@ -207,52 +207,6 @@
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="OutputSection">
-     <property name="text">
-      <string>Output</string>
-     </property>
-     <property name="contentsFrameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_VirtualOutput">
-        <property name="text">
-         <string>Virtual output node:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_VirtualOutput">
-        <property name="toolTip">
-         <string>This hierarchy node will contain the nodes corresponding to the selected parameter value</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLHierarchyNode</string>
-         </stringlist>
-        </property>
-        <property name="baseName">
-         <string>VirtualOutput</string>
-        </property>
-        <property name="noneEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -303,22 +257,6 @@
     <hint type="destinationlabel">
      <x>456</x>
      <y>88</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>qSlicerMultidimDataBrowserModuleWidget</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_VirtualOutput</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>150</x>
-     <y>232</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>510</x>
-     <y>182</y>
     </hint>
    </hints>
   </connection>

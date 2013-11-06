@@ -64,7 +64,7 @@ qSlicerMultidimDataBrowserModule::~qSlicerMultidimDataBrowserModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMultidimDataBrowserModule::helpText()const
 {
-  return "This is a loadable module for handling multi-dimensional data";
+  return "This is a loadable module for handling multidimensional data";
 }
 
 //-----------------------------------------------------------------------------
@@ -90,7 +90,7 @@ QIcon qSlicerMultidimDataBrowserModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMultidimDataBrowserModule::categories() const
 {
-  return QStringList() << "Multi-dimension";
+  return QStringList() << "Multidimensional data";
 }
 
 //-----------------------------------------------------------------------------

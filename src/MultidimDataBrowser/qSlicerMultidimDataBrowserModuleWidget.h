@@ -24,7 +24,7 @@
 #include "qSlicerMultidimDataBrowserModuleExport.h"
 
 class qSlicerMultidimDataBrowserModuleWidgetPrivate;
-class vtkMRMLHierarchyNode;
+class vtkMRMLMultidimDataNode;
 class vtkMRMLMultidimDataBrowserNode;
 class vtkMRMLNode;
 
@@ -41,19 +41,17 @@ public:
   virtual ~qSlicerMultidimDataBrowserModuleWidget();
 
   void setActiveBrowserNode(vtkMRMLMultidimDataBrowserNode* browserNode);
-  void setMultidimDataRootNode(vtkMRMLHierarchyNode* multiDimensionRootNode);
-  void setVirtualOutputNode(vtkMRMLHierarchyNode* virtualOutputNode);  
+  void setMultidimDataRootNode(vtkMRMLMultidimDataNode* multidimDataRootNode);
 
 public slots:
-  void setParameterValueIndex(int paramValue);
+  void setSelectedBundleIndex(int bundleIndex);
   void setPlaybackEnabled(bool play);
   void setPlaybackRateFps(double playbackRateFps);
   void setPlaybackLoopEnabled(bool loopEnabled);  
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);
-  void multiDimensionRootNodeChanged(vtkMRMLNode*);
-  void virtualOutputNodeChanged(vtkMRMLNode*);
+  void multidimDataRootNodeChanged(vtkMRMLNode*);
   void onMRMLInputMultidimDataInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void onVcrFirst();
