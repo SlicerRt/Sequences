@@ -85,7 +85,7 @@ public:
 
   void AddVirtualOutputNode(vtkMRMLNode* targetOutputNode, const char* dataRole);
 
-  void GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* > nodes);
+  void GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* >& nodes);
 
   void RemoveVirtualOutputNode(vtkMRMLNode* node);
 

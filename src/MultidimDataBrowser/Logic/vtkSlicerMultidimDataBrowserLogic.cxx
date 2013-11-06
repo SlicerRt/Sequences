@@ -247,6 +247,7 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
       // this output connector node is not in the list of valid connector nodes (no corresponding data for the current parameter value)
       // so, remove the connector node and data node from the scene
       browserNode->RemoveVirtualOutputNode(*virtualNodeIt);
+      scene->RemoveNode(*virtualNodeIt);
     }
   }
 

@@ -101,6 +101,9 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
           </widget>
          </item>
          <item>
@@ -175,6 +178,9 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::SingleSelection</enum>
              </property>
             </widget>
            </item>

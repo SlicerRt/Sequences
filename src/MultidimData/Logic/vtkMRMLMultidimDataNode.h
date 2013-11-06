@@ -95,18 +95,6 @@ protected:
   vtkMRMLMultidimDataNode(const vtkMRMLMultidimDataNode&);
   void operator=(const vtkMRMLMultidimDataNode&);
 
-  int GetBundleIndex(const char* parameterValue);
-
-  std::string GetNodeReferenceRoleName(const std::string &parameterValue, const std::string &roleInBundle);
-
-  vtkMRMLNode* GetNodeAtValue(const std::string &parameterValue, const std::string &roleInBundle);
-
-protected:
-
-  /// Describes a dimension of the multidimensional cube
-  char* DimensionName;
-  char* Unit;
-  
   typedef std::set< std::string > RoleSetType;
   struct MultidimBundleType
   {
@@ -116,6 +104,21 @@ protected:
     /// The actual referenced node is stored as MRML NodeReference (it takes care of changing node IDs, node deletions, etc).
     RoleSetType Roles;
   };
+
+  int GetBundleIndex(const char* parameterValue);
+
+  std::string GetNodeReferenceRoleName(const std::string &parameterValue, const std::string &roleInBundle);
+
+  vtkMRMLNode* GetNodeAtValue(const std::string &parameterValue, const std::string &roleInBundle);
+
+  /// Reads bundles from a string (for each parameter value a list of roles)
+  void ParseBundlesAttribute(const char *attValue, std::deque< MultidimBundleType >& bundles);
+
+protected:
+
+  /// Describes a dimension of the multidimensional cube
+  char* DimensionName;
+  char* Unit;  
 
   std::deque< MultidimBundleType > Bundles;
 

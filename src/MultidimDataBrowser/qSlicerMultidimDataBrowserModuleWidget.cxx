@@ -352,7 +352,7 @@ void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIn
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
 {
-  Q_D(qSlicerMultidimDataBrowserModuleWidget);  
+  Q_D(qSlicerMultidimDataBrowserModuleWidget);
   
   QString DEFAULT_PARAMETER_NAME_STRING=tr("Parameter");  
   
@@ -444,17 +444,19 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     if (!parameterValue.empty())
     {
       d->label_ParameterValue->setText(parameterValue.c_str());
+      d->slider_ParameterValue->setValue(selectedBundleIndex);
     }
     else
     {
       qWarning() << "Bundle "<<selectedBundleIndex<<" has no parameter value defined";
       d->label_ParameterValue->setText("");
+      d->slider_ParameterValue->setValue(0);
     }  
   }
   else
   {
     d->label_ParameterValue->setText("");
-    //setSelectedBundleIndex(0);
+    d->slider_ParameterValue->setValue(0);
   }  
   
   foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }

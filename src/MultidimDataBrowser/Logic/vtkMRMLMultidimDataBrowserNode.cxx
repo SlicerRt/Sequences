@@ -35,8 +35,7 @@
 // STD includes
 #include <sstream>
 
-static const char* ROOT_NODE_REFERENCE_ROLE = "root";
-static const char* ROOT_NODE_REFERENCE_ATTRIBUTE_NAME = "rootNodeRef"; 
+static const char* ROOT_NODE_REFERENCE_ROLE = "rootNodeRef";
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLMultidimDataBrowserNode);
@@ -45,7 +44,6 @@ vtkMRMLNodeNewMacro(vtkMRMLMultidimDataBrowserNode);
 vtkMRMLMultidimDataBrowserNode::vtkMRMLMultidimDataBrowserNode()
 {
   this->SetHideFromEditors(false);
-  this->AddNodeReferenceRole(ROOT_NODE_REFERENCE_ROLE, ROOT_NODE_REFERENCE_ATTRIBUTE_NAME );
   this->PlaybackActive=false;
   this->PlaybackRateFps=5.0;
   this->PlaybackLooped=true;
@@ -131,7 +129,7 @@ void  vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNode(vtkMRMLNode* targetOu
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* > nodes)
+void vtkMRMLMultidimDataBrowserNode::GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* >& nodes)
 {
   nodes.clear();
   for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
@@ -155,8 +153,8 @@ void vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode(vtkMRMLNode* node)
     if (GetNodeReference(roleNameIt->c_str())==node)
     {
       // found
-      this->VirtualNodeRoleNames.erase(*roleNameIt);
       RemoveAllNodeReferenceIDs(roleNameIt->c_str());
+      this->VirtualNodeRoleNames.erase(*roleNameIt);      
       return;
     }
   }

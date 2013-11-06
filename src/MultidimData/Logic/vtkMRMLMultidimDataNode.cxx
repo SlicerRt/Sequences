@@ -58,14 +58,35 @@ void vtkMRMLMultidimDataNode::WriteXML(ostream& of, int nIndent)
   vtkIndent indent(nIndent);
 
   {
-    std::stringstream ss;
-/*
-    if ( this->BeamModelOpacity )
+    if (this->DimensionName != NULL)
+    {
+      of << indent << " dimensionName=\"" << this->DimensionName << "\"";
+    }
+    if (this->Unit != NULL)
+    {
+      of << indent << " unit=\"" << this->Unit << "\"";
+    }
+
+    of << indent << " bundles=\"";
+    for(std::deque< MultidimBundleType >::iterator bundleIt=this->Bundles.begin(); bundleIt!=this->Bundles.end(); ++bundleIt)
+    {
+      if (bundleIt!=this->Bundles.begin())
       {
-      ss << this->BeamModelOpacity;
-      of << indent << " BeamModelOpacity=\"" << ss.str() << "\"";
+        // not the first bundle, add a separator before adding values
+        of << ";";
       }
-*/
+      of << bundleIt->ParameterValue << ":";
+      for(RoleSetType::iterator roleNameIt=bundleIt->Roles.begin(); roleNameIt!=bundleIt->Roles.end(); ++roleNameIt)
+      {
+        if (roleNameIt!=bundleIt->Roles.begin())
+        {
+          // not the first role name, add a separator before adding values
+          of << " ";
+        }
+        of << *roleNameIt;
+      }
+    }
+    of << "\"";
   }
 }
 
@@ -78,20 +99,62 @@ void vtkMRMLMultidimDataNode::ReadXMLAttributes(const char** atts)
   const char* attName;
   const char* attValue;
   while (*atts != NULL) 
-    {
+  {
     attName = *(atts++);
     attValue = *(atts++);
-/*
-    if (!strcmp(attName, "BeamModelOpacity")) 
-      {
-      std::stringstream ss;
-      ss << attValue;
-      double beamModelOpacity;
-      ss >> beamModelOpacity;
-      this->BeamModelOpacity = beamModelOpacity;
-      }
-*/
+    if (!strcmp(attName, "dimensionName")) 
+    {
+      this->SetDimensionName(attValue);
     }
+    else if (!strcmp(attName, "unit")) 
+    {
+      this->SetUnit(attValue);
+    }
+    else if (!strcmp(attName, "bundles"))
+    {
+      this->ParseBundlesAttribute(attValue, this->Bundles);
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataNode::ParseBundlesAttribute(const char *attValue, std::deque< MultidimBundleType >& bundles)
+{
+  bundles.clear();
+
+  /// parse refernces in the form "parameterValue1:role1 role2;parameterValue2:role1 role2;"
+  std::string attribute(attValue);
+
+  std::size_t bundleStart = 0;
+  std::size_t bundleEnd = attribute.find_first_of(';', bundleStart);
+  std::size_t parameterValueSep = attribute.find_first_of(':', bundleStart);
+  while (bundleStart != std::string::npos && parameterValueSep != std::string::npos && bundleStart != bundleEnd && bundleStart != parameterValueSep)
+  {
+    std::string ref = attribute.substr(bundleStart, bundleEnd-bundleStart);
+    std::string parameterValue = attribute.substr(bundleStart, parameterValueSep-bundleStart);
+    if (parameterValue.empty())
+    {
+      vtkWarningMacro("vtkMRMLNode::ParseBundlesAttribute: parsing error, ParameterValue is empty");
+      continue;
+    }
+    MultidimBundleType bundle;
+    bundle.ParameterValue=parameterValue;
+    std::string roleNames = attribute.substr(parameterValueSep+1, bundleEnd-parameterValueSep-1);
+    std::stringstream ss(roleNames);
+    while (!ss.eof())
+    {
+      std::string roleName;
+      ss >> roleName;
+      if (!roleName.empty())
+      {
+        bundle.Roles.insert(roleName);
+      }
+    }
+    bundles.push_back(bundle);
+    bundleStart = (bundleEnd == std::string::npos) ? std::string::npos : bundleEnd+1;
+    bundleEnd = attribute.find_first_of(';', bundleStart);
+    parameterValueSep = attribute.find_first_of(':', bundleStart);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -104,7 +167,9 @@ void vtkMRMLMultidimDataNode::Copy(vtkMRMLNode *anode)
 
   vtkMRMLMultidimDataNode *node = (vtkMRMLMultidimDataNode *) anode;
 
-  //this->SetBeamModelOpacity(node->GetBeamModelOpacity());
+  this->Bundles=node->Bundles;
+  this->SetDimensionName(node->GetDimensionName());
+  this->SetUnit(node->GetUnit());
 
   this->DisableModifiedEventOff();
   this->InvokePendingModifiedEvent();
