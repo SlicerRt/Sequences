@@ -168,15 +168,15 @@ void qSlicerMultidimDataModuleWidget::setup()
   this->Superclass::setup();
 
   connect( d->MRMLNodeComboBox_MultidimDataRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
-  connect( d->TableWidget_SequenceNodes, SIGNAL( currentBundleChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onSequenceNodeChanged() ) );
 
   connect( d->LineEdit_ParameterName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterNameEdited() ) );
   connect( d->LineEdit_ParameterUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterUnitEdited() ) );
 
-  connect( d->TableWidget_SequenceNodes, SIGNAL( bundleChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
-  connect( d->TableWidget_SequenceNodes, SIGNAL( bundleClicked( int, int ) ), this, SLOT( onHideSequenceNodeClicked( int, int ) ) );
-  connect( d->TableWidget_DataNodes, SIGNAL( bundleChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
-  connect( d->TableWidget_DataNodes, SIGNAL( bundleClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onSequenceNodeEdited( int, int ) ) );
+  connect( d->TableWidget_SequenceNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideSequenceNodeClicked( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
+  connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
   d->PushButton_AddDataNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowLeft ) );

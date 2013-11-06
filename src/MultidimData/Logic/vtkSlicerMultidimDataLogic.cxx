@@ -65,6 +65,7 @@ void vtkSlicerMultidimDataLogic::RegisterNodes()
     vtkErrorMacro("Scene is invalid");
     return;
   }
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLMultidimDataNode>::New());
 }
 
 //---------------------------------------------------------------------------

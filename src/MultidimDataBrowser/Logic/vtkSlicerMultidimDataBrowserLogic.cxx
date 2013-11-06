@@ -74,9 +74,7 @@ void vtkSlicerMultidimDataBrowserLogic::RegisterNodes()
     vtkErrorMacro("Scene is invalid");
     return;
   }
-  vtkMRMLMultidimDataBrowserNode* browserNode = vtkMRMLMultidimDataBrowserNode::New();
-  this->GetMRMLScene()->RegisterNodeClass(browserNode);
-  browserNode->Delete();
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLMultidimDataBrowserNode>::New());
 }
 
 //---------------------------------------------------------------------------
@@ -307,6 +305,7 @@ void vtkSlicerMultidimDataBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRML
     targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
     targetScalarVolumeNode->SetDisplayVisibility(sourceScalarVolumeNode->GetDisplayVisibility());
+    targetScalarVolumeNode->Modified();
 
       // TODO: copy attributes and node references, storage node?
   }
