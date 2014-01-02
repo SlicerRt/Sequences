@@ -203,7 +203,7 @@ void vtkSlicerMetafileImporterLogic
   // This structure contains all the transform nodes that are read from the file.
   // The nodes are not added immediately to the scene to allow them properly named, using the timestamp parameter value.
   // Maps the frame number to a vector of transform nodes that belong to that frame.
-  std::map<int,std::vector<vtkMRMLLinearTransformNode*>> importedTransformNodes;
+  std::map<int,std::vector<vtkMRMLLinearTransformNode*> > importedTransformNodes;
 
   // It contains the largest frame number. It will be used to iterate through all the frame numbers from 0 to lastFrameNumber
   int lastFrameNumber=-1;
@@ -295,7 +295,7 @@ void vtkSlicerMetafileImporterLogic
 
   for (int currentFrameNumber=0; currentFrameNumber<=lastFrameNumber; currentFrameNumber++)
   {
-    std::map<int,std::vector<vtkMRMLLinearTransformNode*>>::iterator transformsForCurrentFrame=importedTransformNodes.find(currentFrameNumber);
+    std::map<int,std::vector<vtkMRMLLinearTransformNode*> >::iterator transformsForCurrentFrame=importedTransformNodes.find(currentFrameNumber);
     if ( transformsForCurrentFrame == importedTransformNodes.end() )
     {
       // no transforms for this frame
