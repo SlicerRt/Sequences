@@ -23,6 +23,9 @@
 #include "qSlicerMultidimDataBrowserModuleWidget.h"
 #include "ui_qSlicerMultidimDataBrowserModuleWidget.h"
 
+// MRML includes
+#include "vtkMRMLScene.h"
+
 // MultidimData includes
 #include "vtkSlicerMultidimDataBrowserLogic.h"
 #include "vtkMRMLMultidimDataBrowserNode.h"
@@ -38,12 +41,13 @@ protected:
 public:
   qSlicerMultidimDataBrowserModuleWidgetPrivate(qSlicerMultidimDataBrowserModuleWidget& object);
   vtkSlicerMultidimDataBrowserLogic* logic() const;
+  vtkMRMLMultidimDataBrowserNode* activeBrowserNode() const;
 
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
   bool ModuleWindowInitialized;
 
-  vtkMRMLMultidimDataBrowserNode* ActiveBrowserNode;
+  std::string ActiveBrowserNodeID;
   QTimer* PlaybackTimer; 
 };
 
@@ -54,9 +58,25 @@ public:
 qSlicerMultidimDataBrowserModuleWidgetPrivate::qSlicerMultidimDataBrowserModuleWidgetPrivate(qSlicerMultidimDataBrowserModuleWidget& object)
   : q_ptr(&object)
   , ModuleWindowInitialized(false)
-  , ActiveBrowserNode(NULL)
   , PlaybackTimer(NULL)
 {
+}
+
+//-----------------------------------------------------------------------------
+vtkMRMLMultidimDataBrowserNode* qSlicerMultidimDataBrowserModuleWidgetPrivate::activeBrowserNode() const
+{
+  Q_Q(const qSlicerMultidimDataBrowserModuleWidget);
+  if (ActiveBrowserNodeID.empty())
+  {
+    return NULL;
+  }
+  vtkMRMLScene* scene=q->mrmlScene();
+  if (scene==0)
+  {
+    return NULL;
+  }
+  vtkMRMLMultidimDataBrowserNode* node=vtkMRMLMultidimDataBrowserNode::SafeDownCast(scene->GetNodeByID(ActiveBrowserNodeID.c_str()));
+  return node;
 }
 
 //-----------------------------------------------------------------------------
@@ -218,19 +238,19 @@ void qSlicerMultidimDataBrowserModuleWidget::onVcrNext()
   }
   else
   {
-      if (d->ActiveBrowserNode==NULL)
+      if (d->activeBrowserNode()==NULL)
       {
         qCritical() << "onVcrNext failed: no active browser node is selected";
       }
       else
       {
-        if (d->ActiveBrowserNode->GetPlaybackLooped())
+        if (d->activeBrowserNode()->GetPlaybackLooped())
         {
           onVcrFirst();
         }
         else
         {
-          d->ActiveBrowserNode->SetPlaybackActive(false);
+          d->activeBrowserNode()->SetPlaybackActive(false);
           onVcrFirst();
         }
       }
@@ -241,15 +261,15 @@ void qSlicerMultidimDataBrowserModuleWidget::onVcrNext()
 void qSlicerMultidimDataBrowserModuleWidget::setPlaybackEnabled(bool play)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "onVcrPlayPauseStateChanged failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
-  if (play!=d->ActiveBrowserNode->GetPlaybackActive())
+  if (play!=d->activeBrowserNode()->GetPlaybackActive())
   {
-    d->ActiveBrowserNode->SetPlaybackActive(play);
+    d->activeBrowserNode()->SetPlaybackActive(play);
   }
 }
 
@@ -257,15 +277,15 @@ void qSlicerMultidimDataBrowserModuleWidget::setPlaybackEnabled(bool play)
 void qSlicerMultidimDataBrowserModuleWidget::setPlaybackLoopEnabled(bool loopEnabled)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "onVcrPlaybackLoopStateChanged failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
-  if (loopEnabled!=d->ActiveBrowserNode->GetPlaybackLooped())
+  if (loopEnabled!=d->activeBrowserNode()->GetPlaybackLooped())
   {
-    d->ActiveBrowserNode->SetPlaybackLooped(loopEnabled);
+    d->activeBrowserNode()->SetPlaybackLooped(loopEnabled);
   }
 }
 
@@ -273,15 +293,15 @@ void qSlicerMultidimDataBrowserModuleWidget::setPlaybackLoopEnabled(bool loopEna
 void qSlicerMultidimDataBrowserModuleWidget::setPlaybackRateFps(double playbackRateFps)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setPlaybackRateFps failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
-  if (playbackRateFps!=d->ActiveBrowserNode->GetPlaybackRateFps())
+  if (playbackRateFps!=d->activeBrowserNode()->GetPlaybackRateFps())
   {
-    d->ActiveBrowserNode->SetPlaybackRateFps(playbackRateFps);
+    d->activeBrowserNode()->SetPlaybackRateFps(playbackRateFps);
   }
 }
 
@@ -290,12 +310,12 @@ void qSlicerMultidimDataBrowserModuleWidget::setActiveBrowserNode(vtkMRMLMultidi
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
 
-  if (d->ActiveBrowserNode!=browserNode)
+  if (d->activeBrowserNode()!=browserNode)
   { 
     // Reconnect the input node's Modified() event observer
-    this->qvtkReconnect(d->ActiveBrowserNode, browserNode, vtkCommand::ModifiedEvent,
+    this->qvtkReconnect(d->activeBrowserNode(), browserNode, vtkCommand::ModifiedEvent,
       this, SLOT(onActiveBrowserNodeModified(vtkObject*)));
-    d->ActiveBrowserNode = browserNode;
+    d->ActiveBrowserNodeID = (browserNode?browserNode->GetID():"");
   }
   d->MRMLNodeComboBox_ActiveBrowser->setCurrentNode(browserNode);
 
@@ -307,22 +327,22 @@ void qSlicerMultidimDataBrowserModuleWidget::setActiveBrowserNode(vtkMRMLMultidi
 void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLMultidimDataNode* multidimDataRootNode)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setMultidimDataRootNode failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
-  if (multidimDataRootNode!=d->ActiveBrowserNode->GetRootNode())
+  if (multidimDataRootNode!=d->activeBrowserNode()->GetRootNode())
   {
     // Reconnect the input node's Modified() event observer
-    this->qvtkReconnect(d->ActiveBrowserNode->GetRootNode(), multidimDataRootNode, vtkCommand::ModifiedEvent,
+    this->qvtkReconnect(d->activeBrowserNode()->GetRootNode(), multidimDataRootNode, vtkCommand::ModifiedEvent,
       this, SLOT(onMRMLInputMultidimDataInputNodeModified(vtkObject*)));
 
     char* multidimDataRootNodeId = multidimDataRootNode==NULL ? NULL : multidimDataRootNode->GetID();
-    d->ActiveBrowserNode->SetAndObserveRootNodeID(multidimDataRootNodeId);
+    d->activeBrowserNode()->SetAndObserveRootNodeID(multidimDataRootNodeId);
 
-    // Update d->ActiveBrowserNode->SetAndObserveSelectedSequenceNodeID
+    // Update d->activeBrowserNode()->SetAndObserveSelectedSequenceNodeID
     setSelectedBundleIndex(0);
   }   
 }
@@ -331,14 +351,14 @@ void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLMult
 void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIndex)
 {
   Q_D(qSlicerMultidimDataBrowserModuleWidget);    
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setSelectedBundleIndex failed: no active browser node is selected";
     updateWidgetFromMRML();
     return;
   }
   int selectedBundleIndex=-1;
-  vtkMRMLMultidimDataNode* rootNode=d->ActiveBrowserNode->GetRootNode();  
+  vtkMRMLMultidimDataNode* rootNode=d->activeBrowserNode()->GetRootNode();  
   if (rootNode!=NULL && bundleIndex>=0)
   {
     if (bundleIndex<rootNode->GetNumberOfBundles())
@@ -346,7 +366,7 @@ void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIn
       selectedBundleIndex=bundleIndex;
     }
   }
-  d->ActiveBrowserNode->SetSelectedBundleIndex(selectedBundleIndex);
+  d->activeBrowserNode()->SetSelectedBundleIndex(selectedBundleIndex);
 }
 
 //-----------------------------------------------------------------------------
@@ -362,7 +382,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     << d->pushButton_VcrNext << d->pushButton_VcrPlayPause << d->pushButton_VcrPrevious;
   bool vcrControlsEnabled=false;  
 
-  if (d->ActiveBrowserNode==NULL)
+  if (d->activeBrowserNode()==NULL)
   {
     d->MRMLNodeComboBox_MultidimDataRoot->setEnabled(false);
     d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
@@ -375,7 +395,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
 
   // A valid active browser node is selected
   
-  vtkMRMLMultidimDataNode* multidimDataRootNode = d->ActiveBrowserNode->GetRootNode();  
+  vtkMRMLMultidimDataNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
   d->MRMLNodeComboBox_MultidimDataRoot->setEnabled(true);  
   d->MRMLNodeComboBox_MultidimDataRoot->setCurrentNode(multidimDataRootNode);
 
@@ -424,11 +444,11 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     vcrControlsEnabled=true;
     
     bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
-    d->pushButton_VcrPlayPause->setChecked(d->ActiveBrowserNode->GetPlaybackActive());
+    d->pushButton_VcrPlayPause->setChecked(d->activeBrowserNode()->GetPlaybackActive());
     d->pushButton_VcrPlayPause->blockSignals(pushButton_VcrPlayPauseBlockSignals);
 
     bool pushButton_VcrLoopBlockSignals = d->pushButton_VcrLoop->blockSignals(true);
-    d->pushButton_VcrLoop->setChecked(d->ActiveBrowserNode->GetPlaybackLooped());
+    d->pushButton_VcrLoop->setChecked(d->activeBrowserNode()->GetPlaybackLooped());
     d->pushButton_VcrLoop->blockSignals(pushButton_VcrLoopBlockSignals);
   }
   else
@@ -437,7 +457,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     d->slider_ParameterValue->setEnabled(false);
   }   
 
-  int selectedBundleIndex=d->ActiveBrowserNode->GetSelectedBundleIndex();
+  int selectedBundleIndex=d->activeBrowserNode()->GetSelectedBundleIndex();
   if (selectedBundleIndex>0)
   {
     std::string parameterValue=multidimDataRootNode->GetNthParameterValue(selectedBundleIndex);
@@ -462,9 +482,9 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
   if (vcrControlsEnabled)
   {
-    if (d->ActiveBrowserNode->GetPlaybackActive() && d->ActiveBrowserNode->GetPlaybackRateFps()>0)
+    if (d->activeBrowserNode()->GetPlaybackActive() && d->activeBrowserNode()->GetPlaybackRateFps()>0)
     {
-      int delayInMsec=1000.0/d->ActiveBrowserNode->GetPlaybackRateFps();
+      int delayInMsec=1000.0/d->activeBrowserNode()->GetPlaybackRateFps();
       d->PlaybackTimer->start(delayInMsec);
     }
     else

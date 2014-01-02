@@ -28,13 +28,15 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
-#include "vtkMRMLNRRDStorageNode.h"
+#include "vtkMRMLScene.h"
+#include "vtkMRMLStorageNode.h"
 
 // VTK includes
+#include <vtkImageData.h>
+#include <vtkMatrix4x4.h>
 #include <vtkNew.h>
-#include "vtkMatrix4x4.h"
-#include "vtkImageData.h"
-#include "vtkSmartPointer.h"
+#include <vtkObjectFactory.h>
+#include <vtkSmartPointer.h>
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
 #include "vtkTimerLog.h"

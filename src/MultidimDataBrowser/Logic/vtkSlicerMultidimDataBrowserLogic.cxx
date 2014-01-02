@@ -32,6 +32,7 @@
 // VTK includes
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
+#include <vtkObjectFactory.h>
 
 // STL includes
 #include <algorithm>

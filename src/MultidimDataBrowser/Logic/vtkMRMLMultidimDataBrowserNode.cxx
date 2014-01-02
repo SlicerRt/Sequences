@@ -61,15 +61,93 @@ void vtkMRMLMultidimDataBrowserNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
+
   of << indent << " playbackActive=\"" << (this->PlaybackActive ? "true" : "false") << "\"";
   of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\""; 
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
+  of << indent << " selectedBundleIndex=\"" << this->SelectedBundleIndex << "\"";
+
+  of << indent << " virtualNodeRoleNames=\"";
+  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
+    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  { 
+    if (roleNameIt!=this->VirtualNodeRoleNames.begin())
+    {
+      // print separator before printing the (if not the first element)
+      of << " ";
+    }
+    of << roleNameIt->c_str();
+  }
+  of << "\"";
+
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLMultidimDataBrowserNode::ReadXMLAttributes(const char** atts)
 {
   vtkMRMLNode::ReadXMLAttributes(atts);
+
+  // Read all MRML node attributes from two arrays of names and values
+  const char* attName;
+  const char* attValue;
+  while (*atts != NULL) 
+  {
+    attName = *(atts++);
+    attValue = *(atts++);
+    if (!strcmp(attName, "playbackActive")) 
+    {
+      if (!strcmp(attValue,"true")) 
+      {
+        this->SetPlaybackActive(1);
+      }
+      else
+      {
+        this->SetPlaybackActive(0);
+      }
+    }
+    else if (!strcmp(attName, "playbackRateFps")) 
+    {
+      std::stringstream ss;
+      ss << attValue;
+      double playbackRateFps=10;
+      ss >> playbackRateFps;
+      this->SetPlaybackRateFps(playbackRateFps);
+    }
+    else if (!strcmp(attName, "playbackLooped")) 
+    {
+      if (!strcmp(attValue,"true")) 
+      {
+        this->SetPlaybackLooped(1);
+      }
+      else
+      {
+        this->SetPlaybackLooped(0);
+      }
+    }
+    else if (!strcmp(attName, "selectedBundleIndex")) 
+    {
+      std::stringstream ss;
+      ss << attValue;
+      int selectedBundleIndex=0;
+      ss >> selectedBundleIndex;
+      this->SetSelectedBundleIndex(selectedBundleIndex);
+    }
+    else if (!strcmp(attName, "virtualNodeRoleNames"))
+    {
+      this->VirtualNodeRoleNames.clear();
+      std::stringstream ss(attValue);
+      while (!ss.eof())
+      {
+        std::string roleName;
+        ss >> roleName;
+        if (!roleName.empty())
+        {
+          this->VirtualNodeRoleNames.insert(roleName);
+        }
+      }
+    }
+  }
+
 }
 
 //----------------------------------------------------------------------------

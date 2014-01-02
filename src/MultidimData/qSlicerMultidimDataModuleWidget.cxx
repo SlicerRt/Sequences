@@ -28,6 +28,9 @@
 // VTK includes
 #include "vtkMRMLHierarchyNode.h"
 
+// MRML includes
+#include "vtkMRMLScene.h"
+
 // MultidimData includes
 #include "vtkSlicerMultidimDataLogic.h"
 #include "vtkMRMLMultidimDataNode.h"
