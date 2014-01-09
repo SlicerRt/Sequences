@@ -123,6 +123,7 @@ void vtkSlicerMultidimDataBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node
 //---------------------------------------------------------------------------
 void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode)
 {
+  /* TODO:
   if (browserNode==NULL)
   {
     vtkWarningMacro("vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes failed: browserNode is invalid");
@@ -258,7 +259,7 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
     endModifyNodes[i]->EndModify(endModifyValues[i]);  
   }
 #endif
-
+*/
 }
 
 //---------------------------------------------------------------------------

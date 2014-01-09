@@ -87,11 +87,10 @@ protected:
   /*! Logic for MultidimData hierarchy to manipulate nodes */
   vtkSlicerMultidimDataLogic* MultidimDataLogic;
 
-  /*! The root node for the multidimensional data */
-  vtkMRMLMultidimDataNode* RootNode;
-
   /*! Map the frame numbers to timestamps */
   std::map< int, std::string > FrameNumberToParameterValueMap;
+
+  std::string BaseNodeName;
 
 };
 

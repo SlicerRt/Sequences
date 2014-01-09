@@ -165,7 +165,7 @@ void qSlicerMultidimDataBrowserModuleWidget::enter()
       vtkSmartPointer<vtkMRMLMultidimDataBrowserNode> newBrowserNode = vtkSmartPointer<vtkMRMLMultidimDataBrowserNode>::New();
       this->mrmlScene()->AddNode(newBrowserNode);      
       setActiveBrowserNode(newBrowserNode);
-    }  
+    }
   }
   else
   {
@@ -350,6 +350,7 @@ void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLMult
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIndex)
 {
+  /* TODO
   Q_D(qSlicerMultidimDataBrowserModuleWidget);    
   if (d->activeBrowserNode()==NULL)
   {
@@ -367,11 +368,13 @@ void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIn
     }
   }
   d->activeBrowserNode()->SetSelectedBundleIndex(selectedBundleIndex);
+  */
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
 {
+  /* TODO
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
   
   QString DEFAULT_PARAMETER_NAME_STRING=tr("Parameter");  
@@ -496,4 +499,5 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   {
     d->PlaybackTimer->stop();
   }
+  */
 }

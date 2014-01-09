@@ -38,15 +38,27 @@ vtkMRMLNodeNewMacro(vtkMRMLMultidimDataNode);
 vtkMRMLMultidimDataNode::vtkMRMLMultidimDataNode()
 : DimensionName(0)
 , Unit(0)
+, SequenceScene(0)
 {
   this->HideFromEditors = false;
+  this->SequenceScene=vtkMRMLScene::New();
 }
 
 //----------------------------------------------------------------------------
 vtkMRMLMultidimDataNode::~vtkMRMLMultidimDataNode()
 {
+  this->SequenceScene->Delete();
+  this->SequenceScene=NULL;
   SetDimensionName(NULL);
   SetUnit(NULL);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataNode::RemoveAllDataNodes()
+{  
+  this->SequenceScene->Delete();
+  this->SequenceScene=vtkMRMLScene::New();
+  this->SequenceItems.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -57,37 +69,16 @@ void vtkMRMLMultidimDataNode::WriteXML(ostream& of, int nIndent)
   // Write all MRML node attributes into output stream
   vtkIndent indent(nIndent);
 
+  if (this->DimensionName != NULL)
   {
-    if (this->DimensionName != NULL)
-    {
-      of << indent << " dimensionName=\"" << this->DimensionName << "\"";
-    }
-    if (this->Unit != NULL)
-    {
-      of << indent << " unit=\"" << this->Unit << "\"";
-    }
-
-    of << indent << " bundles=\"";
-    for(std::deque< MultidimBundleType >::iterator bundleIt=this->Bundles.begin(); bundleIt!=this->Bundles.end(); ++bundleIt)
-    {
-      if (bundleIt!=this->Bundles.begin())
-      {
-        // not the first bundle, add a separator before adding values
-        of << ";";
-      }
-      of << bundleIt->ParameterValue << ":";
-      for(RoleSetType::iterator roleNameIt=bundleIt->Roles.begin(); roleNameIt!=bundleIt->Roles.end(); ++roleNameIt)
-      {
-        if (roleNameIt!=bundleIt->Roles.begin())
-        {
-          // not the first role name, add a separator before adding values
-          of << " ";
-        }
-        of << *roleNameIt;
-      }
-    }
-    of << "\"";
+    of << indent << " dimensionName=\"" << this->DimensionName << "\"";
   }
+  if (this->Unit != NULL)
+  {
+    of << indent << " unit=\"" << this->Unit << "\"";
+  }
+
+  // TODO: implement a vtkMRMLMultidimDataStorageNode that reads/writes the SequenceScene from/to file
 }
 
 //----------------------------------------------------------------------------
@@ -110,50 +101,6 @@ void vtkMRMLMultidimDataNode::ReadXMLAttributes(const char** atts)
     {
       this->SetUnit(attValue);
     }
-    else if (!strcmp(attName, "bundles"))
-    {
-      this->ParseBundlesAttribute(attValue, this->Bundles);
-    }
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::ParseBundlesAttribute(const char *attValue, std::deque< MultidimBundleType >& bundles)
-{
-  bundles.clear();
-
-  /// parse refernces in the form "parameterValue1:role1 role2;parameterValue2:role1 role2;"
-  std::string attribute(attValue);
-
-  std::size_t bundleStart = 0;
-  std::size_t bundleEnd = attribute.find_first_of(';', bundleStart);
-  std::size_t parameterValueSep = attribute.find_first_of(':', bundleStart);
-  while (bundleStart != std::string::npos && parameterValueSep != std::string::npos && bundleStart != bundleEnd && bundleStart != parameterValueSep)
-  {
-    std::string ref = attribute.substr(bundleStart, bundleEnd-bundleStart);
-    std::string parameterValue = attribute.substr(bundleStart, parameterValueSep-bundleStart);
-    if (parameterValue.empty())
-    {
-      vtkWarningMacro("vtkMRMLNode::ParseBundlesAttribute: parsing error, ParameterValue is empty");
-      continue;
-    }
-    MultidimBundleType bundle;
-    bundle.ParameterValue=parameterValue;
-    std::string roleNames = attribute.substr(parameterValueSep+1, bundleEnd-parameterValueSep-1);
-    std::stringstream ss(roleNames);
-    while (!ss.eof())
-    {
-      std::string roleName;
-      ss >> roleName;
-      if (!roleName.empty())
-      {
-        bundle.Roles.insert(roleName);
-      }
-    }
-    bundles.push_back(bundle);
-    bundleStart = (bundleEnd == std::string::npos) ? std::string::npos : bundleEnd+1;
-    bundleEnd = attribute.find_first_of(';', bundleStart);
-    parameterValueSep = attribute.find_first_of(':', bundleStart);
   }
 }
 
@@ -165,11 +112,25 @@ void vtkMRMLMultidimDataNode::Copy(vtkMRMLNode *anode)
   Superclass::Copy(anode);
   this->DisableModifiedEventOn();
 
-  vtkMRMLMultidimDataNode *node = (vtkMRMLMultidimDataNode *) anode;
+  vtkMRMLMultidimDataNode *snode = (vtkMRMLMultidimDataNode *) anode;
 
-  this->Bundles=node->Bundles;
-  this->SetDimensionName(node->GetDimensionName());
-  this->SetUnit(node->GetUnit());
+  this->SetDimensionName(snode->GetDimensionName());
+  this->SetUnit(snode->GetUnit());
+
+  // Clear nodes: RemoveAllNodes is not a public method, so it's simpler to just delete and recreate the scene
+  this->SequenceScene->Delete();
+  this->SequenceScene=vtkMRMLScene::New();
+
+  for (int n=0; n < snode->SequenceScene->GetNodes()->GetNumberOfItems(); n++)
+  {
+    vtkMRMLNode* node = (vtkMRMLNode*)snode->SequenceScene->GetNodes()->GetItemAsObject(n);
+    if (node==NULL)
+    {
+      vtkErrorMacro("Invalid node in vtkMRMLMultidimDataNode");
+      continue;
+    }
+    this->SequenceScene->CopyNode(node);
+  }
 
   this->DisableModifiedEventOff();
   this->InvokePendingModifiedEvent();
@@ -179,26 +140,14 @@ void vtkMRMLMultidimDataNode::Copy(vtkMRMLNode *anode)
 void vtkMRMLMultidimDataNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   vtkMRMLNode::PrintSelf(os,indent);
-
-  //os << indent << "BeamModelOpacity:   " << this->BeamModelOpacity << "\n";
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* nodeRole, const char* parameterValue)
+void vtkMRMLMultidimDataNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* parameterValue)
 {
   if (node==NULL)
   {
     vtkErrorMacro("vtkMRMLMultidimDataNode::SetDataNodeAtValue failed, invalid node"); 
-    return;
-  }
-  if (node->GetID()==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::SetDataNodeAtValue failed, invalid node ID (the node must be in the scene)"); 
-    return;
-  }
-  if (nodeRole==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::SetDataNodeAtValue failed, invalid nodeRole value"); 
     return;
   }
   if (parameterValue==NULL)
@@ -206,120 +155,68 @@ void vtkMRMLMultidimDataNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* 
     vtkErrorMacro("vtkMRMLMultidimDataNode::SetDataNodeAtValue failed, invalid parameterValue"); 
     return;
   }
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex<0)
+  
+  vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
+  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  if (seqItemIndex<0)
   {
-    // The bundle doesn't exist yet
-    MultidimBundleType bundle;
-    bundle.ParameterValue=parameterValue;
-    this->Bundles.push_back(bundle);
-    bundleIndex=this->Bundles.size()-1;
+    // The sequence item doesn't exist yet
+    SequenceItemType seqItem;
+    seqItem.ParameterValue=parameterValue;
+    this->SequenceItems.push_back(seqItem);
+    seqItemIndex=this->SequenceItems.size()-1;
   }
-  else 
-  {
-    // The bundle exists already.
-    // 1. the node may have been added already with a different role, delete the old role
-    std::string roleNameInBundleAlready=GetDataNodeRoleAtValue(node, parameterValue);
-    if (!roleNameInBundleAlready.empty())
-    {
-      // there is a node already with that role in the bundle
-      if (roleNameInBundleAlready.compare(nodeRole)==0)
-      {
-        // found the same node with the same role name in the bundle, so there is nothing to do
-        return;
-      }
-      // Found the same node with a different role name.
-      // Remove the node with the old role, so one node is only listed in a bundle once.
-      RemoveDataNodeAtValue(node, parameterValue);
-    }      
-    // 2. the role may exist and another node may be associated
-    // that is not an issue, we will just overwrite the the bundle and the node references
-  }
-  this->Bundles[bundleIndex].Roles.insert(nodeRole);
-  this->SetNodeReferenceID(GetNodeReferenceRoleName(parameterValue,nodeRole).c_str(),node->GetID());
+  this->SequenceItems[seqItemIndex].DataNode=newNode;
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::RemoveDataNodeAtValue(vtkMRMLNode* node, const char* parameterValue)
+void vtkMRMLMultidimDataNode::RemoveDataNodeAtValue(const char* parameterValue)
 {
-  if (node==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::RemoveDataNodeAtValue failed, invalid node"); 
-    return;
-  } 
   if (parameterValue==NULL)
   {
     vtkErrorMacro("vtkMRMLMultidimDataNode::RemoveDataNodeAtValue failed, invalid parameterValue"); 
     return;
   }
- 
-  std::string nodeRoleInBundle=GetDataNodeRoleAtValue(node, parameterValue);
-  if (nodeRoleInBundle.empty())
-  {
-    vtkWarningMacro("RemoveDataNodeAtValue failed: node is not defined for parameter value "<<parameterValue);
-  }
 
-  this->RemoveAllNodeReferenceIDs(GetNodeReferenceRoleName(parameterValue, nodeRoleInBundle).c_str());
-
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex<0)
+  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  if (seqItemIndex<0)
   {
-    vtkWarningMacro("vtkMRMLMultidimDataNode::RemoveDataNodeAtValue: the specified node was found at parameter value "<<parameterValue);
+    vtkWarningMacro("vtkMRMLMultidimDataNode::RemoveDataNodeAtValue: node was not found at parameter value "<<parameterValue);
     return;
   }
-  this->Bundles[bundleIndex].Roles.erase(nodeRoleInBundle);  
+  // TODO: remove associated nodes as well (such as storage node)?
+  this->SequenceScene->RemoveNode(this->SequenceItems[seqItemIndex].DataNode);
+  this->SequenceItems.erase(this->SequenceItems.begin()+seqItemIndex);
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::RemoveAllDataNodesAtValue(const char* parameterValue)
+std::string vtkMRMLMultidimDataNode::GenerateDataNodeName(const char* parameterValue)
 {
-  if (parameterValue==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::RemoveAllDataNodesAtValue failed, invalid parameterValue"); 
-    return;
-  }
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex<0)
-  {
-    vtkWarningMacro("vtkMRMLMultidimDataNode::RemoveAllDataNodesAtValue: no bundle found with parameter value "<<parameterValue); 
-    return;
-  }
-  // Remove node references
-  for (RoleSetType::iterator roleNameIt=this->Bundles[bundleIndex].Roles.begin(); roleNameIt!=this->Bundles[bundleIndex].Roles.end(); ++roleNameIt)
-  {
-    this->RemoveAllNodeReferenceIDs(GetNodeReferenceRoleName(parameterValue, *roleNameIt).c_str());
-  }
-  // Remove the bundle
-  this->Bundles.erase(this->Bundles.begin()+bundleIndex);
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::UpdateNodeName(vtkMRMLNode* node, const char* parameterValue)
-{
+  vtkMRMLNode* node=GetDataNodeAtValue(parameterValue);
   if (node==NULL)
   {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::UpdateNodeName failed, invalid node"); 
-    return;
-  }
-  
-  std::string dataNodeName=std::string(this->GetName())+"/"+node->GetName()+std::string(" (")
+    vtkErrorMacro("vtkMRMLMultidimDataNode::UpdateNodeName failed, no node found at "<<SAFE_CHAR_POINTER(parameterValue));
+    return "";
+  }  
+  std::string dataNodeName=std::string(node->GetName())+std::string(" (")
     +SAFE_CHAR_POINTER(this->GetDimensionName())+"="+parameterValue
     +SAFE_CHAR_POINTER(this->GetUnit())+")";
-  node->SetName( dataNodeName.c_str() );
+  
+  return dataNodeName;
 }
 
 //----------------------------------------------------------------------------
-int vtkMRMLMultidimDataNode::GetBundleIndex(const char* parameterValue)
+int vtkMRMLMultidimDataNode::GetSequenceItemIndex(const char* parameterValue)
 {
   if (parameterValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::GetBundleIndex failed, invalid parameter value"); 
+    vtkErrorMacro("vtkMRMLMultidimDataNode::GetSequenceItemIndex failed, invalid parameter value"); 
     return -1;
   }
-  int numberOfBundles=this->Bundles.size();
-  for (int i=0; i<numberOfBundles; i++)
+  int numberOfSeqItems=this->SequenceItems.size();
+  for (int i=0; i<numberOfSeqItems; i++)
   {
-    if (this->Bundles[i].ParameterValue.compare(parameterValue)==0)
+    if (this->SequenceItems[i].ParameterValue.compare(parameterValue)==0)
     {
       return i;
     }
@@ -328,86 +225,42 @@ int vtkMRMLMultidimDataNode::GetBundleIndex(const char* parameterValue)
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::GetDataNodesAtValue(vtkCollection* foundNodes, const char* parameterValue)
+vtkMRMLNode* vtkMRMLMultidimDataNode::GetDataNodeAtValue(const char* parameterValue)
 {
-  if (foundNodes==NULL)
-  {
-    vtkErrorMacro("GetDataNodesAtValue failed, invalid output collection"); 
-    return;
-  }
   if (parameterValue==NULL)
   {
     vtkErrorMacro("GetDataNodesAtValue failed, invalid parameter value"); 
-    return;
+    return NULL;
   }
-  if (this->Scene==NULL)
+  if (this->SequenceScene==NULL)
   {
     vtkErrorMacro("GetDataNodesAtValue failed, invalid scene");
-    return;
+    return NULL;
   }
-  foundNodes->RemoveAllItems();
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex<0)
+  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  if (seqItemIndex<0)
   {
-    // bundle is not found
-    return;
+    // sequence item is not found
+    return NULL;
   }
-  for (RoleSetType::iterator roleNameIt=this->Bundles[bundleIndex].Roles.begin(); roleNameIt!=this->Bundles[bundleIndex].Roles.end(); ++roleNameIt)
-  {
-    vtkMRMLNode* node=GetNodeAtValue(parameterValue, *roleNameIt);
-    if (node!=NULL)
-    {
-      foundNodes->AddItem(node);
-    }
-  }
-}
-
-//-----------------------------------------------------------------------------
-std::string vtkMRMLMultidimDataNode::GetDataNodeRoleAtValue(vtkMRMLNode* node, const char* parameterValue)
-{
-  if (parameterValue==NULL)
-  {
-    vtkErrorMacro("GetNodeRoleAtValue failed, invalid parameter value"); 
-    return "";
-  }
-  if (node==NULL)
-  {
-    vtkErrorMacro("GetNodeRoleAtValue failed, invalid node");
-    return "";
-  }
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex<0)
-  {
-    // bundle is not found
-    return "";
-  }
-  for (RoleSetType::iterator roleNameIt=this->Bundles[bundleIndex].Roles.begin(); roleNameIt!=this->Bundles[bundleIndex].Roles.end(); ++roleNameIt)
-  {
-    vtkMRMLNode* foundNode=GetNodeAtValue(parameterValue, *roleNameIt);
-    if (node==foundNode)
-    {
-      return *roleNameIt;
-    }    
-  }
-  // not in the bundle
-  return "";
+  return this->SequenceItems[seqItemIndex].DataNode;
 }
 
 //---------------------------------------------------------------------------
-std::string vtkMRMLMultidimDataNode::GetNthParameterValue(int bundleIndex)
+std::string vtkMRMLMultidimDataNode::GetNthParameterValue(int seqItemIndex)
 {
-  if (bundleIndex<0 || bundleIndex>=this->Bundles.size())
+  if (seqItemIndex<0 || seqItemIndex>=this->SequenceItems.size())
   {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::GetNthParameterValue failed, invalid bundleIndex value: "<<bundleIndex);
+    vtkErrorMacro("vtkMRMLMultidimDataNode::GetNthParameterValue failed, invalid seqItemIndex value: "<<seqItemIndex);
     return "";
   }
-  return this->Bundles[bundleIndex].ParameterValue;
+  return this->SequenceItems[seqItemIndex].ParameterValue;
 }
 
 //-----------------------------------------------------------------------------
-int vtkMRMLMultidimDataNode::GetNumberOfBundles()
+int vtkMRMLMultidimDataNode::GetNumberOfDataNodes()
 {
-  return this->Bundles.size();
+  return this->SequenceItems.size();
 }
 
 //-----------------------------------------------------------------------------
@@ -428,48 +281,41 @@ void vtkMRMLMultidimDataNode::UpdateParameterValue(const char* oldParameterValue
     // no change
     return;
   }
-  int bundleIndex=GetBundleIndex(oldParameterValue);
-  if (bundleIndex<0)
+  int seqItemIndex=GetSequenceItemIndex(oldParameterValue);
+  if (seqItemIndex<0)
   {
     vtkErrorMacro("vtkMRMLMultidimDataNode::UpdateParameterValue failed, no bundle found with parameter value "<<oldParameterValue); 
     return;
   }
-
-  // Change node references to the new parameter value
-  for (RoleSetType::iterator roleNameIt=this->Bundles[bundleIndex].Roles.begin(); roleNameIt!=this->Bundles[bundleIndex].Roles.end(); ++roleNameIt)
-  {
-    vtkMRMLNode* node=this->GetNodeReference(GetNodeReferenceRoleName(oldParameterValue, *roleNameIt).c_str());    
-    this->RemoveAllNodeReferenceIDs(GetNodeReferenceRoleName(oldParameterValue, *roleNameIt).c_str());    
-    this->SetNodeReferenceID(GetNodeReferenceRoleName(newParameterValue, *roleNameIt).c_str(),node->GetID());
-  }
-
   // Update the parameter value
-  this->Bundles[bundleIndex].ParameterValue=newParameterValue;
+  this->SequenceItems[seqItemIndex].ParameterValue=newParameterValue;
 }
 
 //-----------------------------------------------------------------------------
-void vtkMRMLMultidimDataNode::AddBundle(const char* parameterValue)
+std::string vtkMRMLMultidimDataNode::GetDataNodeClassName()
 {
-  int bundleIndex=GetBundleIndex(parameterValue);
-  if (bundleIndex>0)
+  if (this->SequenceItems.empty())
   {
-    vtkWarningMacro("vtkMRMLMultidimDataNode::AddBundle: bundle already exists with parameterValue "<<parameterValue);
-    return;
+    return "";
   }
-  MultidimBundleType bundle;
-  bundle.ParameterValue=parameterValue;
-  this->Bundles.push_back(bundle);
+  // All the nodes should be of the same class, so just get the class from the first one
+  vtkMRMLNode* node=this->SequenceItems[0].DataNode;
+  if (node==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataNode::GetDataNodeClassName node is invalid");
+    return "";
+  }
+  const char* className=node->GetClassName();
+  return SAFE_CHAR_POINTER(className);
 }
 
 //-----------------------------------------------------------------------------
-std::string vtkMRMLMultidimDataNode::GetNodeReferenceRoleName(const std::string &parameterValue, const std::string &roleInBundle)
+vtkMRMLNode* vtkMRMLMultidimDataNode::GetNthDataNode(int bundleIndex)
 {
-  return parameterValue+"/"+roleInBundle;
-}
-
-//-----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLMultidimDataNode::GetNodeAtValue(const std::string &parameterValue, const std::string &roleInBundle)
-{
-  std::string nodeReferenceRoleName=GetNodeReferenceRoleName(parameterValue, roleInBundle);
-  return this->GetNodeReference(nodeReferenceRoleName.c_str());
+  if (this->SequenceItems.size()<=bundleIndex)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataNode::GetNthDataNode failed: bundleIndex "<<bundleIndex<<" is out of range");
+    return NULL;
+  }
+  return this->SequenceItems[bundleIndex].DataNode;
 }

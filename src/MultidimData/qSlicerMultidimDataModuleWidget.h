@@ -40,25 +40,31 @@ public:
   qSlicerMultidimDataModuleWidget(QWidget *parent=0);
   virtual ~qSlicerMultidimDataModuleWidget();
 
+  /// Set up the GUI from mrml when entering
+  virtual void enter();
+  /// Disconnect from scene when exiting
+  virtual void exit(); 
+
 public slots:
 
   void onRootNodeChanged();
-  void onSequenceNodeChanged();
 
   void onParameterNameEdited();
   void onParameterUnitEdited();
 
-  void onSequenceNodeEdited( int row, int column );
-  void onHideSequenceNodeClicked( int row, int column );
   void onDataNodeEdited( int row, int column );
   void onHideDataNodeClicked( int row, int column );
-
 
   void onAddDataNodeButtonClicked();
   void onRemoveDataNodeButtonClicked();
 
-  void onRemoveSequenceNodeButtonClicked();
-  void onAddSequenceNodeButtonClicked();
+  /// Respond to the scene events
+  void onNodeAddedEvent(vtkObject* scene, vtkObject* node);
+  void onNodeRemovedEvent(vtkObject* scene, vtkObject* node);
+  void onMRMLSceneEndImportEvent();
+  void onMRMLSceneEndRestoreEvent();
+  void onMRMLSceneEndBatchProcessEvent();
+  void onMRMLSceneEndCloseEvent();
 
 protected:
   QScopedPointer<qSlicerMultidimDataModuleWidgetPrivate> d_ptr;
@@ -68,7 +74,7 @@ protected:
 protected slots:
 
   void UpdateRootNode();
-  void UpdateSequenceNode();
+  void UpdateCandidateNodes();
 
   void CreateVisItem( QTableWidgetItem*, bool );
 

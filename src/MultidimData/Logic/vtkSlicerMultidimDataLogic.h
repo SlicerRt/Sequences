@@ -46,9 +46,6 @@ public:
   static vtkSlicerMultidimDataLogic *New();
   vtkTypeMacro(vtkSlicerMultidimDataLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
-  
-  void SetDataNodesHiddenAtValue( vtkMRMLMultidimDataNode* rootNode, bool hidden, const char* value );
-  bool GetDataNodesHiddenAtValue( vtkMRMLMultidimDataNode* rootNode, const char* value );
 
 protected:
   vtkSlicerMultidimDataLogic();

@@ -191,7 +191,6 @@ static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 void vtkSlicerMetafileImporterLogic
 ::ReadTransforms( const std::string& fileName )
 {
-
   // Open in binary mode because we determine the start of the image buffer also during this read
   const char* flags = "rb";
   FILE* stream = fopen( fileName.c_str(), flags ); // TODO: Removed error
@@ -293,6 +292,8 @@ void vtkSlicerMetafileImporterLogic
 
   // Now add all the nodes to the scene
 
+  std::map< std::string, vtkMRMLMultidimDataNode* > transformRootNodes;
+
   for (int currentFrameNumber=0; currentFrameNumber<=lastFrameNumber; currentFrameNumber++)
   {
     std::map<int,std::vector<vtkMRMLLinearTransformNode*> >::iterator transformsForCurrentFrame=importedTransformNodes.find(currentFrameNumber);
@@ -305,15 +306,38 @@ void vtkSlicerMetafileImporterLogic
     for (std::vector<vtkMRMLLinearTransformNode*>::iterator transformIt=transformsForCurrentFrame->second.begin(); transformIt!=transformsForCurrentFrame->second.end(); ++transformIt)
     {
       vtkMRMLLinearTransformNode* transform=(*transformIt);
-      transform->SetHideFromEditors(true);
-      // The transform name at this point is simply the field name (e.g., ProbeToTracker), need to generate a full name (ProbeToTracker time=123.43s)     
-      this->GetMRMLScene()->AddNode(transform);
-      transform->Delete(); // ownership transferred to the scene
-      this->RootNode->SetDataNodeAtValue(transform, transform->GetName(), paramValueString.c_str() );
-      this->RootNode->UpdateNodeName(transform, paramValueString.c_str());
+      vtkMRMLMultidimDataNode* transformsRootNode = NULL;
+      if (transformRootNodes.find(transform->GetName())==transformRootNodes.end())
+      {
+        // Setup hierarchy structure
+        vtkSmartPointer<vtkMRMLMultidimDataNode> newTransformsRootNode = vtkSmartPointer<vtkMRMLMultidimDataNode>::New();
+        transformsRootNode=newTransformsRootNode;
+        this->GetMRMLScene()->AddNode(transformsRootNode);        
+        transformsRootNode->SetDimensionName("time");
+        transformsRootNode->SetUnit("s");
+        std::string transformsRootName=this->BaseNodeName+"/"+transform->GetName();
+        transformsRootNode->SetName( transformsRootName.c_str() );
+        transformsRootNode->StartModify();
+        transformRootNodes[transform->GetName()]=transformsRootNode;
+      }
+      else
+      {
+        transformsRootNode = transformRootNodes[transform->GetName()];
+      }
+      transform->SetHideFromEditors(false);
+      transformsRootNode->SetDataNodeAtValue(transform, paramValueString.c_str() );
+      transform->Delete(); // ownership transferred to the root node
     }
-  }  
+  }
 
+  for (std::map< std::string, vtkMRMLMultidimDataNode* > :: iterator it=transformRootNodes.begin(); it!=transformRootNodes.end(); ++it)
+  {
+    it->second->EndModify(false);
+    // Loading is completed indicate to modules that the hierarchy is changed
+    it->second->Modified();
+  }
+  transformRootNodes.clear();
+  
 }
 
 //----------------------------------------------------------------------------
@@ -321,6 +345,15 @@ void vtkSlicerMetafileImporterLogic
 void vtkSlicerMetafileImporterLogic
 ::ReadImages( const std::string& fileName )
 {
+  vtkSmartPointer<vtkMRMLMultidimDataNode> imagesRootNode = vtkSmartPointer<vtkMRMLMultidimDataNode>::New();
+  this->GetMRMLScene()->AddNode(imagesRootNode);
+  imagesRootNode->SetDimensionName("time");
+  imagesRootNode->SetUnit("s");
+  std::string imagesRootName=this->BaseNodeName+"/Images";
+  imagesRootNode->SetName( imagesRootName.c_str() );
+
+  int imagesRootNodeDisableModify = imagesRootNode->StartModify();
+
   // Grab the image data from the mha file
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -335,7 +368,7 @@ void vtkSlicerMetafileImporterLogic
   vtkWarningMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
 #endif
 
-  vtkSmartPointer< vtkImageData > imageData = imageReader->GetOutput();
+  vtkImageData* imageData = imageReader->GetOutput();
   int* dimensions = imageData->GetDimensions();
   double* spacing = imageData->GetSpacing();
 
@@ -362,14 +395,12 @@ void vtkSlicerMetafileImporterLogic
     slice->SetAndObserveImageData(sliceImageData);
 
     std::string paramValueString=this->FrameNumberToParameterValueMap[frameNumber];
-    slice->SetHideFromEditors(true);
-    this->GetMRMLScene()->AddNode(slice);
-
-    this->RootNode->SetDataNodeAtValue(slice, slice->GetName(), paramValueString.c_str() );
-    this->RootNode->UpdateNodeName(slice, paramValueString.c_str());
+    slice->SetHideFromEditors(false);
+    imagesRootNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
 
     // Create display node
     // TODO: add the display node to the MultidimData hierarchy?
+    /*
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
     displayNode->SetDefaultColorMap();
     displayNode->SetHideFromEditors(true);
@@ -377,8 +408,10 @@ void vtkSlicerMetafileImporterLogic
     displayNode->SetName(displayNodeName.c_str());
     this->GetMRMLScene()->AddNode( displayNode );
     slice->SetAndObserveDisplayNodeID( displayNode->GetID() );   
+    */
 
     // Create storage node
+    /*
     vtkMRMLStorageNode *storageNode = slice->CreateDefaultStorageNode();    
     if (storageNode)
     {
@@ -393,29 +426,24 @@ void vtkSlicerMetafileImporterLogic
     {
       vtkErrorMacro("Failed to create storage node for the imported slice");
     }
+    */
 
   }
+
+  imagesRootNode->EndModify(imagesRootNodeDisableModify);
+  imagesRootNode->Modified();
 }
 
 //----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic
 ::Read( std::string fileName )
 {
-//  this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
+  //  this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
 
-  // Setup hierarchy structure
-  vtkSmartPointer<vtkMRMLMultidimDataNode> rootNode = vtkSmartPointer<vtkMRMLMultidimDataNode>::New();  
-  this->GetMRMLScene()->AddNode(rootNode);
-  this->RootNode = rootNode;
-
-  this->RootNode->SetDimensionName("time");
-  this->RootNode->SetUnit("s");
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
-  std::string rootName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
-  this->RootNode->SetName( rootName.c_str() );
+  this->BaseNodeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
 
-  int rootNodeDisableModify = this->RootNode->StartModify();
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
   timer->StartTimer();
@@ -434,11 +462,6 @@ void vtkSlicerMetafileImporterLogic
 
 //  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
 
-  this->RootNode->EndModify(rootNodeDisableModify);
-
-  // Loading is completed indicate to modules that the hierarchy is changed
-  this->RootNode->Modified();
-  
-  this->RootNode=NULL;
   this->FrameNumberToParameterValueMap.clear();
+  this->BaseNodeName.clear();
 }

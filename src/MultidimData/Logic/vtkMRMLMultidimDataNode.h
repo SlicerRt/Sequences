@@ -63,29 +63,30 @@ public:
   vtkGetStringMacro(Unit);
 
   /// Add a data node to this multidimensional data node.
-  /// The data node must be added to the scene before this method is called.
-  void SetDataNodeAtValue(vtkMRMLNode* node, const char* nodeRole, const char* parameterValue);
+  /// If 'node' is in the scene already then a copy will be added to the sequence
+  void SetDataNodeAtValue(vtkMRMLNode* node, const char* parameterValue);
 
-  void RemoveDataNodeAtValue(vtkMRMLNode* node, const char* parameterValue);
-  
-  void RemoveAllDataNodesAtValue(const char* parameterValue);
+  void RemoveDataNodeAtValue(const char* parameterValue);
+
+  void RemoveAllDataNodes();
 
   /// Update data node name (from "Image" it generates "Sequence1/Image (time=23sec)")
-  void UpdateNodeName(vtkMRMLNode* node, const char* parameterValue);
+  std::string GenerateDataNodeName(const char* parameterValue);
 
-  /// Get the list of nodes available for the specified parameter value
-  void GetDataNodesAtValue(vtkCollection* foundNodes, const char* parameterValue);
+  /// Get the node corresponding to the specified parameter value
+  vtkMRMLNode* GetDataNodeAtValue(const char* parameterValue);
 
-  /// Get the role name of the specified node at the chosen parameterValue
-  std::string GetDataNodeRoleAtValue(vtkMRMLNode* node, const char* parameterValue);
+  /// Get the data node corresponding to the n-th parameter value
+  vtkMRMLNode* GetNthDataNode(int bundleIndex);
 
   std::string GetNthParameterValue(int bundleIndex);
 
   void UpdateParameterValue(const char* oldParameterValue, const char* newParameterValue);
 
-  void AddBundle(const char* parameterValue);
+  int GetNumberOfDataNodes();
 
-  int GetNumberOfBundles();
+  /// Return the class name of the data nodes. If there are no data nodes yet then it returns empty string.
+  std::string GetDataNodeClassName();
 
 public:
 
@@ -95,24 +96,13 @@ protected:
   vtkMRMLMultidimDataNode(const vtkMRMLMultidimDataNode&);
   void operator=(const vtkMRMLMultidimDataNode&);
 
-  typedef std::set< std::string > RoleSetType;
-  struct MultidimBundleType
+  int GetSequenceItemIndex(const char* parameterValue);
+
+  struct SequenceItemType
   {
-    /// Parameter value for all nodes in this item
     std::string ParameterValue;
-    /// Roles that are defined for this bundle
-    /// The actual referenced node is stored as MRML NodeReference (it takes care of changing node IDs, node deletions, etc).
-    RoleSetType Roles;
+    vtkMRMLNode* DataNode;
   };
-
-  int GetBundleIndex(const char* parameterValue);
-
-  std::string GetNodeReferenceRoleName(const std::string &parameterValue, const std::string &roleInBundle);
-
-  vtkMRMLNode* GetNodeAtValue(const std::string &parameterValue, const std::string &roleInBundle);
-
-  /// Reads bundles from a string (for each parameter value a list of roles)
-  void ParseBundlesAttribute(const char *attValue, std::deque< MultidimBundleType >& bundles);
 
 protected:
 
@@ -120,7 +110,12 @@ protected:
   char* DimensionName;
   char* Unit;  
 
-  std::deque< MultidimBundleType > Bundles;
+  /// Need to store the nodes in the scene, because for reading/writing nodes
+  /// we need MRML storage nodes, which only work if they refer to a data node in the same scene
+  vtkMRMLScene* SequenceScene;
+
+  /// List of data items (the scene may contain some more nodes, such as storage nodes)
+  std::deque< SequenceItemType > SequenceItems;
 
 };
 
