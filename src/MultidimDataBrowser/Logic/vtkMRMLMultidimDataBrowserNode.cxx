@@ -29,6 +29,7 @@
 #include <vtkMRMLHierarchyNode.h>
 
 // VTK includes
+#include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 
@@ -36,6 +37,7 @@
 #include <sstream>
 
 static const char* ROOT_NODE_REFERENCE_ROLE = "rootNodeRef";
+static const char* SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE = "synchronizedRootNodeRef";
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLMultidimDataBrowserNode);
@@ -237,4 +239,113 @@ void vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode(vtkMRMLNode* node)
     }
   }
   vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: node is not found");
+}
+
+
+//----------------------------------------------------------------------------
+bool vtkMRMLMultidimDataBrowserNode::IsSynchronizedRootNode(const char* nodeId)
+{
+  if (nodeId==NULL)
+  {
+    vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::IsSynchronizedRootNode nodeId is NULL");
+    return false;
+  }
+  return this->HasNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeId);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::AddSynchronizedRootNode(const char* nodeId)
+{
+  this->AddNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeId);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
+{
+  std::string nodeIdStr=nodeId;
+  std::vector< vtkMRMLNode* > synchronizedRootNodes;
+  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
+  int nodeReferenceIndex=0;
+  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt, ++nodeReferenceIndex)
+  {
+    if ((*synchronizedNodeIt)==NULL)
+    {
+      // valid case during scene updates
+      continue;
+    }
+    if (nodeIdStr.compare((*synchronizedNodeIt)->GetID())==0)
+    {
+      this->RemoveNthNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeReferenceIndex);
+      return;
+    }
+  }
+  vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::RemoveSynchronizedRootNode did nothing, the specified node was not synchronized");
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::GetSynchronizedRootNodes(vtkCollection* synchronizedDataNodes)
+{
+  if (synchronizedDataNodes==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetSynchronizedRootNodes failed: synchronizedDataNodes is invalid");
+    return;
+  }
+  vtkMRMLMultidimDataNode* rootNode=GetRootNode();
+  synchronizedDataNodes->RemoveAllItems();
+  std::vector< vtkMRMLNode* > synchronizedRootNodes;
+  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
+  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt)
+  {
+    if ((*synchronizedNodeIt)==NULL)
+    {
+      // valid case during scene updates
+      continue;
+    }
+    if ((*synchronizedNodeIt)==rootNode)
+    {
+      // no need to add the master root node, it's always selected
+      continue;
+    }
+    synchronizedDataNodes->AddItem(*synchronizedNodeIt);
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::GetNthSynchronizedDataNodes(vtkCollection* dataNodes, int selectedBundleIndex)
+{
+  if (dataNodes==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: dataNodes is invalid");
+    return;
+  }
+  vtkMRMLMultidimDataNode* rootNode=GetRootNode();
+  if (rootNode==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: rootNode is invalid");
+    return;
+  }
+  if (selectedBundleIndex<0 || selectedBundleIndex>rootNode->GetNumberOfDataNodes())
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: selectedBundleIndex is out of range");
+    return;
+  }
+  dataNodes->RemoveAllItems();
+  dataNodes->AddItem(rootNode->GetNthDataNode(selectedBundleIndex));
+  std::vector< vtkMRMLNode* > synchronizedRootNodes;
+  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
+  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt)
+  {
+    if ((*synchronizedNodeIt)==NULL)
+    {
+      // valid case during scene updates
+      continue;
+    }
+    vtkMRMLMultidimDataNode* synchronizedNode=vtkMRMLMultidimDataNode::SafeDownCast(*synchronizedNodeIt);
+    if (synchronizedNode==NULL)
+    {
+      vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: synchronizedNodeIt is invalid");
+      continue;
+    }
+    dataNodes->AddItem(synchronizedNode->GetNthDataNode(selectedBundleIndex));
+  }
 }

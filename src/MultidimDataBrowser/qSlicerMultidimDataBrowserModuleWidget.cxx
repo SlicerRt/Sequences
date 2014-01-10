@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QCheckBox>
 #include <QDebug>
 #include <QTimer>
 
@@ -46,6 +47,9 @@ public:
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
   bool ModuleWindowInitialized;
+
+  /// Map that associates dose volume checkboxes to the corresponding MRML node IDs and the dose unit name
+  std::map<QCheckBox*, std::pair<std::string, std::string> > CheckboxToSynchronizedRootNodeIdMap;
 
   std::string ActiveBrowserNodeID;
   QTimer* PlaybackTimer; 
@@ -149,6 +153,15 @@ void qSlicerMultidimDataBrowserModuleWidget::setup()
   connect( d->pushButton_VcrLoop, SIGNAL(toggled(bool)), this, SLOT(setPlaybackLoopEnabled(bool)) );
   connect( d->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), this, SLOT(setPlaybackRateFps(double)) );
   d->PlaybackTimer->connect(d->PlaybackTimer, SIGNAL(timeout()),this, SLOT(onVcrNext()));  
+
+  d->tableWidget_SynchronizedRootNodes->setColumnWidth(0, 20);
+  d->tableWidget_SynchronizedRootNodes->setColumnWidth(1, 300);
+
+  connect( d->tableWidget_SynchronizedRootNodes, SIGNAL(currentItemChanged(QTableWidgetItem*,QTableWidgetItem*)), this, SLOT(storeSelectedTableItemText(QTableWidgetItem*,QTableWidgetItem*)) );
+
+  // Handle scene change event if occurs
+  qvtkConnect( d->logic(), vtkCommand::ModifiedEvent, this, SLOT( onLogicModified() ) );
+
 }
 
 //-----------------------------------------------------------------------------
@@ -350,7 +363,6 @@ void qSlicerMultidimDataBrowserModuleWidget::setMultidimDataRootNode(vtkMRMLMult
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIndex)
 {
-  /* TODO
   Q_D(qSlicerMultidimDataBrowserModuleWidget);    
   if (d->activeBrowserNode()==NULL)
   {
@@ -362,19 +374,17 @@ void qSlicerMultidimDataBrowserModuleWidget::setSelectedBundleIndex(int bundleIn
   vtkMRMLMultidimDataNode* rootNode=d->activeBrowserNode()->GetRootNode();  
   if (rootNode!=NULL && bundleIndex>=0)
   {
-    if (bundleIndex<rootNode->GetNumberOfBundles())
+    if (bundleIndex<rootNode->GetNumberOfDataNodes())
     {
       selectedBundleIndex=bundleIndex;
     }
   }
   d->activeBrowserNode()->SetSelectedBundleIndex(selectedBundleIndex);
-  */
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
 {
-  /* TODO
   Q_D(qSlicerMultidimDataBrowserModuleWidget);
   
   QString DEFAULT_PARAMETER_NAME_STRING=tr("Parameter");  
@@ -393,6 +403,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     d->slider_ParameterValue->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
     d->PlaybackTimer->stop();
+    this->refreshSynchronizedRootNodesTable();
     return;
   }
 
@@ -411,6 +422,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     d->slider_ParameterValue->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
     d->PlaybackTimer->stop();
+    this->refreshSynchronizedRootNodesTable();
     return;    
   }
 
@@ -438,7 +450,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
     d->label_ParameterUnit->setText("");
   }
   
-  int numberOfBundles=multidimDataRootNode->GetNumberOfBundles();
+  int numberOfBundles=multidimDataRootNode->GetNumberOfDataNodes();
   if (numberOfBundles>0)
   {
     d->slider_ParameterValue->setEnabled(true);
@@ -461,7 +473,7 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   }   
 
   int selectedBundleIndex=d->activeBrowserNode()->GetSelectedBundleIndex();
-  if (selectedBundleIndex>0)
+  if (selectedBundleIndex>=0)
   {
     std::string parameterValue=multidimDataRootNode->GetNthParameterValue(selectedBundleIndex);
     if (!parameterValue.empty())
@@ -499,5 +511,104 @@ void qSlicerMultidimDataBrowserModuleWidget::updateWidgetFromMRML()
   {
     d->PlaybackTimer->stop();
   }
-  */
+
+  this->refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultidimDataBrowserModuleWidget::refreshSynchronizedRootNodesTable()
+{
+  Q_D(qSlicerMultidimDataBrowserModuleWidget);
+
+  // Clear the table
+  d->tableWidget_SynchronizedRootNodes->clearContents();
+  std::map<QCheckBox*, std::pair<std::string, std::string> >::iterator it;
+  for (it = d->CheckboxToSynchronizedRootNodeIdMap.begin(); it != d->CheckboxToSynchronizedRootNodeIdMap.end(); ++it)
+  {
+    QCheckBox* checkbox = it->first;
+    disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
+    delete checkbox;
+  }
+  d->CheckboxToSynchronizedRootNodeIdMap.clear();
+
+  if (d->activeBrowserNode()==NULL)
+  {
+    // TODO
+    return;
+  }
+  // A valid active browser node is selected
+  vtkMRMLMultidimDataNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
+  if (multidimDataRootNode==NULL)
+  {
+    // TODO
+    return;
+  }
+
+  vtkSmartPointer<vtkCollection> compatibleNodes=vtkSmartPointer<vtkCollection>::New();
+  d->logic()->GetCompatibleNodesFromScene(compatibleNodes, multidimDataRootNode);
+  
+  d->tableWidget_SynchronizedRootNodes->setRowCount(compatibleNodes->GetNumberOfItems());
+  if (compatibleNodes->GetNumberOfItems() < 1)
+  {
+    // no nodes, so we are done
+    return;
+  }
+
+  // Fill the table
+  for (int i=0; i<compatibleNodes->GetNumberOfItems(); ++i)
+  {
+    vtkMRMLMultidimDataNode* compatibleNode = vtkMRMLMultidimDataNode::SafeDownCast( compatibleNodes->GetItemAsObject(i) );
+    if (!compatibleNode)
+    {
+      continue;
+    }
+
+    // Create checkbox
+    QCheckBox* checkbox = new QCheckBox(d->tableWidget_SynchronizedRootNodes);
+    checkbox->setToolTip(tr("Include this node in synchronized browsing"));
+    std::string statusString;
+    d->CheckboxToSynchronizedRootNodeIdMap[checkbox] = std::pair<std::string, std::string>(compatibleNode->GetID(), statusString);
+
+    // Set previous checked state of the checkbox
+    bool checked = d->activeBrowserNode()->IsSynchronizedRootNode(compatibleNode->GetID());
+    checkbox->setChecked(checked);
+
+    connect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
+
+    d->tableWidget_SynchronizedRootNodes->setCellWidget(i, 0, checkbox);
+    d->tableWidget_SynchronizedRootNodes->setItem(i, 1, new QTableWidgetItem( QString(compatibleNode->GetName()) ) );    
+    //d->tableWidget_SynchronizedRootNodes->setItem(i, 2, new QTableWidgetItem( QString::number(weight,'f',2) ) );
+  }
+
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultidimDataBrowserModuleWidget::synchronizedRootNodeCheckStateChanged(int aState)
+{
+  Q_D(qSlicerMultidimDataBrowserModuleWidget);
+
+  if (d->activeBrowserNode()==NULL)
+  {
+    // TODO
+    return;
+  }
+  
+  QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
+  if (!senderCheckbox)
+  {
+    qCritical() << "qSlicerMultidimDataBrowserModuleWidget::synchronizedRootNodeCheckStateChanged: Invalid sender checkbox for show/hide in chart checkbox state change";
+    return;
+  }
+
+  std::string synchronizedNodeId = d->CheckboxToSynchronizedRootNodeIdMap[senderCheckbox].first;
+
+  // Add or delete node to/from the list
+  if (aState)
+  {
+    d->activeBrowserNode()->AddSynchronizedRootNode(synchronizedNodeId.c_str());
+  }
+  else
+  {
+    d->activeBrowserNode()->RemoveSynchronizedRootNode(synchronizedNodeId.c_str());
+  }
 }

@@ -58,9 +58,13 @@ protected slots:
   void onVcrPrevious();
   void onVcrNext();
   void onVcrLast();
+  void synchronizedRootNodeCheckStateChanged(int aState);
 
 protected:
   void updateWidgetFromMRML();
+
+  /// Refresh synchronized root nodes table from MRML
+  void refreshSynchronizedRootNodesTable();
 
   QScopedPointer<qSlicerMultidimDataBrowserModuleWidgetPrivate> d_ptr;
   

@@ -123,7 +123,6 @@ void vtkSlicerMultidimDataBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node
 //---------------------------------------------------------------------------
 void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode)
 {
-  /* TODO:
   if (browserNode==NULL)
   {
     vtkWarningMacro("vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes failed: browserNode is invalid");
@@ -149,7 +148,7 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
   if (selectedBundleIndex>=0)
   {
     parameterValue=browserNode->GetRootNode()->GetNthParameterValue(selectedBundleIndex);
-    browserNode->GetRootNode()->GetDataNodesAtValue(nodesInSelectedBundle, parameterValue.c_str());
+    browserNode->GetNthSynchronizedDataNodes(nodesInSelectedBundle, selectedBundleIndex);
   }
   
 #ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
@@ -165,12 +164,14 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
   vtkCollectionSimpleIterator it;
   for (nodesInSelectedBundle->InitTraversal(it); (sourceNode = (vtkMRMLNode*)nodesInSelectedBundle->GetNextItemAsObject(it)) ;)
   {
-    std::string dataRole=browserNode->GetRootNode()->GetDataNodeRoleAtValue(sourceNode, parameterValue.c_str());
+    const char* dataRolePtr=sourceNode->GetName(); // TODO: identify corresponding nodes by the corresponding root node
+    std::string dataRole=(dataRolePtr?dataRolePtr:"");
     if (dataRole.empty())
     {
       vtkErrorMacro("Role of node "<< (sourceNode->GetName()?sourceNode->GetName():"(undefined)") <<" is unknown");
       continue;
     }
+    
     vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputNode(dataRole.c_str());
     if (targetOutputNode!=NULL)
     {
@@ -259,7 +260,6 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
     endModifyNodes[i]->EndModify(endModifyValues[i]);  
   }
 #endif
-*/
 }
 
 //---------------------------------------------------------------------------
@@ -315,5 +315,57 @@ void vtkSlicerMultidimDataBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRML
   else
   {
     target->CopyWithSingleModifiedEvent(source);
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerMultidimDataBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLMultidimDataNode* multidimDataRootNode)
+{
+  if (compatibleNodes==NULL)
+  {
+    vtkErrorMacro("vtkSlicerMultidimDataBrowserLogic::GetCompatibleNodesFromScene failed: compatibleNodes is invalid");
+    return;
+  }
+  compatibleNodes->RemoveAllItems();
+  if (multidimDataRootNode==NULL)
+  {
+    // if root node is invalid then there is no compatible node
+    return;
+  }
+  if (this->GetMRMLScene()==NULL)
+  {
+    vtkErrorMacro("Scene is invalid");
+    return;
+  }
+  if (multidimDataRootNode->GetDimensionName()==NULL)
+  {
+    vtkErrorMacro("vtkSlicerMultidimDataBrowserLogic::GetCompatibleNodesFromScene failed: root node dimension name is invalid");
+    return;
+  }
+  std::string masterRootNodeDimension=multidimDataRootNode->GetDimensionName();
+  vtkSmartPointer<vtkCollection> multidimNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLMultidimDataNode"));
+  vtkObject* nextObject = NULL;
+  for (multidimNodes->InitTraversal(); (nextObject = multidimNodes->GetNextItemAsObject()); )
+  {
+    vtkMRMLMultidimDataNode* multidimNode = vtkMRMLMultidimDataNode::SafeDownCast(nextObject);
+    if (multidimNode==NULL)
+    {
+      continue;
+    }
+    if (multidimNode==multidimDataRootNode)
+    {
+      // do not add the master node itself to the list of compatible nodes
+      continue;
+    }
+    if (multidimNode->GetDimensionName()==NULL)
+    {
+      vtkErrorMacro("vtkSlicerMultidimDataBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible root node dimension name is invalid");
+      continue;
+    }
+    if (masterRootNodeDimension.compare(multidimNode->GetDimensionName())==0)
+    {
+      // dimension name is matching, so we consider it compatible
+      compatibleNodes->AddItem(multidimNode);
+    }
   }
 }

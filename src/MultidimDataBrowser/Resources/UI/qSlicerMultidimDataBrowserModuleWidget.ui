@@ -84,7 +84,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_MultidimDataInput">
         <property name="text">
-         <string>Multi-dimension dataset:</string>
+         <string>Master node</string>
         </property>
        </widget>
       </item>
@@ -204,6 +204,50 @@
        </layout>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="SynchronizedBrowsingSection">
+     <property name="text">
+      <string>Synchronized browsing</string>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="0">
+       <widget class="QTableWidget" name="tableWidget_SynchronizedRootNodes">
+        <property name="columnCount">
+         <number>3</number>
+        </property>
+        <attribute name="horizontalHeaderVisible">
+         <bool>true</bool>
+        </attribute>
+        <attribute name="horizontalHeaderCascadingSectionResizes">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string/>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Status</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+     <zorder>tableWidget_SynchronizedRootNodes</zorder>
     </widget>
    </item>
    <item>

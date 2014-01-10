@@ -36,6 +36,7 @@
 
 class vtkMRMLNode;
 class vtkMRMLMultidimDataBrowserNode;
+class vtkMRMLMultidimDataNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_MULTIDIMDATABROWSER_MODULE_LOGIC_EXPORT vtkSlicerMultidimDataBrowserLogic :
@@ -49,6 +50,8 @@ public:
 
   /// Updates the contents of all the virtual output nodes (all the nodes copied from the selected bundle to the scene)
   void UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode);
+
+  void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLMultidimDataNode* multidimDataRootNode);
 
 protected:
   vtkSlicerMultidimDataBrowserLogic();

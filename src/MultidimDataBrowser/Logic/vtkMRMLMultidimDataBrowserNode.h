@@ -33,6 +33,7 @@
 #include "vtkSlicerMultidimDataBrowserModuleLogicExport.h"
 
 class vtkMRMLMultidimDataNode;
+class vtkCollection;
 
 class VTK_SLICER_MULTIDIMDATABROWSER_MODULE_LOGIC_EXPORT vtkMRMLMultidimDataBrowserNode : public vtkMRMLNode
 {
@@ -88,6 +89,21 @@ public:
   void GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* >& nodes);
 
   void RemoveVirtualOutputNode(vtkMRMLNode* node);
+
+  /// Returns true if the node is selected for synchronized browsing
+  bool IsSynchronizedRootNode(const char* nodeId);
+  
+  /// Adds a node for synchronized browsing
+  void AddSynchronizedRootNode(const char* nodeId);
+
+  /// Removes a node from synchronized browsing
+  void RemoveSynchronizedRootNode(const char* nodeId);
+
+  /// Returns all synchronized root nodes (does not include the master root node)
+  void GetSynchronizedRootNodes(vtkCollection* synchronizedDataNodes);
+
+  /// Returns all data nodes at a given index of the master root node (includes data node of the master root node)
+  void GetNthSynchronizedDataNodes(vtkCollection* synchronizedDataNodes, int selectedBundleIndex);
 
 protected:
   vtkMRMLMultidimDataBrowserNode();
