@@ -231,22 +231,6 @@ void vtkMRMLMultidimDataNode::RemoveDataNodeAtValue(const char* parameterValue)
 }
 
 //----------------------------------------------------------------------------
-std::string vtkMRMLMultidimDataNode::GenerateDataNodeName(const char* parameterValue)
-{
-  vtkMRMLNode* node=GetDataNodeAtValue(parameterValue);
-  if (node==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataNode::UpdateNodeName failed, no node found at "<<SAFE_CHAR_POINTER(parameterValue));
-    return "";
-  }  
-  std::string dataNodeName=std::string(node->GetName())+std::string(" (")
-    +SAFE_CHAR_POINTER(this->GetDimensionName())+"="+parameterValue
-    +SAFE_CHAR_POINTER(this->GetUnit())+")";
-  
-  return dataNodeName;
-}
-
-//----------------------------------------------------------------------------
 int vtkMRMLMultidimDataNode::GetSequenceItemIndex(const char* parameterValue)
 {
   if (parameterValue==NULL)

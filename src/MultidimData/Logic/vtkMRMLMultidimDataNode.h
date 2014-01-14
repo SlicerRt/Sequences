@@ -70,9 +70,6 @@ public:
 
   void RemoveAllDataNodes();
 
-  /// Update data node name (from "Image" it generates "Sequence1/Image (time=23sec)")
-  std::string GenerateDataNodeName(const char* parameterValue);
-
   /// Get the node corresponding to the specified parameter value
   vtkMRMLNode* GetDataNodeAtValue(const char* parameterValue);
 

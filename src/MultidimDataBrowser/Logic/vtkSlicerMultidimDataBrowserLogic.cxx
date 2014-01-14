@@ -21,6 +21,7 @@
 #include "vtkMRMLMultidimDataNode.h"
 
 // MRML includes
+#include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLScene.h"
@@ -231,13 +232,28 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
     targetOutputNode->SetName(sourceNode->GetName());
 
     // Mostly it is a shallow copy (for example for volumes, models)
-    targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
+    //targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
+    ShallowCopy(targetOutputNode, sourceNode);
 
-    //targetOutputNode->SetHideFromEditors(false);
-    // The following renaming a hack is for making sure the volume appears in the slice viewer GUI
-    std::string name=targetOutputNode->GetName();
-    targetOutputNode->SetName("");
-    targetOutputNode->SetName(name.c_str());
+    // Generation of data node name: root node name (dimension = parameterValue unit)
+    const char* rootName=synchronizedRootNode->GetName();
+    const char* dimensionName=synchronizedRootNode->GetDimensionName();
+    const char* unit=synchronizedRootNode->GetUnit();
+    std::string dataNodeName;
+    dataNodeName+=(rootName?rootName:"?");
+    dataNodeName+=" [";
+    if (dimensionName)
+    {
+      dataNodeName+=dimensionName;
+      dataNodeName+="=";
+    }
+    dataNodeName+=parameterValue;
+    if (unit)
+    {
+      dataNodeName+=unit;
+    }
+    dataNodeName+="]";
+    targetOutputNode->SetName(dataNodeName.c_str());
 
     vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
     if (targetDisplayableNode!=NULL)
@@ -252,7 +268,11 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
 
       for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
       {
-        targetDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex,targetDisplayNodes[displayNodeIndex]->GetID());
+        // SetAndObserveNthDisplayNodeID takes a long time, only run it if the display node ptr changed
+        if (targetDisplayableNode->GetNthDisplayNode(displayNodeIndex)!=targetDisplayNodes[displayNodeIndex])
+        {
+          targetDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex,targetDisplayNodes[displayNodeIndex]->GetID());
+        }
       }
       if (targetDisplayableNode->GetNumberOfDisplayNodes()>targetDisplayNodes.size())
       {
@@ -325,24 +345,6 @@ void vtkSlicerMultidimDataBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRML
   {
     vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
     vtkMRMLScalarVolumeNode* sourceScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(source);
-    /*char* targetOutputDisplayNodeId=NULL;
-    if (targetScalarVolumeNode->GetDisplayNode()==NULL)
-    {
-      // there is no display node yet, so create one now
-      vtkMRMLScalarVolumeDisplayNode* displayNode=vtkMRMLScalarVolumeDisplayNode::New();
-      displayNode->SetDefaultColorMap();
-      scene->AddNode(displayNode);
-      displayNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-      targetOutputDisplayNodeId=displayNode->GetID();
-      displayNode->SetHideFromEditors(false); // TODO: remove this line, just for testing        
-    }
-    else
-    {
-      targetOutputDisplayNodeId=targetScalarVolumeNode->GetDisplayNode()->GetID();
-    }     
-    target->CopyWithSingleModifiedEvent(source);    
-    targetScalarVolumeNode->SetAndObserveDisplayNodeID(targetOutputDisplayNodeId);*/
-    targetScalarVolumeNode->SetAndObserveDisplayNodeID(sourceScalarVolumeNode->GetDisplayNodeID());
     targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData());
     //targetScalarVolumeNode->SetAndObserveTransformNodeID(sourceScalarVolumeNode->GetTransformNodeID());
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
@@ -350,10 +352,14 @@ void vtkSlicerMultidimDataBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRML
     targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
     targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
-    targetScalarVolumeNode->SetDisplayVisibility(sourceScalarVolumeNode->GetDisplayVisibility());
-    targetScalarVolumeNode->Modified();
 
       // TODO: copy attributes and node references, storage node?
+  }
+  if (target->IsA("vtkMRMLModelNode"))
+  {
+    vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
+    vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
+    targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
   }
   else
   {

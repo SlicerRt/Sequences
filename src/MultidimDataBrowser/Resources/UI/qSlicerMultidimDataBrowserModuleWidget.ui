@@ -180,10 +180,10 @@
         <item>
          <widget class="QDoubleSpinBox" name="doubleSpinBox_VcrPlaybackRate">
           <property name="maximum">
-           <double>150.000000000000000</double>
+           <double>500.00000000000000</double>
           </property>
           <property name="value">
-           <double>5.000000000000000</double>
+           <double>10.000000000000000</double>
           </property>
          </widget>
         </item>
