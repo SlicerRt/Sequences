@@ -71,6 +71,8 @@ protected:
 
 private:
 
+  bool UpdateVirtualOutputNodesInProgress;
+
   vtkSlicerMultidimDataBrowserLogic(const vtkSlicerMultidimDataBrowserLogic&); // Not implemented
   void operator=(const vtkSlicerMultidimDataBrowserLogic&);               // Not implemented
 };

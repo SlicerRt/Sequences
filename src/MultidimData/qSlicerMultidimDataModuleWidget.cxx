@@ -373,6 +373,7 @@ void qSlicerMultidimDataModuleWidget::onAddDataNodeButtonClicked()
 
   int row = d->ListWidget_CandidateDataNodes->currentRow();
   vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( row ) );
+
   currentRoot->SetDataNodeAtValue(currentCandidateNode, currentParameterValue.c_str() );
 
   // Auto-increment the parameter value in the new data textbox if it is an integer
@@ -387,6 +388,30 @@ void qSlicerMultidimDataModuleWidget::onAddDataNodeButtonClicked()
 
   this->UpdateRootNode();
   this->UpdateCandidateNodes();
+
+  // Restore candidate node selection
+  d->GetDataNodeCandidates( candidateNodes, currentRoot );
+  for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
+  {
+    vtkMRMLNode* selectedCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
+    if (selectedCandidateNode==currentCandidateNode)
+    {      
+      if (i+1<d->ListWidget_CandidateDataNodes->count())
+      {
+        // not at the end of the list, so select the next item
+        d->ListWidget_CandidateDataNodes->setCurrentRow(i+1);
+      }
+      else
+      {
+        // we are at the end of the list (already added the last element),
+        // so unselect the item to prevent duplicate adding of the last element
+        d->ListWidget_CandidateDataNodes->setCurrentRow(-1);
+      }
+      
+      break;
+    }
+  }
+
 }
 
 
@@ -560,32 +585,14 @@ void qSlicerMultidimDataModuleWidget::UpdateCandidateNodes()
   // Display the candidate data nodes
   vtkSmartPointer<vtkCollection> candidateNodes = vtkSmartPointer<vtkCollection>::New();
   d->GetDataNodeCandidates( candidateNodes, currentRoot );
-
-  int row = d->ListWidget_CandidateDataNodes->currentRow();
-  vtkMRMLNode* selectedCandidateNode = NULL;
-  if (row>=0)
-  {
-    selectedCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( row ) );
-  }
   
   d->ListWidget_CandidateDataNodes->clear();
 
-  int selectedCandidateNodeIndex = -1;
   for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
-    if (selectedCandidateNode==currentCandidateNode)
-    {
-      selectedCandidateNodeIndex = i;
-    }
     d->ListWidget_CandidateDataNodes->addItem( QString::fromStdString( currentCandidateNode->GetName() ) );
   }
-
-  if (selectedCandidateNodeIndex>=0)
-  {
-    d->ListWidget_CandidateDataNodes->setCurrentRow(selectedCandidateNodeIndex);
-  }
-
 }
 
 //-----------------------------------------------------------------------------

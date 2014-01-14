@@ -28,7 +28,7 @@
 
 #include "vtkSlicerMultidimDataModuleLogicExport.h"
 
-class vtkCollection;
+class vtkMRMLDisplayNode;
 
 class VTK_SLICER_MULTIDIMDATA_MODULE_LOGIC_EXPORT vtkMRMLMultidimDataNode : public vtkMRMLNode
 {
@@ -75,6 +75,9 @@ public:
 
   /// Get the node corresponding to the specified parameter value
   vtkMRMLNode* GetDataNodeAtValue(const char* parameterValue);
+
+  /// Get the all the display nodes corresponding to the specified parameter value
+  void GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &dataNodes, const char* parameterValue);
 
   /// Get the data node corresponding to the n-th parameter value
   vtkMRMLNode* GetNthDataNode(int bundleIndex);

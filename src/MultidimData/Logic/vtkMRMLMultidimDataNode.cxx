@@ -17,6 +17,8 @@
 
 // MRMLMultidimData includes
 #include "vtkMRMLMultidimDataNode.h"
+#include "vtkMRMLDisplayableNode.h"
+#include "vtkMRMLDisplayNode.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -24,7 +26,6 @@
 // VTK includes
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
-//#include <vtkSmartPointer.h>
 
 // STD includes
 #include <sstream>
@@ -155,8 +156,48 @@ void vtkMRMLMultidimDataNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* 
     vtkErrorMacro("vtkMRMLMultidimDataNode::SetDataNodeAtValue failed, invalid parameterValue"); 
     return;
   }
-  
+
   vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
+
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(node);
+  if (displayableNode!=NULL)
+  {
+    vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
+    if (this->SequenceItems.size()==0)
+    {
+      // This is the first node, so make a copy of the display node for the sequence
+      int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
+      for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+      {
+        vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->SequenceScene->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
+        newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
+      }
+
+      // TODO: jsut for test
+      //std::vector< vtkMRMLDisplayNode* > displayNodes;
+      //GetDisplayNodesAtValue(displayNodes, parameterValue);
+
+    }
+    else
+    {
+      // Overwrite the display nodes wih the display node(s) of the first node
+      vtkMRMLDisplayableNode* firstDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->SequenceItems[0].DataNode);
+      if (firstDisplayableNode!=NULL)
+      {
+        newDisplayableNode->RemoveAllDisplayNodeIDs();
+        int numOfFirstDisplayNodes=firstDisplayableNode->GetNumberOfDisplayNodes();        
+        for (int firstDisplayNodeIndex=0; firstDisplayNodeIndex<numOfFirstDisplayNodes; firstDisplayNodeIndex++)
+        {
+          newDisplayableNode->AddAndObserveDisplayNodeID(firstDisplayableNode->GetNthDisplayNodeID(firstDisplayNodeIndex));
+        }
+      }
+      else
+      {
+        vtkErrorMacro("First node is not a displayable node");
+      }
+    }
+  }
+  
   int seqItemIndex=GetSequenceItemIndex(parameterValue);
   if (seqItemIndex<0)
   {
@@ -318,4 +359,38 @@ vtkMRMLNode* vtkMRMLMultidimDataNode::GetNthDataNode(int bundleIndex)
     return NULL;
   }
   return this->SequenceItems[bundleIndex].DataNode;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMultidimDataNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &displayNodes, const char* parameterValue)
+{
+  displayNodes.clear();
+  if (parameterValue==NULL)
+  {
+    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid parameter value"); 
+    return;
+  }
+  if (this->SequenceScene==NULL)
+  {
+    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid scene");
+    return;
+  }
+  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  if (seqItemIndex<0)
+  {
+    // sequence item is not found
+    return;
+  }
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->SequenceItems[seqItemIndex].DataNode);
+  if (displayableNode==NULL)
+  {
+    // not a displayable node, so there are no display nodes
+    return;
+  }
+  int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
+  for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+  {
+    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
+    displayNodes.push_back(displayNode);
+  }  
 }

@@ -26,18 +26,20 @@
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLVolumeNode.h>
+#include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLHierarchyNode.h>
 
 // VTK includes
-#include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 
 // STD includes
 #include <sstream>
 
-static const char* ROOT_NODE_REFERENCE_ROLE = "rootNodeRef";
-static const char* SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE = "synchronizedRootNodeRef";
+// First reference is the master root node, subsequent references are the synchronized root nodes
+static const char* ROOT_NODE_REFERENCE_ROLE_BASE = "rootNodeRef";
+static const char* DATA_NODE_REFERENCE_ROLE_BASE = "dataNodeRef";
+static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLMultidimDataBrowserNode);
@@ -50,6 +52,7 @@ vtkMRMLMultidimDataBrowserNode::vtkMRMLMultidimDataBrowserNode()
   this->PlaybackRateFps=5.0;
   this->PlaybackLooped=true;
   this->SelectedBundleIndex=0;
+  this->LastPostfixIndex=0;
 }
 
 //----------------------------------------------------------------------------
@@ -69,11 +72,11 @@ void vtkMRMLMultidimDataBrowserNode::WriteXML(ostream& of, int nIndent)
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
   of << indent << " selectedBundleIndex=\"" << this->SelectedBundleIndex << "\"";
 
-  of << indent << " virtualNodeRoleNames=\"";
-  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
-    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  of << indent << " virtualNodePostfixes=\"";
+  for(std::vector< std::string >::iterator roleNameIt=this->VirtualNodePostfixes.begin();
+    roleNameIt!=this->VirtualNodePostfixes.end(); ++roleNameIt)
   { 
-    if (roleNameIt!=this->VirtualNodeRoleNames.begin())
+    if (roleNameIt!=this->VirtualNodePostfixes.begin())
     {
       // print separator before printing the (if not the first element)
       of << " ";
@@ -134,9 +137,9 @@ void vtkMRMLMultidimDataBrowserNode::ReadXMLAttributes(const char** atts)
       ss >> selectedBundleIndex;
       this->SetSelectedBundleIndex(selectedBundleIndex);
     }
-    else if (!strcmp(attName, "virtualNodeRoleNames"))
+    else if (!strcmp(attName, "virtualNodePostfixes"))
     {
-      this->VirtualNodeRoleNames.clear();
+      this->VirtualNodePostfixes.clear();
       std::stringstream ss(attValue);
       while (!ss.eof())
       {
@@ -144,7 +147,7 @@ void vtkMRMLMultidimDataBrowserNode::ReadXMLAttributes(const char** atts)
         ss >> roleName;
         if (!roleName.empty())
         {
-          this->VirtualNodeRoleNames.insert(roleName);
+          this->VirtualNodePostfixes.push_back(roleName);
         }
       }
     }
@@ -158,6 +161,13 @@ void vtkMRMLMultidimDataBrowserNode::ReadXMLAttributes(const char** atts)
 void vtkMRMLMultidimDataBrowserNode::Copy(vtkMRMLNode *anode)
 {
   Superclass::Copy(anode);
+  vtkMRMLMultidimDataBrowserNode* node=vtkMRMLMultidimDataBrowserNode::SafeDownCast(anode);
+  if (node==NULL)
+  {
+    vtkErrorMacro("Node copy failed: not a vtkMRMLMultidimDataNode");
+    return;
+  }
+  this->VirtualNodePostfixes=node->VirtualNodePostfixes;
 }
 
 //----------------------------------------------------------------------------
@@ -167,80 +177,181 @@ void vtkMRMLMultidimDataBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+std::string vtkMRMLMultidimDataBrowserNode::GenerateVirtualNodePostfix()
+{
+  std::stringstream postfix;
+  postfix << this->LastPostfixIndex;
+  this->LastPostfixIndex++;
+  return postfix.str();  
+}
+
+//----------------------------------------------------------------------------
 void vtkMRMLMultidimDataBrowserNode::SetAndObserveRootNodeID(const char *rootNodeID)
 {
-  this->SetAndObserveNodeReferenceID(ROOT_NODE_REFERENCE_ROLE, rootNodeID);
+  std::string rolePostfix;
+  if (this->VirtualNodePostfixes.empty())
+  {
+    rolePostfix=GenerateVirtualNodePostfix();
+    this->VirtualNodePostfixes.push_back(rolePostfix);
+  }
+  else
+  {
+    // the (master) root node corresponds to the first virtual node
+    rolePostfix=this->VirtualNodePostfixes[0];
+  }
+  std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  this->SetAndObserveNodeReferenceID(rootNodeReferenceRole.c_str(), rootNodeID);
 }
 
 //----------------------------------------------------------------------------
 vtkMRMLMultidimDataNode* vtkMRMLMultidimDataBrowserNode::GetRootNode()
 {
-  vtkMRMLMultidimDataNode* node=vtkMRMLMultidimDataNode::SafeDownCast(this->GetNodeReference(ROOT_NODE_REFERENCE_ROLE));
+  if (this->VirtualNodePostfixes.empty())
+  {
+    return NULL;
+  }  
+  std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+this->VirtualNodePostfixes[0];  
+  vtkMRMLMultidimDataNode* node=vtkMRMLMultidimDataNode::SafeDownCast(this->GetNodeReference(rootNodeReferenceRole.c_str()));
   return node;
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLMultidimDataBrowserNode::RemoveAllVirtualOutputNodes()
 {
-  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
-    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    RemoveAllNodeReferenceIDs(roleNameIt->c_str());
+    std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    this->RemoveAllNodeReferenceIDs(dataNodeRef.c_str());
+    std::string displayNodeRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    this->RemoveAllNodeReferenceIDs(displayNodeRef.c_str());
   }
-  this->VirtualNodeRoleNames.clear();
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode(const char* dataRole)
+std::string vtkMRMLMultidimDataBrowserNode::GetVirtualNodePostfixFromRoot(vtkMRMLMultidimDataNode* rootNode)
 {
-  if (dataRole==NULL)
+  if (rootNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode failed: dataRole is invalid");
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetVirtualNodePostfixFromRoot failed: rootNode is invalid");
+    return "";
+  }
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    std::string dataNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    if (this->GetNodeReference(dataNodeRef.c_str())==rootNode)
+    {
+      return (*rolePostfixIt);
+    }
+  }
+  return "";
+}
+
+//----------------------------------------------------------------------------
+vtkMRMLNode* vtkMRMLMultidimDataBrowserNode::GetVirtualOutputDataNode(vtkMRMLMultidimDataNode* rootNode)
+{
+  if (rootNode==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetVirtualOutputNode failed: rootNode is invalid");
     return NULL;
   }
-  return this->GetNodeReference(dataRole);
-}
-
-//----------------------------------------------------------------------------
-void  vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNode(vtkMRMLNode* targetOutputNode, const char* dataRole)
-{
-  this->VirtualNodeRoleNames.insert(dataRole);
-  this->SetNodeReferenceID(dataRole, targetOutputNode->GetID());
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* >& nodes)
-{
-  nodes.clear();
-  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
-    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  std::string rolePostfix=GetVirtualNodePostfixFromRoot(rootNode);
+  if (rolePostfix.empty())
   {
-    nodes.push_back(this->GetNodeReference(roleNameIt->c_str()));
+    return NULL;
   }
+  std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  return this->GetNodeReference(dataNodeRef.c_str());
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode(vtkMRMLNode* node)
+void vtkMRMLMultidimDataBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLMultidimDataNode* rootNode, std::vector< vtkMRMLDisplayNode* > &displayNodes)
 {
-  if (node==NULL)
+  displayNodes.clear();
+  vtkMRMLNode* dataNode=GetVirtualOutputDataNode(rootNode);
+  if (dataNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: node is invalid");
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetVirtualOutputDisplayNodes failed: rootNode is invalid");
     return;
   }
-  for(std::set< std::string >::iterator roleNameIt=this->VirtualNodeRoleNames.begin();
-    roleNameIt!=this->VirtualNodeRoleNames.end(); ++roleNameIt)
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
+  if (displayableNode==NULL)
   {
-    if (GetNodeReference(roleNameIt->c_str())==node)
+    // not a displayable node so there are no display nodes
+    return;
+  }
+  int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
+  for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+  {
+    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
+    displayNodes.push_back(displayNode);
+  }
+}
+
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLMultidimDataNode* rootNode)
+{
+  if (rootNode==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNode failed: rootNode is invalid");
+    return;
+  }
+  std::string rolePostfix=GetVirtualNodePostfixFromRoot(rootNode);
+  if (rolePostfix.empty())
+  {
+    // Add reference to the root node
+    rolePostfix=AddSynchronizedRootNode(rootNode->GetID());
+  }
+
+  // Add reference to the data node
+  std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  this->SetNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID());
+
+  // Add reference to the display node(s)
+  std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+rolePostfix;
+  this->RemoveAllNodeReferenceIDs(displayNodesRef.c_str());
+  for (std::vector< vtkMRMLDisplayNode* >::iterator displayNodeIt=displayNodes.begin(); displayNodeIt!=displayNodes.end(); ++displayNodeIt)
+  {
+    this->AddNodeReferenceID(displayNodesRef.c_str(), (*displayNodeIt)->GetID());
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* >& nodes)
+{
+  nodes.clear();
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    nodes.push_back(this->GetNodeReference(dataNodeRef.c_str()));
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNodes(vtkMRMLMultidimDataNode* rootNode)
+{
+  if (rootNode==NULL)
+  {
+    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: rootNode is invalid");
+    return;
+  }
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    if (this->GetNodeReference(dataNodeRef.c_str())==rootNode)
     {
-      // found
-      RemoveAllNodeReferenceIDs(roleNameIt->c_str());
-      this->VirtualNodeRoleNames.erase(*roleNameIt);      
+      this->RemoveAllNodeReferenceIDs(dataNodeRef.c_str());
+      std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+      this->RemoveAllNodeReferenceIDs(displayNodesRef.c_str());
       return;
     }
   }
   vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::RemoveVirtualOutputNode failed: node is not found");
 }
-
 
 //----------------------------------------------------------------------------
 bool vtkMRMLMultidimDataBrowserNode::IsSynchronizedRootNode(const char* nodeId)
@@ -250,32 +361,54 @@ bool vtkMRMLMultidimDataBrowserNode::IsSynchronizedRootNode(const char* nodeId)
     vtkWarningMacro("vtkMRMLMultidimDataBrowserNode::IsSynchronizedRootNode nodeId is NULL");
     return false;
   }
-  return this->HasNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeId);
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    if (rolePostfixIt==this->VirtualNodePostfixes.begin())
+    {
+      // the first one is the master root node, don't consider as a synchronized root node
+      continue;
+    }
+    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    const char* foundNodeId=this->GetNodeReferenceID(rootNodeRef.c_str());
+    if (foundNodeId==NULL)
+    {
+      continue;
+    }
+    if (strcmp(foundNodeId,nodeId)==0)
+    {
+      return true;
+    }
+  }
+  return false;
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::AddSynchronizedRootNode(const char* nodeId)
+std::string vtkMRMLMultidimDataBrowserNode::AddSynchronizedRootNode(const char* synchronizedRootNodeId)
 {
-  this->AddNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeId);
+  std::string rolePostfix=GenerateVirtualNodePostfix();
+  this->VirtualNodePostfixes.push_back(rolePostfix);
+  std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  this->SetAndObserveNodeReferenceID(rootNodeReferenceRole.c_str(), synchronizedRootNodeId);
+  return rolePostfix;
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLMultidimDataBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
 {
-  std::string nodeIdStr=nodeId;
-  std::vector< vtkMRMLNode* > synchronizedRootNodes;
-  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
-  int nodeReferenceIndex=0;
-  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt, ++nodeReferenceIndex)
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    if ((*synchronizedNodeIt)==NULL)
+    if (rolePostfixIt==this->VirtualNodePostfixes.begin())
     {
-      // valid case during scene updates
+      // the first one is the master root node, don't consider as a synchronized root node
       continue;
     }
-    if (nodeIdStr.compare((*synchronizedNodeIt)->GetID())==0)
+    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    if (strcmp(this->GetNodeReferenceID(rootNodeRef.c_str()),nodeId)==0)
     {
-      this->RemoveNthNodeReferenceID(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, nodeReferenceIndex);
+      this->RemoveAllNodeReferenceIDs(rootNodeRef.c_str());
+      this->VirtualNodePostfixes.erase(rolePostfixIt);
       return;
     }
   }
@@ -283,69 +416,49 @@ void vtkMRMLMultidimDataBrowserNode::RemoveSynchronizedRootNode(const char* node
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::GetSynchronizedRootNodes(vtkCollection* synchronizedDataNodes)
+void vtkMRMLMultidimDataBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLMultidimDataNode* > &synchronizedDataNodes, bool includeMasterNode/*=false*/)
 {
-  if (synchronizedDataNodes==NULL)
+  synchronizedDataNodes.clear();
+
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetSynchronizedRootNodes failed: synchronizedDataNodes is invalid");
-    return;
-  }
-  vtkMRMLMultidimDataNode* rootNode=GetRootNode();
-  synchronizedDataNodes->RemoveAllItems();
-  std::vector< vtkMRMLNode* > synchronizedRootNodes;
-  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
-  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt)
-  {
-    if ((*synchronizedNodeIt)==NULL)
+    if (!includeMasterNode && rolePostfixIt==this->VirtualNodePostfixes.begin())
+    {
+      // the first one is the master root node, don't consider as a synchronized root node
+      continue;
+    }
+    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    vtkMRMLMultidimDataNode* synchronizedNode=vtkMRMLMultidimDataNode::SafeDownCast(this->GetNodeReference(rootNodeRef.c_str()));
+    if (synchronizedNode==NULL)
     {
       // valid case during scene updates
       continue;
     }
-    if ((*synchronizedNodeIt)==rootNode)
-    {
-      // no need to add the master root node, it's always selected
-      continue;
-    }
-    synchronizedDataNodes->AddItem(*synchronizedNodeIt);
+    synchronizedDataNodes.push_back(synchronizedNode);
   }
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLMultidimDataBrowserNode::GetNthSynchronizedDataNodes(vtkCollection* dataNodes, int selectedBundleIndex)
+void vtkMRMLMultidimDataBrowserNode::GetNthSynchronizedDataNodes(std::vector< vtkMRMLNode* > &dataNodes, int selectedBundleIndex)
 {
-  if (dataNodes==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: dataNodes is invalid");
-    return;
-  }
-  vtkMRMLMultidimDataNode* rootNode=GetRootNode();
-  if (rootNode==NULL)
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: rootNode is invalid");
-    return;
-  }
-  if (selectedBundleIndex<0 || selectedBundleIndex>rootNode->GetNumberOfDataNodes())
-  {
-    vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: selectedBundleIndex is out of range");
-    return;
-  }
-  dataNodes->RemoveAllItems();
-  dataNodes->AddItem(rootNode->GetNthDataNode(selectedBundleIndex));
-  std::vector< vtkMRMLNode* > synchronizedRootNodes;
-  this->GetNodeReferences(SYNCHRONIZED_ROOT_NODES_REFERENCE_ROLE, synchronizedRootNodes);
-  for (std::vector< vtkMRMLNode* > :: iterator synchronizedNodeIt=synchronizedRootNodes.begin(); synchronizedNodeIt!=synchronizedRootNodes.end(); ++synchronizedNodeIt)
-  {
-    if ((*synchronizedNodeIt)==NULL)
+  dataNodes.clear();
+
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {  
+    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    vtkMRMLMultidimDataNode* synchronizedRootNode=vtkMRMLMultidimDataNode::SafeDownCast(this->GetNodeReference(rootNodeRef.c_str()));
+    if (synchronizedRootNode==NULL)
     {
       // valid case during scene updates
       continue;
     }
-    vtkMRMLMultidimDataNode* synchronizedNode=vtkMRMLMultidimDataNode::SafeDownCast(*synchronizedNodeIt);
-    if (synchronizedNode==NULL)
+    if (selectedBundleIndex<0 || selectedBundleIndex>synchronizedRootNode->GetNumberOfDataNodes())
     {
-      vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: synchronizedNodeIt is invalid");
+      vtkErrorMacro("vtkMRMLMultidimDataBrowserNode::GetNthDataNodes failed: selectedBundleIndex is out of range");
       continue;
-    }
-    dataNodes->AddItem(synchronizedNode->GetNthDataNode(selectedBundleIndex));
+    } 
+    dataNodes.push_back(synchronizedRootNode->GetNthDataNode(selectedBundleIndex));
   }
 }

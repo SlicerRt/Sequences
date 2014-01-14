@@ -33,7 +33,7 @@
 #include "vtkSlicerMultidimDataBrowserModuleLogicExport.h"
 
 class vtkMRMLMultidimDataNode;
-class vtkCollection;
+class vtkMRMLDisplayNode;
 
 class VTK_SLICER_MULTIDIMDATABROWSER_MODULE_LOGIC_EXPORT vtkMRMLMultidimDataBrowserNode : public vtkMRMLNode
 {
@@ -82,28 +82,31 @@ public:
 
   void RemoveAllVirtualOutputNodes();
 
-  vtkMRMLNode* GetVirtualOutputNode(const char* dataRole);
+  vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLMultidimDataNode* rootNode);
 
-  void AddVirtualOutputNode(vtkMRMLNode* targetOutputNode, const char* dataRole);
+  void GetVirtualOutputDisplayNodes(vtkMRMLMultidimDataNode* rootNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
 
-  void GetAllVirtualOutputNodes(std::vector< vtkMRMLNode* >& nodes);
+  void AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLMultidimDataNode* rootNode);
 
-  void RemoveVirtualOutputNode(vtkMRMLNode* node);
+  /// Removed output data and display nodes
+  void RemoveVirtualOutputNodes(vtkMRMLMultidimDataNode* rootNode);
+
+  void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
 
   /// Returns true if the node is selected for synchronized browsing
   bool IsSynchronizedRootNode(const char* nodeId);
   
-  /// Adds a node for synchronized browsing
-  void AddSynchronizedRootNode(const char* nodeId);
+  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  std::string AddSynchronizedRootNode(const char* synchronizedRootNodeId);
 
   /// Removes a node from synchronized browsing
   void RemoveSynchronizedRootNode(const char* nodeId);
 
   /// Returns all synchronized root nodes (does not include the master root node)
-  void GetSynchronizedRootNodes(vtkCollection* synchronizedDataNodes);
+  void GetSynchronizedRootNodes(std::vector< vtkMRMLMultidimDataNode* > &synchronizedDataNodes, bool includeMasterNode=false);
 
   /// Returns all data nodes at a given index of the master root node (includes data node of the master root node)
-  void GetNthSynchronizedDataNodes(vtkCollection* synchronizedDataNodes, int selectedBundleIndex);
+  void GetNthSynchronizedDataNodes(std::vector< vtkMRMLNode* > &dataNodes, int selectedBundleIndex);
 
 protected:
   vtkMRMLMultidimDataBrowserNode();
@@ -111,12 +114,21 @@ protected:
   vtkMRMLMultidimDataBrowserNode(const vtkMRMLMultidimDataBrowserNode&);
   void operator=(const vtkMRMLMultidimDataBrowserNode&);
 
+  std::string GenerateVirtualNodePostfix();
+  std::string GetVirtualNodePostfixFromRoot(vtkMRMLMultidimDataNode* rootNode);
+
 protected:
   bool PlaybackActive;
   double PlaybackRateFps;
   bool PlaybackLooped;
   int SelectedBundleIndex;
-  std::set< std::string > VirtualNodeRoleNames;
+
+  // Unique postfixes for storing references to root nodes, virtual data nodes, and virtual display nodes
+  // For example, a root node reference role name is ROOT_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix
+  std::vector< std::string > VirtualNodePostfixes;
+
+  // Counter that is used for generating the unique (only for this class) virtual node postfix strings
+  int LastPostfixIndex;
 };
 
 #endif

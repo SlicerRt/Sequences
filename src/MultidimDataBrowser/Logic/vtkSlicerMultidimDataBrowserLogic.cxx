@@ -15,10 +15,6 @@
 
 ==============================================================================*/
 
-// Enable this define if the extension is used with a Slicer core
-// that supports dynamic changing of MRML node HideFromEditors property
-//#define DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
-
 // MultidimData Logic includes
 #include "vtkSlicerMultidimDataBrowserLogic.h"
 #include "vtkMRMLMultidimDataBrowserNode.h"
@@ -42,6 +38,7 @@ vtkStandardNewMacro(vtkSlicerMultidimDataBrowserLogic);
 
 //----------------------------------------------------------------------------
 vtkSlicerMultidimDataBrowserLogic::vtkSlicerMultidimDataBrowserLogic()
+: UpdateVirtualOutputNodesInProgress(false)
 {
 }
 
@@ -123,6 +120,11 @@ void vtkSlicerMultidimDataBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node
 //---------------------------------------------------------------------------
 void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidimDataBrowserNode* browserNode)
 {
+  if (this->UpdateVirtualOutputNodesInProgress)
+  {
+    // avoid infinitie loops (caused by triggering a node update during a node update)
+    return;
+  }
   if (browserNode==NULL)
   {
     vtkWarningMacro("vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes failed: browserNode is invalid");
@@ -142,37 +144,38 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
     return;
   }
 
-  vtkSmartPointer<vtkCollection> nodesInSelectedBundle=vtkSmartPointer<vtkCollection>::New();
+  this->UpdateVirtualOutputNodesInProgress=true;
+  
   int selectedBundleIndex=browserNode->GetSelectedBundleIndex();
   std::string parameterValue;
   if (selectedBundleIndex>=0)
   {
     parameterValue=browserNode->GetRootNode()->GetNthParameterValue(selectedBundleIndex);
-    browserNode->GetNthSynchronizedDataNodes(nodesInSelectedBundle, selectedBundleIndex);
   }
+
+  std::vector< vtkMRMLMultidimDataNode* > synchronizedRootNodes;
+  browserNode->GetSynchronizedRootNodes(synchronizedRootNodes, true);
   
-#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
-  // Vectors for calling EndModify() events at once, at the end
-  std::vector<vtkMRMLNode*> endModifyNodes;  
-  std::vector<int> endModifyValues;  
-#endif
-
   // Keep track of virtual nodes that we use and remove the ones that are not used in the selected bundle
-  std::set<vtkMRMLNode*> virtualOutputNodesToKeep;
+  std::set< vtkMRMLNode* > synchronizedRootNodesToKeep;
 
-  vtkMRMLNode* sourceNode=NULL;
-  vtkCollectionSimpleIterator it;
-  for (nodesInSelectedBundle->InitTraversal(it); (sourceNode = (vtkMRMLNode*)nodesInSelectedBundle->GetNextItemAsObject(it)) ;)
+  for (std::vector< vtkMRMLMultidimDataNode* >::iterator sourceRootNodeIt=synchronizedRootNodes.begin(); sourceRootNodeIt!=synchronizedRootNodes.end(); ++sourceRootNodeIt)
   {
-    const char* dataRolePtr=sourceNode->GetName(); // TODO: identify corresponding nodes by the corresponding root node
-    std::string dataRole=(dataRolePtr?dataRolePtr:"");
-    if (dataRole.empty())
+    vtkMRMLMultidimDataNode* synchronizedRootNode=(*sourceRootNodeIt);
+    if (synchronizedRootNode==NULL)
     {
-      vtkErrorMacro("Role of node "<< (sourceNode->GetName()?sourceNode->GetName():"(undefined)") <<" is unknown");
+      vtkErrorMacro("Synchronized root node is invalid");
+      continue;
+    }
+    vtkMRMLNode* sourceNode=synchronizedRootNode->GetDataNodeAtValue(parameterValue.c_str());
+    if (sourceNode==NULL)
+    {
+      // no source node is available for the chosen time point
       continue;
     }
     
-    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputNode(dataRole.c_str());
+    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedRootNode);
+    std::vector< vtkMRMLDisplayNode* > targetDisplayNodes;
     if (targetOutputNode!=NULL)
     {
       // a virtual output node with the requested role exists already
@@ -181,85 +184,125 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
         // this node is of a different class, cannot be reused
         targetOutputNode=NULL;
       }
+      else
+      {
+          vtkMRMLDisplayableNode* targetDisplayableNode =vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
+          if (targetDisplayableNode!=NULL)
+          {
+            int numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
+            for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+            {
+              targetDisplayNodes.push_back(targetDisplayableNode->GetNthDisplayNode(displayNodeIndex));
+            }
+          }
+      }
     }
     if (targetOutputNode==NULL)
     {
-      // haven't found virtual output node that we could reuse, so create a new targetOutputNode
+      // haven't found virtual output node that we could reuse, so create a new targetOutputNode and display nodes
+
+      // Add the display nodes      
+      std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
+      synchronizedRootNode->GetDisplayNodesAtValue(sourceDisplayNodes, parameterValue.c_str());
+
+      for (std::vector< vtkMRMLDisplayNode* >::iterator sourceDisplayNodeIt=sourceDisplayNodes.begin(); sourceDisplayNodeIt!=sourceDisplayNodes.end(); ++sourceDisplayNodeIt)
+      {
+        vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
+        vtkMRMLDisplayNode* targetOutputDisplayNode=vtkMRMLDisplayNode::SafeDownCast(scene->CopyNode(sourceDisplayNode));
+        targetDisplayNodes.push_back(targetOutputDisplayNode);
+      }
+
+      // Add the data node      
       targetOutputNode=sourceNode->CreateNodeInstance();
       targetOutputNode->SetHideFromEditors(false);
       scene->AddNode(targetOutputNode);
       targetOutputNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-      // add this new node to the virtual outputs
-      browserNode->AddVirtualOutputNode(targetOutputNode,dataRole.c_str());
+
+      // add the new data and display nodes to the virtual outputs      
+      browserNode->AddVirtualOutputNodes(targetOutputNode,targetDisplayNodes,synchronizedRootNode);
     }
-    virtualOutputNodesToKeep.insert(targetOutputNode);
+    synchronizedRootNodesToKeep.insert(synchronizedRootNode);
 
     // Update the target node with the contents of the source node    
 
-#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
-    int targetInitialModify=targetOutputNode->StartModify();
-    endModifyValues.push_back(targetInitialModify);
-    endModifyNodes.push_back(targetOutputNode);
-    if (sourceNode->GetHideFromEditors())
-    {
-      // We need to carefully copy the source node to the target
-      // because we have to avoid the node having temporarily hidden
-      // from editors (as it leads to loss of selection status,
-      // e.g., deselected from the foreground/background slice view).
-      // Save source
-      int sourceInitialDisaleModified=sourceNode->GetDisableModifiedEvent();        
-      // Modify source
-      sourceNode->SetDisableModifiedEvent(1);
-      sourceNode->SetHideFromEditors(0);
-      // Copy source->target      
-      ShallowCopy(targetOutputNode,sourceNode);
-      // Restore source
-      sourceNode->SetHideFromEditors(1);
-      sourceNode->SetDisableModifiedEvent(sourceInitialDisaleModified);
-    }
-    else
-    {
-      //targetOutputNode->SetName(sourceNode->GetName());
-      targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);    
-    }
-    //targetOutputNode->EndModify(targetInitialModify);
-
-#else
     // Slice browser is updated when there is a rename, but we want to avoid update, because
     // the source node may be hidden from editors and it would result in removing the target node
     // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
     targetOutputNode->SetName(sourceNode->GetName());
+
+    // Mostly it is a shallow copy (for example for volumes, models)
     targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
-    // Usually source nodes are hidden from editors, so make sure that they are visible
-    targetOutputNode->SetHideFromEditors(false);
+
+    //targetOutputNode->SetHideFromEditors(false);
     // The following renaming a hack is for making sure the volume appears in the slice viewer GUI
     std::string name=targetOutputNode->GetName();
     targetOutputNode->SetName("");
     targetOutputNode->SetName(name.c_str());
-    //targetOutputNode->SetName(dataRole);
-#endif
+
+    vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
+    if (targetDisplayableNode!=NULL)
+    {
+      // Get the minimum of the display nodes that are already in the target displayable node
+      // and the number of display nodes that we need at the end
+      int numOfDisplayNodes=targetDisplayNodes.size();
+      if (numOfDisplayNodes>targetDisplayableNode->GetNumberOfDisplayNodes())
+      {
+        numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
+      }
+
+      for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+      {
+        targetDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex,targetDisplayNodes[displayNodeIndex]->GetID());
+      }
+      if (targetDisplayableNode->GetNumberOfDisplayNodes()>targetDisplayNodes.size())
+      {
+        // there are some extra display nodes in the target data node that we have to delete
+        while (targetDisplayableNode->GetNumberOfDisplayNodes()>targetDisplayNodes.size())
+        {
+          // remove last display node
+          targetDisplayableNode->RemoveNthDisplayNodeID(targetDisplayableNode->GetNumberOfDisplayNodes()-1);
+        }
+      }
+      if (targetDisplayableNode->GetNumberOfDisplayNodes()<targetDisplayNodes.size())
+      {
+        // we need to add some more display nodes
+        for (int displayNodeIndex=numOfDisplayNodes; displayNodeIndex<targetDisplayNodes.size(); displayNodeIndex++)
+        {
+          targetDisplayableNode->AddAndObserveDisplayNodeID(targetDisplayNodes[displayNodeIndex]->GetID());
+        }
+      }
+    }
+
   }
 
   // Remove orphaned virtual output nodes
-  std::vector<vtkMRMLNode*> virtualNodes;
-  browserNode->GetAllVirtualOutputNodes(virtualNodes);
-  for (std::vector<vtkMRMLNode*>::iterator virtualNodeIt=virtualNodes.begin(); virtualNodeIt!=virtualNodes.end(); ++virtualNodeIt)
+  std::vector< vtkMRMLMultidimDataNode* > rootNodes;
+  browserNode->GetSynchronizedRootNodes(rootNodes, true);
+  for (std::vector< vtkMRMLMultidimDataNode* >::iterator rootNodeIt=rootNodes.begin(); rootNodeIt!=rootNodes.end(); ++rootNodeIt)
   {
-    if (virtualOutputNodesToKeep.find(*virtualNodeIt)==virtualOutputNodesToKeep.end())
+    if (synchronizedRootNodesToKeep.find(*rootNodeIt)==synchronizedRootNodesToKeep.end())
     {
-      // this output connector node is not in the list of valid connector nodes (no corresponding data for the current parameter value)
-      // so, remove the connector node and data node from the scene
-      browserNode->RemoveVirtualOutputNode(*virtualNodeIt);
-      scene->RemoveNode(*virtualNodeIt);
+      // this root is not in the list of synchronized nodes (the root node is removed or there is no corresponding parameter value)
+      // so remove the data from the scene
+      vtkMRMLNode* dataNode=browserNode->GetVirtualOutputDataNode(*rootNodeIt);
+      std::vector< vtkMRMLDisplayNode* > displayNodes;
+      browserNode->GetVirtualOutputDisplayNodes(*rootNodeIt, displayNodes);
+
+      // Remove from the browser node
+      browserNode->RemoveVirtualOutputNodes(*rootNodeIt);
+      browserNode->RemoveSynchronizedRootNode((*rootNodeIt)->GetID());
+
+      // Remove from the scene
+      scene->RemoveNode(dataNode);
+      for (std::vector< vtkMRMLDisplayNode* > :: iterator displayNodesIt = displayNodes.begin(); displayNodesIt!=displayNodes.end(); ++displayNodesIt)
+      {
+        scene->RemoveNode(*displayNodesIt);
+      }
+      //scene->RemoveNode(*rootNodeIt);
     }
   }
 
-#ifdef DYNAMIC_HIDENODEFROMEDITORS_AVAILABLE
-  for (int i=endModifyNodes.size()-1; i>=0; i--)
-  {
-    endModifyNodes[i]->EndModify(endModifyValues[i]);  
-  }
-#endif
+  this->UpdateVirtualOutputNodesInProgress=false;
 }
 
 //---------------------------------------------------------------------------
