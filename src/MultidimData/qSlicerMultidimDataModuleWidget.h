@@ -71,6 +71,8 @@ protected:
   
   virtual void setup();  
 
+  void setEnableWidgets(bool enable);
+
 protected slots:
 
   void UpdateRootNode();

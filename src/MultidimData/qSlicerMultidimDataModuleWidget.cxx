@@ -183,6 +183,7 @@ void qSlicerMultidimDataModuleWidget::enter()
       this, SLOT(onMRMLSceneEndCloseEvent()));
     this->qvtkConnect(this->mrmlScene(), vtkMRMLScene::EndRestoreEvent,
       this, SLOT(onMRMLSceneEndRestoreEvent()));
+    UpdateCandidateNodes();
   }
   else
   {
@@ -262,7 +263,7 @@ void qSlicerMultidimDataModuleWidget::onMRMLSceneEndCloseEvent()
 void qSlicerMultidimDataModuleWidget::onRootNodeChanged()
 {
   Q_D(qSlicerMultidimDataModuleWidget);
-
+  d->LineEdit_NewDataNodeParameterValue->setText("0");
   this->UpdateRootNode();
   this->UpdateCandidateNodes();
 }
@@ -338,7 +339,6 @@ void qSlicerMultidimDataModuleWidget::onDataNodeEdited( int row, int column )
   if ( column == DATA_NODE_VALUE_COLUMN )
   {
     currentRoot->UpdateParameterValue( currentParameterValue.c_str(), qText.toLatin1().constData() );
-    // TODO: Should this be propagated to data node names?
   }
 
   if ( column == DATA_NODE_NAME_COLUMN )
@@ -406,14 +406,11 @@ void qSlicerMultidimDataModuleWidget::onAddDataNodeButtonClicked()
         // we are at the end of the list (already added the last element),
         // so unselect the item to prevent duplicate adding of the last element
         d->ListWidget_CandidateDataNodes->setCurrentRow(-1);
-      }
-      
+      }      
       break;
     }
   }
-
 }
-
 
 
 //-----------------------------------------------------------------------------
@@ -486,15 +483,18 @@ void qSlicerMultidimDataModuleWidget::UpdateRootNode()
 
   if ( currentRoot == NULL )
   {
-    d->Label_DataNodeTypeValue->setText( FROM_STD_STRING_SAFE( "any" ) );
-    d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( "" ) );
-    d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( "" ) );
+    d->Label_DataNodeTypeValue->setText( FROM_STD_STRING_SAFE( "undefined" ) );    
+    d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( "" ) );    
+    d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( "" ) );    
     d->TableWidget_DataNodes->clear();
     d->TableWidget_DataNodes->setRowCount( 0 );
     d->TableWidget_DataNodes->setColumnCount( 0 );
     d->ListWidget_CandidateDataNodes->clear();
+    setEnableWidgets(false);
     return;
-  }  
+  }
+
+  setEnableWidgets(true);
 
   // Put the correct properties in the root node table
   QString typeName=currentRoot->GetDataNodeClassName().c_str();
@@ -508,7 +508,7 @@ void qSlicerMultidimDataModuleWidget::UpdateRootNode()
   }
   if (typeName.isEmpty())
   {
-    typeName="any";
+    typeName="undefined";
   }
   d->Label_DataNodeTypeValue->setText( typeName.toLatin1().constData() ); // TODO: maybe use the node->tag instead?
 
@@ -555,7 +555,14 @@ void qSlicerMultidimDataModuleWidget::UpdateRootNode()
 
   d->TableWidget_DataNodes->resizeColumnsToContents();  
   d->TableWidget_DataNodes->resizeRowsToContents();  
-  
+
+  // Open the data node adding section if there are no data nodes yet
+  // to make it easier to see how to add new nodes.
+  if (numberOfDataNodes==0)
+  {
+    d->ExpandButton_DataNodes->setChecked(true);
+  }
+
   /*
   if ( d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue ) )
   {
@@ -611,4 +618,18 @@ void qSlicerMultidimDataModuleWidget::CreateVisItem( QTableWidgetItem* visItem, 
     visItem->setIcon( QIcon( ":/Icons/DataNodeUnhidden.png" ) );
   }
 
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMultidimDataModuleWidget::setEnableWidgets(bool enable)
+{
+  Q_D(qSlicerMultidimDataModuleWidget);
+  d->Label_DataNodeTypeValue->setEnabled(enable);
+  d->LineEdit_ParameterName->setEnabled(enable);
+  d->LineEdit_ParameterUnit->setEnabled(enable);
+  d->TableWidget_DataNodes->setEnabled(enable);
+  d->ListWidget_CandidateDataNodes->setEnabled(enable);
+  d->LineEdit_NewDataNodeParameterValue->setEnabled(enable);
+  d->PushButton_AddDataNode->setEnabled(enable);
+  d->PushButton_RemoveDataNode->setEnabled(enable);
 }
