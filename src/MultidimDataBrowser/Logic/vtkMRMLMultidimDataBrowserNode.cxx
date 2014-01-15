@@ -344,8 +344,9 @@ vtkMRMLNode* vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* 
   this->Scene->AddNode(dataNode);
   dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   this->SetNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID());
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
   
-  // Add copy of the display node(s)  
+  // Add copy of the display node(s)
   std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+rolePostfix;
   this->RemoveVirtualOutputDisplayNodes(rolePostfix);
   for (std::vector< vtkMRMLDisplayNode* >::iterator sourceDisplayNodeIt=sourceDisplayNodes.begin(); sourceDisplayNodeIt!=sourceDisplayNodes.end(); ++sourceDisplayNodeIt)
@@ -353,6 +354,10 @@ vtkMRMLNode* vtkMRMLMultidimDataBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* 
     vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
     this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());    
+    if (displayableNode)
+    {
+      displayableNode->AddAndObserveDisplayNodeID(displayNode->GetID());
+    }    
   }
 
   this->EndModify(oldModify);
