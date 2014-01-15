@@ -41,6 +41,8 @@ vtkMRMLMultidimDataNode::vtkMRMLMultidimDataNode()
 , Unit(0)
 , SequenceScene(0)
 {
+  this->SetDimensionName("time");
+  this->SetUnit("s");
   this->HideFromEditors = false;
   this->SequenceScene=vtkMRMLScene::New();
 }

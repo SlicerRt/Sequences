@@ -157,9 +157,6 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
   std::vector< vtkMRMLMultidimDataNode* > synchronizedRootNodes;
   browserNode->GetSynchronizedRootNodes(synchronizedRootNodes, true);
   
-  // Keep track of virtual nodes that we use and remove the ones that are not used in the selected bundle
-  std::set< vtkMRMLNode* > synchronizedRootNodesToKeep;
-
   for (std::vector< vtkMRMLMultidimDataNode* >::iterator sourceRootNodeIt=synchronizedRootNodes.begin(); sourceRootNodeIt!=synchronizedRootNodes.end(); ++sourceRootNodeIt)
   {
     vtkMRMLMultidimDataNode* synchronizedRootNode=(*sourceRootNodeIt);
@@ -175,8 +172,8 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
       continue;
     }
     
-    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedRootNode);
-    std::vector< vtkMRMLDisplayNode* > targetDisplayNodes;
+    // Get the current target output node
+    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedRootNode);    
     if (targetOutputNode!=NULL)
     {
       // a virtual output node with the requested role exists already
@@ -185,45 +182,39 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
         // this node is of a different class, cannot be reused
         targetOutputNode=NULL;
       }
-      else
-      {
-          vtkMRMLDisplayableNode* targetDisplayableNode =vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
-          if (targetDisplayableNode!=NULL)
-          {
-            int numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
-            for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-            {
-              targetDisplayNodes.push_back(targetDisplayableNode->GetNthDisplayNode(displayNodeIndex));
-            }
-          }
-      }
     }
+
+    // Create the virtual output node (and display nodes) if it doesn't exist yet
     if (targetOutputNode==NULL)
     {
-      // haven't found virtual output node that we could reuse, so create a new targetOutputNode and display nodes
-
-      // Add the display nodes      
+      // Get the display nodes      
       std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
       synchronizedRootNode->GetDisplayNodesAtValue(sourceDisplayNodes, parameterValue.c_str());
 
-      for (std::vector< vtkMRMLDisplayNode* >::iterator sourceDisplayNodeIt=sourceDisplayNodes.begin(); sourceDisplayNodeIt!=sourceDisplayNodes.end(); ++sourceDisplayNodeIt)
-      {
-        vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
-        vtkMRMLDisplayNode* targetOutputDisplayNode=vtkMRMLDisplayNode::SafeDownCast(scene->CopyNode(sourceDisplayNode));
-        targetDisplayNodes.push_back(targetOutputDisplayNode);
-      }
-
-      // Add the data node      
-      targetOutputNode=sourceNode->CreateNodeInstance();
-      targetOutputNode->SetHideFromEditors(false);
-      scene->AddNode(targetOutputNode);
-      targetOutputNode->Delete(); // ownership transferred to the scene, so we can release the pointer
-
-      // add the new data and display nodes to the virtual outputs      
-      browserNode->AddVirtualOutputNodes(targetOutputNode,targetDisplayNodes,synchronizedRootNode);
+      // Add the new data and display nodes to the virtual outputs      
+      targetOutputNode=browserNode->AddVirtualOutputNodes(sourceNode,sourceDisplayNodes,synchronizedRootNode);
     }
-    synchronizedRootNodesToKeep.insert(synchronizedRootNode);
 
+    if (targetOutputNode==NULL)
+    {
+      // failed to add target output node
+      continue;
+    }
+
+    // Get the display nodes
+    std::vector< vtkMRMLDisplayNode* > targetDisplayNodes;
+    {
+      vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
+      if (targetDisplayableNode!=NULL)
+      {
+        int numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
+        for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+        {
+          targetDisplayNodes.push_back(targetDisplayableNode->GetNthDisplayNode(displayNodeIndex));
+        }
+      }
+    }
+    
     // Update the target node with the contents of the source node    
 
     // Slice browser is updated when there is a rename, but we want to avoid update, because
@@ -295,33 +286,6 @@ void vtkSlicerMultidimDataBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLMultidim
 
   }
 
-  // Remove orphaned virtual output nodes
-  std::vector< vtkMRMLMultidimDataNode* > rootNodes;
-  browserNode->GetSynchronizedRootNodes(rootNodes, true);
-  for (std::vector< vtkMRMLMultidimDataNode* >::iterator rootNodeIt=rootNodes.begin(); rootNodeIt!=rootNodes.end(); ++rootNodeIt)
-  {
-    if (synchronizedRootNodesToKeep.find(*rootNodeIt)==synchronizedRootNodesToKeep.end())
-    {
-      // this root is not in the list of synchronized nodes (the root node is removed or there is no corresponding parameter value)
-      // so remove the data from the scene
-      vtkMRMLNode* dataNode=browserNode->GetVirtualOutputDataNode(*rootNodeIt);
-      std::vector< vtkMRMLDisplayNode* > displayNodes;
-      browserNode->GetVirtualOutputDisplayNodes(*rootNodeIt, displayNodes);
-
-      // Remove from the browser node
-      browserNode->RemoveVirtualOutputNodes(*rootNodeIt);
-      browserNode->RemoveSynchronizedRootNode((*rootNodeIt)->GetID());
-
-      // Remove from the scene
-      scene->RemoveNode(dataNode);
-      for (std::vector< vtkMRMLDisplayNode* > :: iterator displayNodesIt = displayNodes.begin(); displayNodesIt!=displayNodes.end(); ++displayNodesIt)
-      {
-        scene->RemoveNode(*displayNodesIt);
-      }
-      //scene->RemoveNode(*rootNodeIt);
-    }
-  }
-
   this->UpdateVirtualOutputNodesInProgress=false;
 }
 
@@ -352,8 +316,6 @@ void vtkSlicerMultidimDataBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRML
     targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
     targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
-
-      // TODO: copy attributes and node references, storage node?
   }
   if (target->IsA("vtkMRMLModelNode"))
   {

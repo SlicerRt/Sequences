@@ -86,10 +86,14 @@ public:
 
   void GetVirtualOutputDisplayNodes(vtkMRMLMultidimDataNode* rootNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
 
-  void AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLMultidimDataNode* rootNode);
+  /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
+  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLMultidimDataNode* rootNode);
 
-  /// Removed output data and display nodes
-  void RemoveVirtualOutputNodes(vtkMRMLMultidimDataNode* rootNode);
+  void RemoveVirtualOutputDataNode(const std::string& postfix);
+
+  void RemoveVirtualOutputDisplayNodes(const std::string& postfix);
+
+  void RemoveAllRootNodes();
 
   void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
 
