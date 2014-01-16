@@ -70,20 +70,20 @@ qSlicerMetafileImporterModule::~qSlicerMetafileImporterModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::helpText()const
 {
-  return "This module is to import sequence metafiles into MultidimData hierarchies. For help on how to use this module please visit: <a href='http://www.slicerrt.org/'>SlicerRT</a>";
+  return "This is a module for importing imageing and tracking information from a sequence metafile into node sequences. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::acknowledgementText()const
 {
-  return "Supported by SparKit and the Slicer Community.";
+  return "This work was funded by CCO ACRU and OCAIRO grants.";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Matthew S. Holden (Queen's University)");
+  moduleContributors << QString("Andras Lasso (PerkLab, Queen's), Matthew Holden (PerkLab, Queen's)");
   return moduleContributors;
 }
 

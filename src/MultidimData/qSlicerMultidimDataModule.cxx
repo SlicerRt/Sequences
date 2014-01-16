@@ -64,20 +64,20 @@ qSlicerMultidimDataModule::~qSlicerMultidimDataModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMultidimDataModule::helpText()const
 {
-  return "This is a loadable module for handling multidimensional data";
+  return "This is a module for creating a node sequence from regular nodes and edit an existing sequence. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerMultidimDataModule::acknowledgementText()const
 {
-  return "This work was funded by CCO ACRU and OCARIO";
+  return "This work was funded by CCO ACRU and OCAIRO grants.";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerMultidimDataModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Matthew Holden (Queen's), Kevin Wang (PMH)");
+  moduleContributors << QString("Andras Lasso (PerkLab, Queen's), Matthew Holden (PerkLab, Queen's), Kevin Wang (PMH)");
   return moduleContributors;
 }
 
