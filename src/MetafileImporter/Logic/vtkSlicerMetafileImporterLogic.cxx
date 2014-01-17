@@ -19,10 +19,10 @@
 
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
-#include "vtkSlicerMultidimDataLogic.h"
+#include "vtkSlicerSequencesLogic.h"
 
-// MRMLMultidimData includes
-#include "vtkMRMLMultidimDataNode.h"
+// MRMLSequence includes
+#include "vtkMRMLSequenceNode.h"
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
@@ -55,7 +55,7 @@ vtkStandardNewMacro(vtkSlicerMetafileImporterLogic);
 vtkSlicerMetafileImporterLogic
 ::vtkSlicerMetafileImporterLogic() 
 {
-  this->MultidimDataLogic = NULL;
+  this->SequencesLogic = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -70,9 +70,9 @@ void vtkSlicerMetafileImporterLogic::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic::SetMultidimDataLogic(vtkSlicerMultidimDataLogic* multiDimensionLogic)
+void vtkSlicerMetafileImporterLogic::SetSequencesLogic(vtkSlicerSequencesLogic* multiDimensionLogic)
 {
-  this->MultidimDataLogic=multiDimensionLogic;
+  this->SequencesLogic=multiDimensionLogic;
 }
 
 //---------------------------------------------------------------------------
@@ -292,7 +292,7 @@ void vtkSlicerMetafileImporterLogic
 
   // Now add all the nodes to the scene
 
-  std::map< std::string, vtkMRMLMultidimDataNode* > transformRootNodes;
+  std::map< std::string, vtkMRMLSequenceNode* > transformRootNodes;
 
   for (int currentFrameNumber=0; currentFrameNumber<=lastFrameNumber; currentFrameNumber++)
   {
@@ -306,11 +306,11 @@ void vtkSlicerMetafileImporterLogic
     for (std::vector<vtkMRMLLinearTransformNode*>::iterator transformIt=transformsForCurrentFrame->second.begin(); transformIt!=transformsForCurrentFrame->second.end(); ++transformIt)
     {
       vtkMRMLLinearTransformNode* transform=(*transformIt);
-      vtkMRMLMultidimDataNode* transformsRootNode = NULL;
+      vtkMRMLSequenceNode* transformsRootNode = NULL;
       if (transformRootNodes.find(transform->GetName())==transformRootNodes.end())
       {
         // Setup hierarchy structure
-        vtkSmartPointer<vtkMRMLMultidimDataNode> newTransformsRootNode = vtkSmartPointer<vtkMRMLMultidimDataNode>::New();
+        vtkSmartPointer<vtkMRMLSequenceNode> newTransformsRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
         transformsRootNode=newTransformsRootNode;
         this->GetMRMLScene()->AddNode(transformsRootNode);        
         transformsRootNode->SetDimensionName("time");
@@ -330,7 +330,7 @@ void vtkSlicerMetafileImporterLogic
     }
   }
 
-  for (std::map< std::string, vtkMRMLMultidimDataNode* > :: iterator it=transformRootNodes.begin(); it!=transformRootNodes.end(); ++it)
+  for (std::map< std::string, vtkMRMLSequenceNode* > :: iterator it=transformRootNodes.begin(); it!=transformRootNodes.end(); ++it)
   {
     it->second->EndModify(false);
     // Loading is completed indicate to modules that the hierarchy is changed
@@ -345,7 +345,7 @@ void vtkSlicerMetafileImporterLogic
 void vtkSlicerMetafileImporterLogic
 ::ReadImages( const std::string& fileName )
 {
-  vtkSmartPointer<vtkMRMLMultidimDataNode> imagesRootNode = vtkSmartPointer<vtkMRMLMultidimDataNode>::New();
+  vtkSmartPointer<vtkMRMLSequenceNode> imagesRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
   this->GetMRMLScene()->AddNode(imagesRootNode);
   imagesRootNode->SetDimensionName("time");
   imagesRootNode->SetUnit("s");
@@ -399,7 +399,7 @@ void vtkSlicerMetafileImporterLogic
     imagesRootNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
 
     // Create display node
-    // TODO: add the display node to the MultidimData hierarchy?
+    // TODO: add the display node to the Sequence hierarchy?
     /*
     vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
     displayNode->SetDefaultColorMap();

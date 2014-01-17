@@ -1,12 +1,13 @@
 
 #-----------------------------------------------------------------------------
-set(MODULE_NAME MetafileImporter)
-set(MODULE_TITLE ${MODULE_NAME})
+set(MODULE_NAME Sequences)
+set(MODULE_TITLE "Sequences")
 
 string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 
 #-----------------------------------------------------------------------------
 add_subdirectory(Logic)
+add_subdirectory(Widgets)
 
 #-----------------------------------------------------------------------------
 set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")
@@ -15,6 +16,8 @@ set(MODULE_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_EXPORT")
 set(MODULE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/Logic
   ${CMAKE_CURRENT_BINARY_DIR}/Logic
+  ${CMAKE_CURRENT_SOURCE_DIR}/Widgets
+  ${CMAKE_CURRENT_BINARY_DIR}/Widgets
   )
 
 set(MODULE_SRCS
@@ -22,14 +25,11 @@ set(MODULE_SRCS
   qSlicer${MODULE_NAME}Module.h
   qSlicer${MODULE_NAME}ModuleWidget.cxx
   qSlicer${MODULE_NAME}ModuleWidget.h
-  qSlicer${MODULE_NAME}IO.cxx
-  qSlicer${MODULE_NAME}IO.h
   )
 
 set(MODULE_MOC_SRCS
   qSlicer${MODULE_NAME}Module.h
   qSlicer${MODULE_NAME}ModuleWidget.h
-  qSlicer${MODULE_NAME}IO.h
   )
 
 set(MODULE_UI_SRCS
@@ -38,7 +38,7 @@ set(MODULE_UI_SRCS
 
 set(MODULE_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleLogic
-  vtkSlicerSequencesModuleLogic
+  qSlicer${MODULE_NAME}ModuleWidgets
   )
 
 set(MODULE_RESOURCES

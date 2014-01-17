@@ -20,7 +20,7 @@
 
 // MetafileImporter Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
-#include "vtkSlicerMultidimDataLogic.h"
+#include "vtkSlicerSequencesLogic.h"
 
 // MetafileImporter includes
 #include "qSlicerMetafileImporterModule.h"
@@ -70,7 +70,7 @@ qSlicerMetafileImporterModule::~qSlicerMetafileImporterModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::helpText()const
 {
-  return "This is a module for importing imageing and tracking information from a sequence metafile into node sequences. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
+  return "This is a module for importing imageing and tracking information from a sequence metafile into node sequences. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/Sequence\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ QStringList qSlicerMetafileImporterModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::dependencies() const
 {
-  return QStringList() << "MultidimData";
+  return QStringList() << "Sequences";
 }
 
 //-----------------------------------------------------------------------------
@@ -113,11 +113,11 @@ void qSlicerMetafileImporterModule::setup()
   qSlicerCoreApplication* app = qSlicerCoreApplication::application();
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
-  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "MultidimData" );
+  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "Sequences" );
 
   if ( multiDimensionModule )
   {
-    metafileImporterLogic->SetMultidimDataLogic(vtkSlicerMultidimDataLogic::SafeDownCast( multiDimensionModule->logic() ));
+    metafileImporterLogic->SetSequencesLogic(vtkSlicerSequencesLogic::SafeDownCast( multiDimensionModule->logic() ));
   }
 
   // Register the IO

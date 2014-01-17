@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>qSlicerSequenceBrowserModuleWidget</class>
+ <widget class="qSlicerWidget" name="qSlicerSequenceBrowserModuleWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>680</width>
+    <height>511</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Active browser node:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_ActiveBrowser">
+       <property name="nodeTypes">
+        <stringlist>
+         <string>vtkMRMLSequenceBrowserNode</string>
+        </stringlist>
+       </property>
+       <property name="baseName">
+        <string>SequenceBrowser</string>
+       </property>
+       <property name="renameEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="InputSection">
+     <property name="text">
+      <string>Input</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_ParameterName">
+        <property name="text">
+         <string>Parameter name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QSlider" name="slider_ParameterValue">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_ParameterValue">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_ParameterUnit">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_SequenceInput">
+        <property name="text">
+         <string>Master node</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SequenceRoot">
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLSequenceNode</string>
+         </stringlist>
+        </property>
+        <property name="noneEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="addEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="renameEnabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrFirst">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrFirst24.png</normaloff>:/Icons/pqVcrFirst24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrPrevious">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrBack24.png</normaloff>:/Icons/pqVcrBack24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrPlayPause">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrPlay24.png</normaloff>
+            <normalon>:/Icons/pqVcrPause24.png</normalon>:/Icons/pqVcrPlay24.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrNext">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrForward24.png</normaloff>:/Icons/pqVcrForward24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrLast">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrLast24.png</normaloff>:/Icons/pqVcrLast24.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Playback rate (fps):</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_VcrPlaybackRate">
+          <property name="maximum">
+           <double>500.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>10.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_VcrLoop">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
+            <normaloff>:/Icons/pqVcrLoop24.png</normaloff>:/Icons/pqVcrLoop24.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="SynchronizedBrowsingSection">
+     <property name="text">
+      <string>Synchronized browsing</string>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="0">
+       <widget class="QTableWidget" name="tableWidget_SynchronizedRootNodes">
+        <property name="columnCount">
+         <number>3</number>
+        </property>
+        <attribute name="horizontalHeaderVisible">
+         <bool>true</bool>
+        </attribute>
+        <attribute name="horizontalHeaderCascadingSectionResizes">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string/>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Status</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>qMRMLNodeComboBox</class>
+   <extends>QWidget</extends>
+   <header>qMRMLNodeComboBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qSlicerWidget</class>
+   <extends>QWidget</extends>
+   <header>qSlicerWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkCollapsibleButton</class>
+   <extends>QWidget</extends>
+   <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../qSlicerSequenceBrowserModule.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>qSlicerSequenceBrowserModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_SequenceRoot</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>262</x>
+     <y>159</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>456</x>
+     <y>88</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerSequenceBrowserModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_ActiveBrowser</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>339</x>
+     <y>255</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>394</x>
+     <y>19</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
