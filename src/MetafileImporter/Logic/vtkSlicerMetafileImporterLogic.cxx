@@ -30,6 +30,7 @@
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLScene.h"
+#include "vtkMRMLSelectionNode.h"
 #include "vtkMRMLStorageNode.h"
 
 // VTK includes
@@ -486,6 +487,24 @@ void vtkSlicerMetafileImporterLogic
     {
       sequenceBrowserNode->AddSynchronizedRootNode((*synchronizedNodesIt)->GetID());
     }
+
+    // Show output volume in the slice viewer
+    vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(vtkMRMLSequenceNode::SafeDownCast(masterNode));
+    if (masterOutputNode->IsA("vtkMRMLVolumeNode"))
+    {
+      vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
+      vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
+      if (selectionNode)
+      {
+        selectionNode->SetReferenceActiveVolumeID(masterOutputNode->GetID());
+        if (appLogic)
+        {
+          appLogic->PropagateVolumeSelection();
+          appLogic->FitSliceToAll();
+        }
+      } 
+    }
+
   }
 
 //  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
