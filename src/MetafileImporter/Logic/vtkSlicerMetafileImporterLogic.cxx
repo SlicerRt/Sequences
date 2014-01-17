@@ -23,6 +23,7 @@
 
 // MRMLSequence includes
 #include "vtkMRMLSequenceNode.h"
+#include "vtkMRMLSequenceBrowserNode.h"
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
@@ -189,7 +190,7 @@ static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 
 //----------------------------------------------------------------------------
 void vtkSlicerMetafileImporterLogic
-::ReadTransforms( const std::string& fileName )
+::ReadTransforms( const std::string& fileName, std::deque< vtkMRMLNode* > &createdNodes )
 {
   // Open in binary mode because we determine the start of the image buffer also during this read
   const char* flags = "rb";
@@ -335,6 +336,7 @@ void vtkSlicerMetafileImporterLogic
     it->second->EndModify(false);
     // Loading is completed indicate to modules that the hierarchy is changed
     it->second->Modified();
+    createdNodes.push_back(it->second);
   }
   transformRootNodes.clear();
   
@@ -342,7 +344,7 @@ void vtkSlicerMetafileImporterLogic
 
 //----------------------------------------------------------------------------
 // Read the spacing and dimentions of the image.
-void vtkSlicerMetafileImporterLogic
+vtkMRMLNode* vtkSlicerMetafileImporterLogic
 ::ReadImages( const std::string& fileName )
 {
   vtkSmartPointer<vtkMRMLSequenceNode> imagesRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
@@ -432,6 +434,7 @@ void vtkSlicerMetafileImporterLogic
 
   imagesRootNode->EndModify(imagesRootNodeDisableModify);
   imagesRootNode->Modified();
+  return imagesRootNode;
 }
 
 //----------------------------------------------------------------------------
@@ -448,17 +451,42 @@ void vtkSlicerMetafileImporterLogic
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
   timer->StartTimer();
 #endif
-  this->ReadTransforms( fileName ); // TODO: Removed error macro
+  std::deque< vtkMRMLNode* > createdTransformNodes;
+  this->ReadTransforms( fileName, createdTransformNodes ); // TODO: Removed error macro
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
   vtkWarningMacro("ReadTransforms time: " << timer->GetElapsedTime() << "sec\n");
   timer->StartTimer();
 #endif
-  this->ReadImages( fileName ); // TODO: Removed error macro
+  vtkMRMLNode* createdImageNode=this->ReadImages( fileName ); // TODO: Removed error macro
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
   vtkWarningMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
 #endif
+
+  // For the user's convenience, create a browser node that contains the image as master node
+  // (the first transform node, if no image in the file) and the transforms as synchronized nodes
+  vtkMRMLNode* masterNode=createdImageNode;
+  if (masterNode==NULL)
+  {
+    if (!createdTransformNodes.empty())
+    {
+      masterNode=createdTransformNodes.front();
+      createdTransformNodes.pop_front();
+    }
+  }
+  if (masterNode!=NULL)
+  { 
+    vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
+    sequenceBrowserNode->SetName(this->BaseNodeName.c_str());
+    this->GetMRMLScene()->AddNode(sequenceBrowserNode);
+    sequenceBrowserNode->SetAndObserveRootNodeID(masterNode->GetID());
+    for (std::deque< vtkMRMLNode* > :: iterator synchronizedNodesIt = createdTransformNodes.begin();
+      synchronizedNodesIt != createdTransformNodes.end(); ++synchronizedNodesIt)
+    {
+      sequenceBrowserNode->AddSynchronizedRootNode((*synchronizedNodesIt)->GetID());
+    }
+  }
 
 //  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
 

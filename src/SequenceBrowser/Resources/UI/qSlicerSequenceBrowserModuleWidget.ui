@@ -209,7 +209,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="SynchronizedBrowsingSection">
      <property name="text">
-      <string>Synchronized browsing</string>
+      <string>Synchronized nodes</string>
      </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>

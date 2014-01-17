@@ -26,6 +26,7 @@
 
 // STD includes
 #include <cstdlib>
+#include <deque>
 
 // VTK includes
 #include "vtkMatrix4x4.h"
@@ -76,10 +77,10 @@ public:
 protected:
 
   /*! Read all the fields in the metaimage file header */
-  void ReadTransforms(const std::string &fileName );
+  void ReadTransforms(const std::string &fileName, std::deque< vtkMRMLNode* > &createdNodes );
 
-  /*! Read pixel data from the metaimage */
-  void ReadImages(const std::string& fileName );
+  /*! Read pixel data from the metaimage. Returns the pointer to the created image sequence. */
+  vtkMRMLNode* ReadImages(const std::string& fileName );
 
   /*! Generate a node name that contains the hierarchy name and index value */
   std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& indexValue);
