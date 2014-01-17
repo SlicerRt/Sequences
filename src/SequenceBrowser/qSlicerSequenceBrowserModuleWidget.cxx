@@ -92,7 +92,7 @@ qSlicerSequenceBrowserModuleWidgetPrivate::logic() const
   vtkSlicerSequenceBrowserLogic* logic=vtkSlicerSequenceBrowserLogic::SafeDownCast(q->logic());
   if (logic==NULL)
   {
-    qCritical() << "multiDimensionBrowserLogic is invalid";
+    qCritical() << "Sequence browser logic is invalid";
   }
   return logic;
 } 
@@ -144,7 +144,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multidimDataRootNodeChanged(vtkMRMLNode*)) );
-  connect( d->slider_ParameterValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedBundleIndex(int)) );  
+  connect( d->slider_IndexValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedBundleIndex(int)) );  
   connect( d->pushButton_VcrFirst, SIGNAL(clicked()), this, SLOT(onVcrFirst()) );
   connect( d->pushButton_VcrPrevious, SIGNAL(clicked()), this, SLOT(onVcrPrevious()) );
   connect( d->pushButton_VcrNext, SIGNAL(clicked()), this, SLOT(onVcrNext()) );
@@ -219,24 +219,24 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vt
 void qSlicerSequenceBrowserModuleWidget::onVcrFirst()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->slider_ParameterValue->setValue(d->slider_ParameterValue->minimum());
+  d->slider_IndexValue->setValue(d->slider_IndexValue->minimum());
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onVcrLast()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->slider_ParameterValue->setValue(d->slider_ParameterValue->maximum());
+  d->slider_IndexValue->setValue(d->slider_IndexValue->maximum());
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onVcrPrevious()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  int sliderValueToSet=d->slider_ParameterValue->value()-1;
-  if (sliderValueToSet>=d->slider_ParameterValue->minimum())
+  int sliderValueToSet=d->slider_IndexValue->value()-1;
+  if (sliderValueToSet>=d->slider_IndexValue->minimum())
   {
-    d->slider_ParameterValue->setValue(sliderValueToSet);
+    d->slider_IndexValue->setValue(sliderValueToSet);
   }
 }
 
@@ -244,10 +244,10 @@ void qSlicerSequenceBrowserModuleWidget::onVcrPrevious()
 void qSlicerSequenceBrowserModuleWidget::onVcrNext()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  int sliderValueToSet=d->slider_ParameterValue->value()+1;
-  if (sliderValueToSet<=d->slider_ParameterValue->maximum())
+  int sliderValueToSet=d->slider_IndexValue->value()+1;
+  if (sliderValueToSet<=d->slider_IndexValue->maximum())
   {
-    d->slider_ParameterValue->setValue(sliderValueToSet);
+    d->slider_IndexValue->setValue(sliderValueToSet);
   }
   else
   {
@@ -387,7 +387,7 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
   
-  QString DEFAULT_PARAMETER_NAME_STRING=tr("Parameter");  
+  QString DEFAULT_INDEX_NAME_STRING=tr("time");  
   
   QObjectList vcrControls;
   vcrControls 
@@ -398,9 +398,9 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   if (d->activeBrowserNode()==NULL)
   {
     d->MRMLNodeComboBox_SequenceRoot->setEnabled(false);
-    d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
-    d->label_ParameterUnit->setText("");
-    d->slider_ParameterValue->setEnabled(false);
+    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
+    d->Label_IndexUnit->setText("");
+    d->slider_IndexValue->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
     d->PlaybackTimer->stop();
     this->refreshSynchronizedRootNodesTable();
@@ -417,9 +417,9 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 
   if (multidimDataRootNode==NULL)
   {
-    d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
-    d->label_ParameterUnit->setText("");
-    d->slider_ParameterValue->setEnabled(false);
+    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
+    d->Label_IndexUnit->setText("");
+    d->slider_IndexValue->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
     d->PlaybackTimer->stop();
     this->refreshSynchronizedRootNodesTable();
@@ -428,34 +428,34 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 
   // A valid multidimensional root node is selected
 
-  const char* parameterName=multidimDataRootNode->GetDimensionName();
-  if (parameterName!=NULL)
+  const char* indexName=multidimDataRootNode->GetIndexName();
+  if (indexName!=NULL)
   {
-    d->label_ParameterName->setText(parameterName);
+    d->label_IndexName->setText(indexName);
   }
   else
   {
-    qWarning() << "Dimension name is not specified in node "<<multidimDataRootNode->GetID();
-    d->label_ParameterName->setText(DEFAULT_PARAMETER_NAME_STRING);
+    qWarning() << "Index name is not specified in node "<<multidimDataRootNode->GetID();
+    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
   }
 
-  const char* parameterUnit=multidimDataRootNode->GetUnit();
-  if (parameterUnit!=NULL)
+  const char* indexUnit=multidimDataRootNode->GetIndexUnit();
+  if (indexUnit!=NULL)
   {
-    d->label_ParameterUnit->setText(parameterUnit);
+    d->Label_IndexUnit->setText(indexUnit);
   }
   else
   {
-    qWarning() << "Unit is not specified in node "<<multidimDataRootNode->GetID();
-    d->label_ParameterUnit->setText("");
+    qWarning() << "IndexUnit is not specified in node "<<multidimDataRootNode->GetID();
+    d->Label_IndexUnit->setText("");
   }
   
   int numberOfBundles=multidimDataRootNode->GetNumberOfDataNodes();
   if (numberOfBundles>0)
   {
-    d->slider_ParameterValue->setEnabled(true);
-    d->slider_ParameterValue->setMinimum(0);      
-    d->slider_ParameterValue->setMaximum(numberOfBundles-1);        
+    d->slider_IndexValue->setEnabled(true);
+    d->slider_IndexValue->setMinimum(0);      
+    d->slider_IndexValue->setMaximum(numberOfBundles-1);        
     vcrControlsEnabled=true;
     
     bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
@@ -469,29 +469,29 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   else
   {
     qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<multidimDataRootNode->GetID();
-    d->slider_ParameterValue->setEnabled(false);
+    d->slider_IndexValue->setEnabled(false);
   }   
 
   int selectedBundleIndex=d->activeBrowserNode()->GetSelectedBundleIndex();
   if (selectedBundleIndex>=0)
   {
-    std::string parameterValue=multidimDataRootNode->GetNthParameterValue(selectedBundleIndex);
-    if (!parameterValue.empty())
+    std::string indexValue=multidimDataRootNode->GetNthIndexValue(selectedBundleIndex);
+    if (!indexValue.empty())
     {
-      d->label_ParameterValue->setText(parameterValue.c_str());
-      d->slider_ParameterValue->setValue(selectedBundleIndex);
+      d->label_IndexValue->setText(indexValue.c_str());
+      d->slider_IndexValue->setValue(selectedBundleIndex);
     }
     else
     {
-      qWarning() << "Bundle "<<selectedBundleIndex<<" has no parameter value defined";
-      d->label_ParameterValue->setText("");
-      d->slider_ParameterValue->setValue(0);
+      qWarning() << "Bundle "<<selectedBundleIndex<<" has no index value defined";
+      d->label_IndexValue->setText("");
+      d->slider_IndexValue->setValue(0);
     }  
   }
   else
   {
-    d->label_ParameterValue->setText("");
-    d->slider_ParameterValue->setValue(0);
+    d->label_IndexValue->setText("");
+    d->slider_IndexValue->setValue(0);
   }  
   
   foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }

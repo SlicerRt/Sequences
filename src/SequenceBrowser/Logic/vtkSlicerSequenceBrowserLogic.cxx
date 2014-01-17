@@ -148,10 +148,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   this->UpdateVirtualOutputNodesInProgress=true;
   
   int selectedBundleIndex=browserNode->GetSelectedBundleIndex();
-  std::string parameterValue;
+  std::string indexValue;
   if (selectedBundleIndex>=0)
   {
-    parameterValue=browserNode->GetRootNode()->GetNthParameterValue(selectedBundleIndex);
+    indexValue=browserNode->GetRootNode()->GetNthIndexValue(selectedBundleIndex);
   }
 
   std::vector< vtkMRMLSequenceNode* > synchronizedRootNodes;
@@ -165,7 +165,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
       vtkErrorMacro("Synchronized root node is invalid");
       continue;
     }
-    vtkMRMLNode* sourceNode=synchronizedRootNode->GetDataNodeAtValue(parameterValue.c_str());
+    vtkMRMLNode* sourceNode=synchronizedRootNode->GetDataNodeAtValue(indexValue.c_str());
     if (sourceNode==NULL)
     {
       // no source node is available for the chosen time point
@@ -189,7 +189,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     {
       // Get the display nodes      
       std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
-      synchronizedRootNode->GetDisplayNodesAtValue(sourceDisplayNodes, parameterValue.c_str());
+      synchronizedRootNode->GetDisplayNodesAtValue(sourceDisplayNodes, indexValue.c_str());
 
       // Add the new data and display nodes to the virtual outputs      
       targetOutputNode=browserNode->AddVirtualOutputNodes(sourceNode,sourceDisplayNodes,synchronizedRootNode);
@@ -226,19 +226,19 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     //targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
     ShallowCopy(targetOutputNode, sourceNode);
 
-    // Generation of data node name: root node name (dimension = parameterValue unit)
+    // Generation of data node name: root node name (IndexName = IndexValue IndexUnit)
     const char* rootName=synchronizedRootNode->GetName();
-    const char* dimensionName=synchronizedRootNode->GetDimensionName();
-    const char* unit=synchronizedRootNode->GetUnit();
+    const char* indexName=synchronizedRootNode->GetIndexName();
+    const char* unit=synchronizedRootNode->GetIndexUnit();
     std::string dataNodeName;
     dataNodeName+=(rootName?rootName:"?");
     dataNodeName+=" [";
-    if (dimensionName)
+    if (indexName)
     {
-      dataNodeName+=dimensionName;
+      dataNodeName+=indexName;
       dataNodeName+="=";
     }
-    dataNodeName+=parameterValue;
+    dataNodeName+=indexValue;
     if (unit)
     {
       dataNodeName+=unit;
@@ -348,12 +348,12 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     vtkErrorMacro("Scene is invalid");
     return;
   }
-  if (multidimDataRootNode->GetDimensionName()==NULL)
+  if (multidimDataRootNode->GetIndexName()==NULL)
   {
-    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: root node dimension name is invalid");
+    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: root node index name is invalid");
     return;
   }
-  std::string masterRootNodeDimension=multidimDataRootNode->GetDimensionName();
+  std::string masterRootNodeIndexName=multidimDataRootNode->GetIndexName();
   vtkSmartPointer<vtkCollection> multidimNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceNode"));
   vtkObject* nextObject = NULL;
   for (multidimNodes->InitTraversal(); (nextObject = multidimNodes->GetNextItemAsObject()); )
@@ -368,14 +368,14 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
       // do not add the master node itself to the list of compatible nodes
       continue;
     }
-    if (multidimNode->GetDimensionName()==NULL)
+    if (multidimNode->GetIndexName()==NULL)
     {
-      vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible root node dimension name is invalid");
+      vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible root node index name is invalid");
       continue;
     }
-    if (masterRootNodeDimension.compare(multidimNode->GetDimensionName())==0)
+    if (masterRootNodeIndexName.compare(multidimNode->GetIndexName())==0)
     {
-      // dimension name is matching, so we consider it compatible
+      // index name is matching, so we consider it compatible
       compatibleNodes->AddItem(multidimNode);
     }
   }

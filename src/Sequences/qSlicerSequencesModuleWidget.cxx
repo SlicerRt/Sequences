@@ -60,7 +60,7 @@ public:
 
   vtkSlicerSequencesLogic* logic() const;
   
-  /// Get a list of MLRML nodes that are in the scene but not added to the multidimensional data node at the chosen parameterValue
+  /// Get a list of MLRML nodes that are in the scene but not added to the multidimensional data node at the chosen index value
   void GetDataNodeCandidates(vtkCollection* foundNodes, vtkMRMLSequenceNode* rootNode);
 };
 
@@ -148,8 +148,8 @@ void qSlicerSequencesModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
 
-  connect( d->LineEdit_ParameterName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterNameEdited() ) );
-  connect( d->LineEdit_ParameterUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onParameterUnitEdited() ) );
+  connect( d->LineEdit_IndexName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexNameEdited() ) );
+  connect( d->LineEdit_IndexUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexUnitEdited() ) );
 
   connect( d->TableWidget_DataNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onDataNodeChanged() ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
@@ -158,7 +158,7 @@ void qSlicerSequencesModuleWidget::setup()
   connect( d->PushButton_AddDataNode, SIGNAL( clicked() ), this, SLOT( onAddDataNodeButtonClicked() ) );
   d->PushButton_AddDataNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowLeft ) );
   connect( d->PushButton_RemoveDataNode, SIGNAL( clicked() ), this, SLOT( onRemoveDataNodeButtonClicked() ) );
-  d->PushButton_RemoveDataNode->setIcon( QIcon( ":/Icons/SequenceNodeDelete.png" ) );
+  d->PushButton_RemoveDataNode->setIcon( QIcon( ":/Icons/DataNodeDelete.png" ) );
 
   d->ExpandButton_DataNodes->setChecked( false );
 }
@@ -263,13 +263,13 @@ void qSlicerSequencesModuleWidget::onMRMLSceneEndCloseEvent()
 void qSlicerSequencesModuleWidget::onRootNodeChanged()
 {
   Q_D(qSlicerSequencesModuleWidget);
-  d->LineEdit_NewDataNodeParameterValue->setText("0");
+  d->LineEdit_NewDataNodeIndexValue->setText("0");
   this->UpdateRootNode();
   this->UpdateCandidateNodes();
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::onParameterNameEdited()
+void qSlicerSequencesModuleWidget::onIndexNameEdited()
 {
   Q_D(qSlicerSequencesModuleWidget);
 
@@ -279,7 +279,7 @@ void qSlicerSequencesModuleWidget::onParameterNameEdited()
     return;
   }
 
-  currentRoot->SetDimensionName(d->LineEdit_ParameterName->text().toLatin1().constData());
+  currentRoot->SetIndexName(d->LineEdit_IndexName->text().toLatin1().constData());
 
   this->UpdateRootNode();
 }
@@ -287,7 +287,7 @@ void qSlicerSequencesModuleWidget::onParameterNameEdited()
 
 
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::onParameterUnitEdited()
+void qSlicerSequencesModuleWidget::onIndexUnitEdited()
 {
   Q_D(qSlicerSequencesModuleWidget);
 
@@ -297,7 +297,7 @@ void qSlicerSequencesModuleWidget::onParameterUnitEdited()
     return;
   }
 
-  currentRoot->SetUnit( d->LineEdit_ParameterUnit->text().toLatin1().constData() );
+  currentRoot->SetIndexUnit( d->LineEdit_IndexUnit->text().toLatin1().constData() );
 
   this->UpdateRootNode();
 }
@@ -320,13 +320,13 @@ void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
     return;
   }
 
-  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_DataNodes->currentRow() );
-  if ( currentParameterValue.empty() )
+  std::string currentIndexValue = currentRoot->GetNthIndexValue( d->TableWidget_DataNodes->currentRow() );
+  if ( currentIndexValue.empty() )
   {
     return;
   }
 
-  vtkMRMLNode* currentDataNode = currentRoot->GetDataNodeAtValue(currentParameterValue.c_str() );
+  vtkMRMLNode* currentDataNode = currentRoot->GetDataNodeAtValue(currentIndexValue.c_str() );
   if ( currentDataNode == NULL )
   {
     return;
@@ -338,7 +338,7 @@ void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
 
   if ( column == DATA_NODE_VALUE_COLUMN )
   {
-    currentRoot->UpdateParameterValue( currentParameterValue.c_str(), qText.toLatin1().constData() );
+    currentRoot->UpdateIndexValue( currentIndexValue.c_str(), qText.toLatin1().constData() );
   }
 
   if ( column == DATA_NODE_NAME_COLUMN )
@@ -360,10 +360,10 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
     return;
   }
 
-  std::string currentParameterValue = d->LineEdit_NewDataNodeParameterValue->text().toLatin1().constData();
-  if ( currentParameterValue.empty() )
+  std::string currentIndexValue = d->LineEdit_NewDataNodeIndexValue->text().toLatin1().constData();
+  if ( currentIndexValue.empty() )
   {
-    qCritical() << "Cannot add new data node, as parameter value is not specified";
+    qCritical() << "Cannot add new data node, as Index value is not specified";
     return;
   }
 
@@ -374,16 +374,16 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
   int row = d->ListWidget_CandidateDataNodes->currentRow();
   vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( row ) );
 
-  currentRoot->SetDataNodeAtValue(currentCandidateNode, currentParameterValue.c_str() );
+  currentRoot->SetDataNodeAtValue(currentCandidateNode, currentIndexValue.c_str() );
 
-  // Auto-increment the parameter value in the new data textbox if it is an integer
-  QString oldParameterValue=d->LineEdit_NewDataNodeParameterValue->text();
-  bool isInteger=false;
-  int oldParameterNumber = oldParameterValue.toInt(&isInteger);
-  if (isInteger)
+  // Auto-increment the Index value in the new data textbox if it is an integer
+  QString oldIndexValue=d->LineEdit_NewDataNodeIndexValue->text();
+  bool isNumeric=false;
+  int oldIndexNumber = oldIndexValue.toDouble(&isNumeric);
+  if (isNumeric)
   {
-    QString newParameterValue=QString::number(oldParameterNumber+1);
-    d->LineEdit_NewDataNodeParameterValue->setText(newParameterValue);
+    QString newIndexValue=QString::number(oldIndexNumber+1);
+    d->LineEdit_NewDataNodeIndexValue->setText(newIndexValue);
   }
 
   this->UpdateRootNode();
@@ -424,12 +424,12 @@ void qSlicerSequencesModuleWidget::onRemoveDataNodeButtonClicked()
     return;
   }
 
-  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_DataNodes->currentRow() );
-  if ( currentParameterValue.empty() )
+  std::string currentIndexValue = currentRoot->GetNthIndexValue( d->TableWidget_DataNodes->currentRow() );
+  if ( currentIndexValue.empty() )
   {
     return;
   }
-  currentRoot->RemoveDataNodeAtValue( currentParameterValue.c_str() );  
+  currentRoot->RemoveDataNodeAtValue( currentIndexValue.c_str() );  
 
   this->UpdateRootNode();
 }
@@ -449,8 +449,8 @@ void qSlicerSequencesModuleWidget::onHideDataNodeClicked( int row, int column )
     return;
   }
 
-  std::string currentParameterValue = currentRoot->GetNthParameterValue( d->TableWidget_DataNodes->currentRow() );
-  if ( currentParameterValue.empty() )
+  std::string currentIndexValue = currentRoot->GetNthIndexValue( d->TableWidget_DataNodes->currentRow() );
+  if ( currentIndexValue.empty() )
   {
     return;
   }
@@ -462,11 +462,11 @@ void qSlicerSequencesModuleWidget::onHideDataNodeClicked( int row, int column )
 
   // Get the selected nodes
 
-  d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentParameterValue.c_str() ), currentParameterValue.c_str() );
+  d->logic()->SetDataNodesHiddenAtValue( currentRoot, ! d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentIndexValue.c_str() ), currentIndexValue.c_str() );
 
   // Change the eye for the current sequence node
   QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentParameterValue.c_str() ) );
+  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentIndexValue.c_str() ) );
   d->TableWidget_DataNodes->setItem( row, DATA_NODE_VIS_COLUMN, visItem ); // This changes current bundle to NULL
   d->TableWidget_DataNodes->setCurrentCell( row, column ); // Reset the current cell so updating the sequence node works
 
@@ -484,8 +484,8 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
   if ( currentRoot == NULL )
   {
     d->Label_DataNodeTypeValue->setText( FROM_STD_STRING_SAFE( "undefined" ) );    
-    d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( "" ) );    
-    d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( "" ) );    
+    d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( "" ) );    
+    d->LineEdit_IndexUnit->setText( FROM_STD_STRING_SAFE( "" ) );    
     d->TableWidget_DataNodes->clear();
     d->TableWidget_DataNodes->setRowCount( 0 );
     d->TableWidget_DataNodes->setColumnCount( 0 );
@@ -512,16 +512,16 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
   }
   d->Label_DataNodeTypeValue->setText( typeName.toLatin1().constData() ); // TODO: maybe use the node->tag instead?
 
-  d->LineEdit_ParameterName->setText( FROM_STD_STRING_SAFE( currentRoot->GetDimensionName() ) );
-  d->LineEdit_ParameterUnit->setText( FROM_STD_STRING_SAFE( currentRoot->GetUnit() ) );
+  d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( currentRoot->GetIndexName() ) );
+  d->LineEdit_IndexUnit->setText( FROM_STD_STRING_SAFE( currentRoot->GetIndexUnit() ) );
 
   // Display all of the sequence nodes
   d->TableWidget_DataNodes->clear();
   d->TableWidget_DataNodes->setRowCount( currentRoot->GetNumberOfDataNodes() );
   d->TableWidget_DataNodes->setColumnCount( DATA_NODE_NUMBER_OF_COLUMNS );
   std::stringstream valueHeader;
-  valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetDimensionName() ); 
-  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetUnit() ) << ")";
+  valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetIndexName() ); 
+  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetIndexUnit() ) << ")";
   QStringList SequenceNodesTableHeader;
   SequenceNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
   SequenceNodesTableHeader.insert( DATA_NODE_VALUE_COLUMN, valueHeader.str().c_str() );
@@ -531,7 +531,7 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
   int numberOfDataNodes=currentRoot->GetNumberOfDataNodes();
   for ( int dataNodeIndex = 0; dataNodeIndex < numberOfDataNodes; dataNodeIndex++ )
   {
-    std::string currentValue = currentRoot->GetNthParameterValue( dataNodeIndex );
+    std::string currentValue = currentRoot->GetNthIndexValue( dataNodeIndex );
     vtkMRMLNode* currentDataNode = currentRoot->GetNthDataNode( dataNodeIndex );
 
     if (currentDataNode==NULL)
@@ -625,11 +625,11 @@ void qSlicerSequencesModuleWidget::setEnableWidgets(bool enable)
 {
   Q_D(qSlicerSequencesModuleWidget);
   d->Label_DataNodeTypeValue->setEnabled(enable);
-  d->LineEdit_ParameterName->setEnabled(enable);
-  d->LineEdit_ParameterUnit->setEnabled(enable);
+  d->LineEdit_IndexName->setEnabled(enable);
+  d->LineEdit_IndexUnit->setEnabled(enable);
   d->TableWidget_DataNodes->setEnabled(enable);
   d->ListWidget_CandidateDataNodes->setEnabled(enable);
-  d->LineEdit_NewDataNodeParameterValue->setEnabled(enable);
+  d->LineEdit_NewDataNodeIndexValue->setEnabled(enable);
   d->PushButton_AddDataNode->setEnabled(enable);
   d->PushButton_RemoveDataNode->setEnabled(enable);
 }

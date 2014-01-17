@@ -49,8 +49,8 @@ public slots:
 
   void onRootNodeChanged();
 
-  void onParameterNameEdited();
-  void onParameterUnitEdited();
+  void onIndexNameEdited();
+  void onIndexUnitEdited();
 
   void onDataNodeEdited( int row, int column );
   void onHideDataNodeClicked( int row, int column );

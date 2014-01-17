@@ -81,14 +81,14 @@ protected:
   /*! Read pixel data from the metaimage */
   void ReadImages(const std::string& fileName );
 
-  /*! Generate a node name that contains the hierarchy name and parameter value */
-  std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& parameterValue);
+  /*! Generate a node name that contains the hierarchy name and index value */
+  std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& indexValue);
 
   /*! Logic for Sequence hierarchy to manipulate nodes */
   vtkSlicerSequencesLogic* SequencesLogic;
 
   /*! Map the frame numbers to timestamps */
-  std::map< int, std::string > FrameNumberToParameterValueMap;
+  std::map< int, std::string > FrameNumberToIndexValueMap;
 
   std::string BaseNodeName;
 

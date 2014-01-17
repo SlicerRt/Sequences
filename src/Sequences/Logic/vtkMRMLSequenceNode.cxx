@@ -37,12 +37,12 @@ vtkMRMLNodeNewMacro(vtkMRMLSequenceNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceNode::vtkMRMLSequenceNode()
-: DimensionName(0)
-, Unit(0)
+: IndexName(0)
+, IndexUnit(0)
 , SequenceScene(0)
 {
-  this->SetDimensionName("time");
-  this->SetUnit("s");
+  this->SetIndexName("time");
+  this->SetIndexUnit("s");
   this->HideFromEditors = false;
   this->SequenceScene=vtkMRMLScene::New();
 }
@@ -52,8 +52,8 @@ vtkMRMLSequenceNode::~vtkMRMLSequenceNode()
 {
   this->SequenceScene->Delete();
   this->SequenceScene=NULL;
-  SetDimensionName(NULL);
-  SetUnit(NULL);
+  SetIndexName(NULL);
+  SetIndexUnit(NULL);
 }
 
 //----------------------------------------------------------------------------
@@ -61,7 +61,7 @@ void vtkMRMLSequenceNode::RemoveAllDataNodes()
 {  
   this->SequenceScene->Delete();
   this->SequenceScene=vtkMRMLScene::New();
-  this->SequenceItems.clear();
+  this->IndexEntries.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -72,13 +72,13 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
   // Write all MRML node attributes into output stream
   vtkIndent indent(nIndent);
 
-  if (this->DimensionName != NULL)
+  if (this->IndexName != NULL)
   {
-    of << indent << " dimensionName=\"" << this->DimensionName << "\"";
+    of << indent << " indexName=\"" << this->IndexName << "\"";
   }
-  if (this->Unit != NULL)
+  if (this->IndexUnit != NULL)
   {
-    of << indent << " unit=\"" << this->Unit << "\"";
+    of << indent << " unit=\"" << this->IndexUnit << "\"";
   }
 
   // TODO: implement a vtkMRMLSequenceStorageNode that reads/writes the SequenceScene from/to file
@@ -96,13 +96,13 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
   {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "dimensionName")) 
+    if (!strcmp(attName, "indexName")) 
     {
-      this->SetDimensionName(attValue);
+      this->SetIndexName(attValue);
     }
     else if (!strcmp(attName, "unit")) 
     {
-      this->SetUnit(attValue);
+      this->SetIndexUnit(attValue);
     }
   }
 }
@@ -117,8 +117,8 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
 
   vtkMRMLSequenceNode *snode = (vtkMRMLSequenceNode *) anode;
 
-  this->SetDimensionName(snode->GetDimensionName());
-  this->SetUnit(snode->GetUnit());
+  this->SetIndexName(snode->GetIndexName());
+  this->SetIndexUnit(snode->GetIndexUnit());
 
   // Clear nodes: RemoveAllNodes is not a public method, so it's simpler to just delete and recreate the scene
   this->SequenceScene->Delete();
@@ -146,16 +146,16 @@ void vtkMRMLSequenceNode::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* parameterValue)
+void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue)
 {
   if (node==NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid node"); 
     return;
   }
-  if (parameterValue==NULL)
+  if (indexValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid parameterValue"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid indexValue"); 
     return;
   }
 
@@ -165,7 +165,7 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* para
   if (displayableNode!=NULL)
   {
     vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
-    if (this->SequenceItems.size()==0)
+    if (this->IndexEntries.size()==0)
     {
       // This is the first node, so make a copy of the display node for the sequence
       int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
@@ -177,13 +177,13 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* para
 
       // TODO: jsut for test
       //std::vector< vtkMRMLDisplayNode* > displayNodes;
-      //GetDisplayNodesAtValue(displayNodes, parameterValue);
+      //GetDisplayNodesAtValue(displayNodes, indexValue);
 
     }
     else
     {
       // Overwrite the display nodes wih the display node(s) of the first node
-      vtkMRMLDisplayableNode* firstDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->SequenceItems[0].DataNode);
+      vtkMRMLDisplayableNode* firstDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[0].DataNode);
       if (firstDisplayableNode!=NULL)
       {
         newDisplayableNode->RemoveAllDisplayNodeIDs();
@@ -200,50 +200,50 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* para
     }
   }
   
-  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {
     // The sequence item doesn't exist yet
-    SequenceItemType seqItem;
-    seqItem.ParameterValue=parameterValue;
-    this->SequenceItems.push_back(seqItem);
-    seqItemIndex=this->SequenceItems.size()-1;
+    IndexEntryType seqItem;
+    seqItem.IndexValue=indexValue;
+    this->IndexEntries.push_back(seqItem);
+    seqItemIndex=this->IndexEntries.size()-1;
   }
-  this->SequenceItems[seqItemIndex].DataNode=newNode;
+  this->IndexEntries[seqItemIndex].DataNode=newNode;
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const char* parameterValue)
+void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const char* indexValue)
 {
-  if (parameterValue==NULL)
+  if (indexValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue failed, invalid parameterValue"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue failed, invalid indexValue"); 
     return;
   }
 
-  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {
-    vtkWarningMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue: node was not found at parameter value "<<parameterValue);
+    vtkWarningMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue: node was not found at index value "<<indexValue);
     return;
   }
   // TODO: remove associated nodes as well (such as storage node)?
-  this->SequenceScene->RemoveNode(this->SequenceItems[seqItemIndex].DataNode);
-  this->SequenceItems.erase(this->SequenceItems.begin()+seqItemIndex);
+  this->SequenceScene->RemoveNode(this->IndexEntries[seqItemIndex].DataNode);
+  this->IndexEntries.erase(this->IndexEntries.begin()+seqItemIndex);
 }
 
 //----------------------------------------------------------------------------
-int vtkMRMLSequenceNode::GetSequenceItemIndex(const char* parameterValue)
+int vtkMRMLSequenceNode::GetSequenceItemIndex(const char* indexValue)
 {
-  if (parameterValue==NULL)
+  if (indexValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetSequenceItemIndex failed, invalid parameter value"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::GetSequenceItemIndex failed, invalid index value"); 
     return -1;
   }
-  int numberOfSeqItems=this->SequenceItems.size();
+  int numberOfSeqItems=this->IndexEntries.size();
   for (int i=0; i<numberOfSeqItems; i++)
   {
-    if (this->SequenceItems[i].ParameterValue.compare(parameterValue)==0)
+    if (this->IndexEntries[i].IndexValue.compare(indexValue)==0)
     {
       return i;
     }
@@ -252,11 +252,11 @@ int vtkMRMLSequenceNode::GetSequenceItemIndex(const char* parameterValue)
 }
 
 //---------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const char* parameterValue)
+vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const char* indexValue)
 {
-  if (parameterValue==NULL)
+  if (indexValue==NULL)
   {
-    vtkErrorMacro("GetDataNodesAtValue failed, invalid parameter value"); 
+    vtkErrorMacro("GetDataNodesAtValue failed, invalid index value"); 
     return NULL;
   }
   if (this->SequenceScene==NULL)
@@ -264,69 +264,69 @@ vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const char* parameterValue)
     vtkErrorMacro("GetDataNodesAtValue failed, invalid scene");
     return NULL;
   }
-  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {
     // sequence item is not found
     return NULL;
   }
-  return this->SequenceItems[seqItemIndex].DataNode;
+  return this->IndexEntries[seqItemIndex].DataNode;
 }
 
 //---------------------------------------------------------------------------
-std::string vtkMRMLSequenceNode::GetNthParameterValue(int seqItemIndex)
+std::string vtkMRMLSequenceNode::GetNthIndexValue(int seqItemIndex)
 {
-  if (seqItemIndex<0 || seqItemIndex>=this->SequenceItems.size())
+  if (seqItemIndex<0 || seqItemIndex>=this->IndexEntries.size())
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetNthParameterValue failed, invalid seqItemIndex value: "<<seqItemIndex);
+    vtkErrorMacro("vtkMRMLSequenceNode::GetNthIndexValue failed, invalid seqItemIndex value: "<<seqItemIndex);
     return "";
   }
-  return this->SequenceItems[seqItemIndex].ParameterValue;
+  return this->IndexEntries[seqItemIndex].IndexValue;
 }
 
 //-----------------------------------------------------------------------------
 int vtkMRMLSequenceNode::GetNumberOfDataNodes()
 {
-  return this->SequenceItems.size();
+  return this->IndexEntries.size();
 }
 
 //-----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::UpdateParameterValue(const char* oldParameterValue, const char* newParameterValue)
+void vtkMRMLSequenceNode::UpdateIndexValue(const char* oldIndexValue, const char* newIndexValue)
 {
-  if (oldParameterValue==NULL)
+  if (oldIndexValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateParameterValue failed, invalid oldParameterValue"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, invalid oldIndexValue"); 
     return;
   }
-  if (newParameterValue==NULL)
+  if (newIndexValue==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateParameterValue failed, invalid newParameterValue"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, invalid newIndexValue"); 
     return;
   }
-  if (strcmp(oldParameterValue,newParameterValue)==0)
+  if (strcmp(oldIndexValue,newIndexValue)==0)
   {
     // no change
     return;
   }
-  int seqItemIndex=GetSequenceItemIndex(oldParameterValue);
+  int seqItemIndex=GetSequenceItemIndex(oldIndexValue);
   if (seqItemIndex<0)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateParameterValue failed, no bundle found with parameter value "<<oldParameterValue); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no bundle found with index value "<<oldIndexValue); 
     return;
   }
-  // Update the parameter value
-  this->SequenceItems[seqItemIndex].ParameterValue=newParameterValue;
+  // Update the index value
+  this->IndexEntries[seqItemIndex].IndexValue=newIndexValue;
 }
 
 //-----------------------------------------------------------------------------
 std::string vtkMRMLSequenceNode::GetDataNodeClassName()
 {
-  if (this->SequenceItems.empty())
+  if (this->IndexEntries.empty())
   {
     return "";
   }
   // All the nodes should be of the same class, so just get the class from the first one
-  vtkMRMLNode* node=this->SequenceItems[0].DataNode;
+  vtkMRMLNode* node=this->IndexEntries[0].DataNode;
   if (node==NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::GetDataNodeClassName node is invalid");
@@ -339,21 +339,21 @@ std::string vtkMRMLSequenceNode::GetDataNodeClassName()
 //-----------------------------------------------------------------------------
 vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int bundleIndex)
 {
-  if (this->SequenceItems.size()<=bundleIndex)
+  if (this->IndexEntries.size()<=bundleIndex)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: bundleIndex "<<bundleIndex<<" is out of range");
     return NULL;
   }
-  return this->SequenceItems[bundleIndex].DataNode;
+  return this->IndexEntries[bundleIndex].DataNode;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &displayNodes, const char* parameterValue)
+void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &displayNodes, const char* indexValue)
 {
   displayNodes.clear();
-  if (parameterValue==NULL)
+  if (indexValue==NULL)
   {
-    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid parameter value"); 
+    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid index value"); 
     return;
   }
   if (this->SequenceScene==NULL)
@@ -361,13 +361,13 @@ void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode
     vtkErrorMacro("GetDisplayNodesAtValue failed, invalid scene");
     return;
   }
-  int seqItemIndex=GetSequenceItemIndex(parameterValue);
+  int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {
     // sequence item is not found
     return;
   }
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->SequenceItems[seqItemIndex].DataNode);
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[seqItemIndex].DataNode);
   if (displayableNode==NULL)
   {
     // not a displayable node, so there are no display nodes

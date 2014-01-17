@@ -3,5 +3,6 @@
     <file>Icons/Sequences.png</file>
     <file>Icons/DataNodeUnhidden.png</file>
     <file>Icons/DataNodeHidden.png</file>
+    <file>Icons/DataNodeDelete.png</file>
   </qresource>
 </RCC>

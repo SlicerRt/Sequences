@@ -197,10 +197,10 @@ void vtkSlicerMetafileImporterLogic
 
   char line[ MAX_LINE_LENGTH + 1 ] = { 0 };
 
-  this->FrameNumberToParameterValueMap.clear();
+  this->FrameNumberToIndexValueMap.clear();
 
   // This structure contains all the transform nodes that are read from the file.
-  // The nodes are not added immediately to the scene to allow them properly named, using the timestamp parameter value.
+  // The nodes are not added immediately to the scene to allow them properly named, using the timestamp index value.
   // Maps the frame number to a vector of transform nodes that belong to that frame.
   std::map<int,std::vector<vtkMRMLLinearTransformNode*> > importedTransformNodes;
 
@@ -274,7 +274,7 @@ void vtkSlicerMetafileImporterLogic
 
     if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
     {
-      this->FrameNumberToParameterValueMap[frameNumber] = value;
+      this->FrameNumberToIndexValueMap[frameNumber] = value;
     }
 
     if ( ferror( stream ) )
@@ -302,7 +302,7 @@ void vtkSlicerMetafileImporterLogic
       // no transforms for this frame
       continue;
     }
-    std::string paramValueString=this->FrameNumberToParameterValueMap[currentFrameNumber];
+    std::string paramValueString=this->FrameNumberToIndexValueMap[currentFrameNumber];
     for (std::vector<vtkMRMLLinearTransformNode*>::iterator transformIt=transformsForCurrentFrame->second.begin(); transformIt!=transformsForCurrentFrame->second.end(); ++transformIt)
     {
       vtkMRMLLinearTransformNode* transform=(*transformIt);
@@ -313,8 +313,8 @@ void vtkSlicerMetafileImporterLogic
         vtkSmartPointer<vtkMRMLSequenceNode> newTransformsRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
         transformsRootNode=newTransformsRootNode;
         this->GetMRMLScene()->AddNode(transformsRootNode);        
-        transformsRootNode->SetDimensionName("time");
-        transformsRootNode->SetUnit("s");
+        transformsRootNode->SetIndexName("time");
+        transformsRootNode->SetIndexUnit("s");
         std::string transformsRootName=this->BaseNodeName+"/"+transform->GetName();
         transformsRootNode->SetName( transformsRootName.c_str() );
         transformsRootNode->StartModify();
@@ -347,8 +347,8 @@ void vtkSlicerMetafileImporterLogic
 {
   vtkSmartPointer<vtkMRMLSequenceNode> imagesRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
   this->GetMRMLScene()->AddNode(imagesRootNode);
-  imagesRootNode->SetDimensionName("time");
-  imagesRootNode->SetUnit("s");
+  imagesRootNode->SetIndexName("time");
+  imagesRootNode->SetIndexUnit("s");
   std::string imagesRootName=this->BaseNodeName+"/Images";
   imagesRootNode->SetName( imagesRootName.c_str() );
 
@@ -394,7 +394,7 @@ void vtkSlicerMetafileImporterLogic
     slice->SetName(IMAGE_NODE_BASE_NAME);
     slice->SetAndObserveImageData(sliceImageData);
 
-    std::string paramValueString=this->FrameNumberToParameterValueMap[frameNumber];
+    std::string paramValueString=this->FrameNumberToIndexValueMap[frameNumber];
     slice->SetHideFromEditors(false);
     imagesRootNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
 
@@ -462,6 +462,6 @@ void vtkSlicerMetafileImporterLogic
 
 //  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
 
-  this->FrameNumberToParameterValueMap.clear();
+  this->FrameNumberToIndexValueMap.clear();
   this->BaseNodeName.clear();
 }
