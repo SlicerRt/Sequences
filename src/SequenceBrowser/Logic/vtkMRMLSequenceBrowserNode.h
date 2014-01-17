@@ -77,8 +77,8 @@ public:
   vtkBooleanMacro(PlaybackLooped, bool);
   
   /// Get/Set selected bundle index
-  vtkGetMacro(SelectedBundleIndex, int);
-  vtkSetMacro(SelectedBundleIndex, int);
+  vtkGetMacro(SelectedItemNumber, int);
+  vtkSetMacro(SelectedItemNumber, int);
 
   void RemoveAllVirtualOutputNodes();
 
@@ -109,9 +109,6 @@ public:
   /// Returns all synchronized root nodes (does not include the master root node)
   void GetSynchronizedRootNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
 
-  /// Returns all data nodes at a given index of the master root node (includes data node of the master root node)
-  void GetNthSynchronizedDataNodes(std::vector< vtkMRMLNode* > &dataNodes, int selectedBundleIndex);
-
 protected:
   vtkMRMLSequenceBrowserNode();
   ~vtkMRMLSequenceBrowserNode();
@@ -125,7 +122,7 @@ protected:
   bool PlaybackActive;
   double PlaybackRateFps;
   bool PlaybackLooped;
-  int SelectedBundleIndex;
+  int SelectedItemNumber;
 
   // Unique postfixes for storing references to root nodes, virtual data nodes, and virtual display nodes
   // For example, a root node reference role name is ROOT_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix

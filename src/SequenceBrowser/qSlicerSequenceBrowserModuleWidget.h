@@ -44,7 +44,7 @@ public:
   void setSequenceRootNode(vtkMRMLSequenceNode* multidimDataRootNode);
 
 public slots:
-  void setSelectedBundleIndex(int bundleIndex);
+  void setSelectedItemNumber(int itemNumber);
   void setPlaybackEnabled(bool play);
   void setPlaybackRateFps(double playbackRateFps);
   void setPlaybackLoopEnabled(bool loopEnabled);  

@@ -12,6 +12,8 @@ set(${KIT}_SRCS
   vtkSlicer${MODULE_NAME}Logic.h
   vtkMRMLSequenceNode.cxx
   vtkMRMLSequenceNode.h
+  vtkMRMLSequenceStorageNode.cxx
+  vtkMRMLSequenceStorageNode.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

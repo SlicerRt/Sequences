@@ -308,7 +308,7 @@ void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
 {
   Q_D(qSlicerSequencesModuleWidget);
 
-  // Ensure that the user is editing, not the bundle changed programmatically
+  // Ensure that the user is editing, not the index changed programmatically
   if ( d->TableWidget_DataNodes->currentRow() != row || d->TableWidget_DataNodes->currentColumn() != column )
   {
     return;

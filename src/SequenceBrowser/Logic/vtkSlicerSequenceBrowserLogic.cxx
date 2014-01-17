@@ -147,11 +147,11 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 
   this->UpdateVirtualOutputNodesInProgress=true;
   
-  int selectedBundleIndex=browserNode->GetSelectedBundleIndex();
+  int selectedItemNumber=browserNode->GetSelectedItemNumber();
   std::string indexValue;
-  if (selectedBundleIndex>=0)
+  if (selectedItemNumber>=0)
   {
-    indexValue=browserNode->GetRootNode()->GetNthIndexValue(selectedBundleIndex);
+    indexValue=browserNode->GetRootNode()->GetNthIndexValue(selectedItemNumber);
   }
 
   std::vector< vtkMRMLSequenceNode* > synchronizedRootNodes;

@@ -48,7 +48,7 @@ public:
   vtkTypeMacro(vtkSlicerSequenceBrowserLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  /// Updates the contents of all the virtual output nodes (all the nodes copied from the selected bundle to the scene)
+  /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
   void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode);
 
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* multidimDataRootNode);

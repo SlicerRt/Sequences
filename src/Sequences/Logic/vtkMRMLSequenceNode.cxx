@@ -19,6 +19,7 @@
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLDisplayableNode.h"
 #include "vtkMRMLDisplayNode.h"
+#include "vtkMRMLSequenceStorageNode.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -43,7 +44,7 @@ vtkMRMLSequenceNode::vtkMRMLSequenceNode()
 {
   this->SetIndexName("time");
   this->SetIndexUnit("s");
-  this->HideFromEditors = false;
+  this->HideFromEditorsOff();
   this->SequenceScene=vtkMRMLScene::New();
 }
 
@@ -78,10 +79,21 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
   }
   if (this->IndexUnit != NULL)
   {
-    of << indent << " unit=\"" << this->IndexUnit << "\"";
+    of << indent << " indexUnit=\"" << this->IndexUnit << "\"";
   }
 
-  // TODO: implement a vtkMRMLSequenceStorageNode that reads/writes the SequenceScene from/to file
+  of << indent << " indexValues=\"";
+  for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
+  {
+    if (indexIt!=this->IndexEntries.begin())
+    {
+      // not the first index, add a separator before adding values
+      of << ";";
+    }
+    of << indexIt->DataNode->GetID() << ":" << indexIt->IndexValue;
+  }
+  of << "\"";
+
 }
 
 //----------------------------------------------------------------------------
@@ -100,9 +112,38 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
     {
       this->SetIndexName(attValue);
     }
-    else if (!strcmp(attName, "unit")) 
+    else if (!strcmp(attName, "indexUnit")) 
     {
       this->SetIndexUnit(attValue);
+    }
+    else if (!strcmp(attName, "indexValues")) 
+    {
+      ReadIndexValues(attValue);
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
+{
+  this->IndexEntries.clear();
+
+  std::stringstream ss(indexText);
+  std::string nodeId_indexValue;
+  while (std::getline(ss, nodeId_indexValue, ';'))
+  {
+    std::size_t indexValueSeparatorPos = nodeId_indexValue.find_first_of(':');
+    if (indexValueSeparatorPos>0 && indexValueSeparatorPos != std::string::npos)
+    {
+      std::string nodeId = nodeId_indexValue.substr(0, indexValueSeparatorPos);
+      std::string indexValue = nodeId_indexValue.substr(indexValueSeparatorPos+1, nodeId_indexValue.size()-indexValueSeparatorPos-1);
+  
+      IndexEntryType indexEntry;
+      indexEntry.IndexValue=indexValue;
+      // The nodes are not read yet, so we can only store the node ID and get the pointer to the node later (in UpdateScene())
+      indexEntry.DataNodeID=nodeId;
+      indexEntry.DataNode=NULL;
+      this->IndexEntries.push_back(indexEntry);
     }
   }
 }
@@ -311,7 +352,7 @@ void vtkMRMLSequenceNode::UpdateIndexValue(const char* oldIndexValue, const char
   int seqItemIndex=GetSequenceItemIndex(oldIndexValue);
   if (seqItemIndex<0)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no bundle found with index value "<<oldIndexValue); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no data node found with index value "<<oldIndexValue); 
     return;
   }
   // Update the index value
@@ -337,14 +378,14 @@ std::string vtkMRMLSequenceNode::GetDataNodeClassName()
 }
 
 //-----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int bundleIndex)
+vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int itemNumber)
 {
-  if (this->IndexEntries.size()<=bundleIndex)
+  if (this->IndexEntries.size()<=itemNumber)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: bundleIndex "<<bundleIndex<<" is out of range");
+    vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: itemNumber "<<itemNumber<<" is out of range");
     return NULL;
   }
-  return this->IndexEntries[bundleIndex].DataNode;
+  return this->IndexEntries[itemNumber].DataNode;
 }
 
 //---------------------------------------------------------------------------
@@ -379,4 +420,29 @@ void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
     displayNodes.push_back(displayNode);
   }  
+}
+
+//-----------------------------------------------------------------------------
+vtkMRMLScene* vtkMRMLSequenceNode::GetSequenceScene()
+{
+  return this->SequenceScene;
+}
+
+//-----------------------------------------------------------------------------
+vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
+{
+  return vtkMRMLSequenceStorageNode::New();
+}
+
+//-----------------------------------------------------------
+void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
+{
+  Superclass::UpdateScene(scene);
+
+  // By now the storage node imported the sequence scene, so we can get the pointers to the data nodes
+  for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
+  {
+    indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
+    indexIt->DataNodeID.clear(); // clear the ID to remove redundancy in the data
+  }
 }

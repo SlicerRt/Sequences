@@ -35,6 +35,7 @@
 
 // STD includes
 #include <sstream>
+#include <algorithm> // for std::find
 
 // First reference is the master root node, subsequent references are the synchronized root nodes
 static const char* ROOT_NODE_REFERENCE_ROLE_BASE = "rootNodeRef";
@@ -51,7 +52,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
   this->PlaybackActive=false;
   this->PlaybackRateFps=5.0;
   this->PlaybackLooped=true;
-  this->SelectedBundleIndex=0;
+  this->SelectedItemNumber=0;
   this->LastPostfixIndex=0;
 }
 
@@ -70,7 +71,7 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   of << indent << " playbackActive=\"" << (this->PlaybackActive ? "true" : "false") << "\"";
   of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\""; 
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
-  of << indent << " selectedBundleIndex=\"" << this->SelectedBundleIndex << "\"";
+  of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
 
   of << indent << " virtualNodePostfixes=\"";
   for(std::vector< std::string >::iterator roleNameIt=this->VirtualNodePostfixes.begin();
@@ -129,13 +130,13 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetPlaybackLooped(0);
       }
     }
-    else if (!strcmp(attName, "selectedBundleIndex")) 
+    else if (!strcmp(attName, "selectedItemNumber")) 
     {
       std::stringstream ss;
       ss << attValue;
-      int selectedBundleIndex=0;
-      ss >> selectedBundleIndex;
-      this->SetSelectedBundleIndex(selectedBundleIndex);
+      int selectedItemNumber=0;
+      ss >> selectedItemNumber;
+      this->SetSelectedItemNumber(selectedItemNumber);
     }
     else if (!strcmp(attName, "virtualNodePostfixes"))
     {
@@ -179,10 +180,17 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 std::string vtkMRMLSequenceBrowserNode::GenerateVirtualNodePostfix()
 {
-  std::stringstream postfix;
-  postfix << this->LastPostfixIndex;
-  this->LastPostfixIndex++;
-  return postfix.str();  
+  while (1)
+  {
+    std::stringstream postfix;
+    postfix << this->LastPostfixIndex;
+    this->LastPostfixIndex++;
+    bool isUnique=(std::find(this->VirtualNodePostfixes.begin(), this->VirtualNodePostfixes.end(), postfix.str())==this->VirtualNodePostfixes.end());
+    if (isUnique)
+    {
+      return postfix.str();
+    }
+  };
 }
 
 //----------------------------------------------------------------------------
@@ -244,6 +252,11 @@ void vtkMRMLSequenceBrowserNode::RemoveAllRootNodes()
     if (node==NULL)
     {
       vtkErrorMacro("Invalid root node");
+      std::vector< std::string >::iterator rolePostfixInOriginalIt=std::find(this->VirtualNodePostfixes.begin(), this->VirtualNodePostfixes.end(), (*rolePostfixIt));
+      if (rolePostfixInOriginalIt!=this->VirtualNodePostfixes.end())
+      {
+        this->VirtualNodePostfixes.erase(rolePostfixInOriginalIt);
+      }
       continue;
     }
     RemoveSynchronizedRootNode(node->GetID());
@@ -461,8 +474,6 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
     return;
   }
 
-  
-
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
@@ -507,29 +518,5 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLSe
       continue;
     }
     synchronizedDataNodes.push_back(synchronizedNode);
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetNthSynchronizedDataNodes(std::vector< vtkMRMLNode* > &dataNodes, int selectedBundleIndex)
-{
-  dataNodes.clear();
-
-  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
-    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
-  {  
-    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    vtkMRMLSequenceNode* synchronizedRootNode=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(rootNodeRef.c_str()));
-    if (synchronizedRootNode==NULL)
-    {
-      // valid case during scene updates
-      continue;
-    }
-    if (selectedBundleIndex<0 || selectedBundleIndex>synchronizedRootNode->GetNumberOfDataNodes())
-    {
-      vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetNthDataNodes failed: selectedBundleIndex is out of range");
-      continue;
-    } 
-    dataNodes.push_back(synchronizedRootNode->GetNthDataNode(selectedBundleIndex));
   }
 }

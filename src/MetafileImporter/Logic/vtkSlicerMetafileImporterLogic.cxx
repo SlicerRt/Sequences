@@ -269,7 +269,8 @@ void vtkSlicerMetafileImporterLogic
     if ( frameFieldName.find( "Transform" ) != std::string::npos && frameFieldName.find( "Status" ) == std::string::npos )
     {
       vtkMRMLLinearTransformNode* currentTransform = vtkMRMLLinearTransformNode::New(); // will be deleted when added to the scene
-      UpdateTransformNodeFromString(currentTransform, value);
+      UpdateTransformNodeFromString(currentTransform, value);  
+      // Generating a unique name is important because that will be used to generate the filename by default
       currentTransform->SetName( frameFieldName.c_str() );
       importedTransformNodes[frameNumber].push_back(currentTransform);
     }
@@ -314,10 +315,10 @@ void vtkSlicerMetafileImporterLogic
         // Setup hierarchy structure
         vtkSmartPointer<vtkMRMLSequenceNode> newTransformsRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
         transformsRootNode=newTransformsRootNode;
-        this->GetMRMLScene()->AddNode(transformsRootNode);        
+        this->GetMRMLScene()->AddNode(transformsRootNode);
         transformsRootNode->SetIndexName("time");
         transformsRootNode->SetIndexUnit("s");
-        std::string transformsRootName=this->BaseNodeName+"/"+transform->GetName();
+        std::string transformsRootName=this->BaseNodeName+"/"+transform->GetName();        
         transformsRootNode->SetName( transformsRootName.c_str() );
         transformsRootNode->StartModify();
         transformRootNodes[transform->GetName()]=transformsRootNode;
@@ -327,6 +328,10 @@ void vtkSlicerMetafileImporterLogic
         transformsRootNode = transformRootNodes[transform->GetName()];
       }
       transform->SetHideFromEditors(false);
+      // Generating a unique name is important because that will be used to generate the filename by default
+      std::ostringstream nameStr;
+      nameStr << transform->GetName() << std::setw(4) << std::setfill('0') << currentFrameNumber << std::ends; 
+      transform->SetName( nameStr.str().c_str() );
       transformsRootNode->SetDataNodeAtValue(transform, paramValueString.c_str() );
       transform->Delete(); // ownership transferred to the root node
     }
@@ -334,6 +339,11 @@ void vtkSlicerMetafileImporterLogic
 
   for (std::map< std::string, vtkMRMLSequenceNode* > :: iterator it=transformRootNodes.begin(); it!=transformRootNodes.end(); ++it)
   {
+    if (this->GetMRMLScene()->GetFirstNodeByName(it->second->GetName())!=it->second)
+    {
+      // node name is not unique, generate a unique name now
+      it->second->SetName(this->GetMRMLScene()->GenerateUniqueName(it->second->GetName()).c_str());
+    }
     it->second->EndModify(false);
     // Loading is completed indicate to modules that the hierarchy is changed
     it->second->Modified();
@@ -353,7 +363,7 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic
   imagesRootNode->SetIndexName("time");
   imagesRootNode->SetIndexUnit("s");
   std::string imagesRootName=this->BaseNodeName+"/Images";
-  imagesRootNode->SetName( imagesRootName.c_str() );
+  imagesRootNode->SetName( this->GetMRMLScene()->GenerateUniqueName(imagesRootName).c_str() );
 
   int imagesRootNodeDisableModify = imagesRootNode->StartModify();
 
@@ -394,7 +404,10 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic
     unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, frameNumber);
     memcpy(sliceImageData->GetScalarPointer(), startPtr, sliceSize);
 
-    slice->SetName(IMAGE_NODE_BASE_NAME);
+    // Generating a unique name is important because that will be used to generate the filename by default
+    std::ostringstream nameStr;
+    nameStr << IMAGE_NODE_BASE_NAME << std::setw(4) << std::setfill('0') << frameNumber << std::ends;
+    slice->SetName(nameStr.str().c_str());
     slice->SetAndObserveImageData(sliceImageData);
 
     std::string paramValueString=this->FrameNumberToIndexValueMap[frameNumber];
@@ -479,7 +492,7 @@ void vtkSlicerMetafileImporterLogic
   if (masterNode!=NULL)
   { 
     vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
-    sequenceBrowserNode->SetName(this->BaseNodeName.c_str());
+    sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(this->BaseNodeName).c_str());
     this->GetMRMLScene()->AddNode(sequenceBrowserNode);
     sequenceBrowserNode->SetAndObserveRootNodeID(masterNode->GetID());
     for (std::deque< vtkMRMLNode* > :: iterator synchronizedNodesIt = createdTransformNodes.begin();

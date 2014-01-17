@@ -20,7 +20,7 @@
 
 // MRML includes
 #include <vtkMRML.h>
-#include <vtkMRMLNode.h>
+#include <vtkMRMLStorableNode.h>
 
 // std includes
 #include <deque>
@@ -44,11 +44,11 @@ class vtkMRMLDisplayNode;
 /// If an index is numeric then it is sorted differently and equality determined using
 /// a numerical tolerance instead of exact string matching.
 
-class VTK_SLICER_SEQUENCES_MODULE_LOGIC_EXPORT vtkMRMLSequenceNode : public vtkMRMLNode
+class VTK_SLICER_SEQUENCES_MODULE_LOGIC_EXPORT vtkMRMLSequenceNode : public vtkMRMLStorableNode
 {
 public:
   static vtkMRMLSequenceNode *New();
-  vtkTypeMacro(vtkMRMLSequenceNode,vtkMRMLNode);
+  vtkTypeMacro(vtkMRMLSequenceNode,vtkMRMLStorableNode);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   /// Create instance of a sequence node
@@ -90,9 +90,9 @@ public:
   void GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &dataNodes, const char* indexValue);
 
   /// Get the data node corresponding to the n-th index value
-  vtkMRMLNode* GetNthDataNode(int bundleIndex);
+  vtkMRMLNode* GetNthDataNode(int itemNumber);
 
-  std::string GetNthIndexValue(int bundleIndex);
+  std::string GetNthIndexValue(int itemNumber);
 
   void UpdateIndexValue(const char* oldIndexValue, const char* newIndexValue);
 
@@ -100,6 +100,12 @@ public:
 
   /// Return the class name of the data nodes. If there are no data nodes yet then it returns empty string.
   std::string GetDataNodeClassName();
+
+  vtkMRMLScene* GetSequenceScene();
+
+  virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
+
+  virtual void UpdateScene(vtkMRMLScene *scene);
 
 public:
 
@@ -111,10 +117,13 @@ protected:
 
   int GetSequenceItemIndex(const char* indexValue);
 
+  void ReadIndexValues(const std::string& indexText);
+
   struct IndexEntryType
   {
     std::string IndexValue;
     vtkMRMLNode* DataNode;
+    std::string DataNodeID; // only used temporarily, during scene load
   };
 
 protected:
