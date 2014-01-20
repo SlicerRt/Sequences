@@ -21,6 +21,7 @@
 #include "vtkMRMLSequenceNode.h"
 
 // MRML includes
+#include "vtkMRMLCameraNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
@@ -322,6 +323,21 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
     targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
+  }
+  if (target->IsA("vtkMRMLCameraNode"))
+  {
+    vtkMRMLCameraNode* targetCameraNode=vtkMRMLCameraNode::SafeDownCast(target);
+    vtkMRMLCameraNode* sourceCameraNode=vtkMRMLCameraNode::SafeDownCast(source);
+    int disabledModify = targetCameraNode->StartModify();
+    targetCameraNode->SetPosition(sourceCameraNode->GetPosition());
+    targetCameraNode->SetFocalPoint(sourceCameraNode->GetFocalPoint());
+    targetCameraNode->SetViewUp(sourceCameraNode->GetViewUp());
+    targetCameraNode->SetParallelProjection(sourceCameraNode->GetParallelProjection());
+    targetCameraNode->SetParallelScale(sourceCameraNode->GetParallelScale());
+    // Maybe the new position and focalpoint combo doesn't fit the existing
+    // clipping range
+    targetCameraNode->ResetClippingRange();
+    targetCameraNode->EndModify(disabledModify);
   }
   else
   {

@@ -76,6 +76,17 @@ public:
   /// Get unit for the index (example: s)
   vtkGetStringMacro(IndexUnit);
 
+  /// Set the type of the index (numeric, text, ...)
+  vtkSetMacro(IndexType, int);
+  void SetIndexTypeFromString(const char *indexTypeString);
+  /// Get the type of the index (numeric, text, ...)
+  vtkGetMacro(IndexType, int);
+  virtual const char* GetIndexTypeAsString();
+  
+  /// Helper functions for converting between string and code representation of the index type
+  static const char* GetIndexTypeAsString(int indexType);
+  static int GetIndexTypeFromString(const char* indexTypeString);
+
   /// Add a copy of the provided node to this sequence as a data node
   void SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue);
 
@@ -110,6 +121,14 @@ public:
 
   virtual void UpdateScene(vtkMRMLScene *scene);
 
+  /// Type of the index. Controls the behavior of sorting, finding, etc. Additional types may be added in the future, such as tag cloud, two-dimensional index, ...
+  enum IndexTypes
+  {
+    NumericIndex = 0,
+    TextIndex,
+    NumberOfIndexTypes // this line must be the last one
+  };
+
 public:
 
 protected:
@@ -134,6 +153,7 @@ protected:
   /// Describes a the index of the sequence node
   char* IndexName;
   char* IndexUnit;
+  int IndexType;
 
   /// Need to store the nodes in the scene, because for reading/writing nodes
   /// we need MRML storage nodes, which only work if they refer to a data node in the same scene

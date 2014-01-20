@@ -40,7 +40,7 @@
 
 enum
 {
-  DATA_NODE_VIS_COLUMN=0,
+//  DATA_NODE_VIS_COLUMN=0,
   DATA_NODE_VALUE_COLUMN,
   DATA_NODE_NAME_COLUMN,
   DATA_NODE_NUMBER_OF_COLUMNS // this must be the last line in this enum
@@ -112,6 +112,16 @@ void qSlicerSequencesModuleWidgetPrivate::GetDataNodeCandidates(vtkCollection* f
       // don't show hidden nodes, they would clutter the view
       continue;
     }
+    if (currentNode->GetSingletonTag()!=NULL)
+    {
+      // don't allow adding singletons (mainly because we can only store one singleton node in a scene, so we couldn't store it)
+      continue;
+    }
+    if (currentNode==rootNode)
+    {
+      // don't allow adding itself as data node
+      continue;
+    }
     if (!dataNodeClassName.empty())
     {
       if (dataNodeClassName.compare(currentNode->GetClassName())!=0)
@@ -146,10 +156,22 @@ void qSlicerSequencesModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  if (d->ComboBox_IndexType->count() == 0)
+  {
+    for (int indexType=0; indexType<vtkMRMLSequenceNode::NumberOfIndexTypes; indexType++)
+    {
+      d->ComboBox_IndexType->addItem(vtkMRMLSequenceNode::GetIndexTypeAsString(indexType));
+    }
+  }
+
+  d->TableWidget_DataNodes->setColumnWidth( DATA_NODE_VALUE_COLUMN, 30 );
+  d->TableWidget_DataNodes->setColumnWidth( DATA_NODE_NAME_COLUMN, 100 );
+
   connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onRootNodeChanged() ) );
 
   connect( d->LineEdit_IndexName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexNameEdited() ) );
   connect( d->LineEdit_IndexUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexUnitEdited() ) );
+  connect( d->ComboBox_IndexType, SIGNAL( currentIndexChanged( const QString & ) ), this, SLOT( onIndexTypeEdited(QString) ) );
 
   connect( d->TableWidget_DataNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onDataNodeChanged() ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
@@ -302,6 +324,21 @@ void qSlicerSequencesModuleWidget::onIndexUnitEdited()
   this->UpdateRootNode();
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerSequencesModuleWidget::onIndexTypeEdited(QString indexTypeString)
+{
+  Q_D(qSlicerSequencesModuleWidget);
+
+  vtkMRMLSequenceNode* currentRoot = vtkMRMLSequenceNode::SafeDownCast( d->MRMLNodeComboBox_SequenceRoot->currentNode() );
+  if ( currentRoot == NULL )
+  {
+    return;
+  }
+
+  currentRoot->SetIndexTypeFromString( indexTypeString.toLatin1().constData() );
+
+  this->UpdateRootNode();
+}
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
@@ -499,6 +536,7 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
     d->Label_DataNodeTypeValue->setText( FROM_STD_STRING_SAFE( "undefined" ) );    
     d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( "" ) );    
     d->LineEdit_IndexUnit->setText( FROM_STD_STRING_SAFE( "" ) );    
+    d->ComboBox_IndexType->setCurrentIndex(-1);
     d->TableWidget_DataNodes->clear();
     d->TableWidget_DataNodes->setRowCount( 0 );
     d->TableWidget_DataNodes->setColumnCount( 0 );
@@ -515,6 +553,7 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
 
   d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( currentRoot->GetIndexName() ) );
   d->LineEdit_IndexUnit->setText( FROM_STD_STRING_SAFE( currentRoot->GetIndexUnit() ) );
+  d->ComboBox_IndexType->setCurrentIndex( d->ComboBox_IndexType->findText(FROM_STD_STRING_SAFE( currentRoot->GetIndexTypeAsString() )) );
 
   // Display all of the sequence nodes
   d->TableWidget_DataNodes->clear();
@@ -524,7 +563,7 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
   valueHeader << FROM_ATTRIBUTE_SAFE( currentRoot->GetIndexName() ); 
   valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentRoot->GetIndexUnit() ) << ")";
   QStringList SequenceNodesTableHeader;
-  SequenceNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
+  //SequenceNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
   SequenceNodesTableHeader.insert( DATA_NODE_VALUE_COLUMN, valueHeader.str().c_str() );
   SequenceNodesTableHeader.insert( DATA_NODE_NAME_COLUMN, "Name" );
   d->TableWidget_DataNodes->setHorizontalHeaderLabels( SequenceNodesTableHeader );  
@@ -542,19 +581,20 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
     }
 
     // Display the data node information
-    QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
+    //QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
     //this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentValue.c_str() ) );
 
     QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentValue.c_str() ) );
+    valueItem->setTextAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
 
     QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetName() ) );
 
-    d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_VIS_COLUMN, visItem );
+    //d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_VIS_COLUMN, visItem );
     d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_VALUE_COLUMN, valueItem );
     d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_NAME_COLUMN, nameItem );
   }
 
-  d->TableWidget_DataNodes->resizeColumnsToContents();  
+  //d->TableWidget_DataNodes->resizeColumnsToContents();  
   d->TableWidget_DataNodes->resizeRowsToContents();  
 
   // Open the data node adding section if there are no data nodes yet
@@ -628,6 +668,7 @@ void qSlicerSequencesModuleWidget::setEnableWidgets(bool enable)
   d->Label_DataNodeTypeValue->setEnabled(enable);
   d->LineEdit_IndexName->setEnabled(enable);
   d->LineEdit_IndexUnit->setEnabled(enable);
+  d->ComboBox_IndexType->setEnabled(enable);
   d->TableWidget_DataNodes->setEnabled(enable);
   d->ListWidget_CandidateDataNodes->setEnabled(enable);
   d->LineEdit_NewDataNodeIndexValue->setEnabled(enable);

@@ -455,7 +455,7 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::setSelectedItemNumber(int itemNumber)
 {
-  Q_D(qSlicerSequenceBrowserModuleWidget);    
+  Q_D(qSlicerSequenceBrowserModuleWidget);
   if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setSelectedItemNumber failed: no active browser node is selected";

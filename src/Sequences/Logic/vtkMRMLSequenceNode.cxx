@@ -44,6 +44,7 @@ vtkMRMLSequenceNode::vtkMRMLSequenceNode()
 {
   this->SetIndexName("time");
   this->SetIndexUnit("s");
+  this->SetIndexType(this->NumericIndex);
   this->HideFromEditorsOff();
   this->SequenceScene=vtkMRMLScene::New();
 }
@@ -82,6 +83,12 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
     of << indent << " indexUnit=\"" << this->IndexUnit << "\"";
   }
 
+  const char* indexTypeString=GetIndexTypeAsString();
+  if (indexTypeString!=NULL)
+  {    
+    of << indent << " indexType=\"" << indexTypeString << "\"";
+  }
+
   of << indent << " indexValues=\"";
   for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
   {
@@ -116,7 +123,17 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
     {
       this->SetIndexUnit(attValue);
     }
-    else if (!strcmp(attName, "indexValues")) 
+    else if (!strcmp(attName, "indexType"))     
+    {
+      int indexType=GetIndexTypeFromString(attValue);
+      if (indexType<0 || indexType>=vtkMRMLSequenceNode::NumberOfIndexTypes)
+      {
+        vtkErrorMacro("Invalid index type: "<<(attValue?attValue:"(empty). Assuming TextIndex."));
+        indexType=vtkMRMLSequenceNode::TextIndex;
+      }
+      SetIndexType(indexType);
+    }
+    else if (!strcmp(attName, "indexValues"))
     {
       ReadIndexValues(attValue);
     }
@@ -470,4 +487,47 @@ void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
     indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
     indexIt->DataNodeID.clear(); // clear the ID to remove redundancy in the data
   }
+}
+
+//-----------------------------------------------------------
+void vtkMRMLSequenceNode::SetIndexTypeFromString(const char *indexTypeString)
+{
+  int indexType=GetIndexTypeFromString(indexTypeString);
+  SetIndexType(indexType);
+}
+
+//-----------------------------------------------------------
+const char* vtkMRMLSequenceNode::GetIndexTypeAsString()
+{
+  return vtkMRMLSequenceNode::GetIndexTypeAsString(this->IndexType);
+}
+
+//-----------------------------------------------------------
+const char* vtkMRMLSequenceNode::GetIndexTypeAsString(int indexType)
+{
+  switch (indexType)
+  {
+  case vtkMRMLSequenceNode::NumericIndex: return "numeric";
+  case vtkMRMLSequenceNode::TextIndex: return "text";
+  default:
+    return NULL;
+  }
+}
+
+//-----------------------------------------------------------
+int vtkMRMLSequenceNode::GetIndexTypeFromString(const char* indexTypeString)
+{
+  if (indexTypeString==NULL)
+  {
+    return -1;
+  }
+  for (int i=0; i<vtkMRMLSequenceNode::NumberOfIndexTypes; i++)
+  {
+    if (strcmp(indexTypeString, GetIndexTypeAsString(i))==0)
+    {
+      // found it
+      return i;
+    }
+  }
+  return -1;
 }

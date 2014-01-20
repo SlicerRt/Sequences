@@ -51,6 +51,7 @@ public slots:
 
   void onIndexNameEdited();
   void onIndexUnitEdited();
+  void onIndexTypeEdited(QString indexTypeString);
 
   void onDataNodeEdited( int row, int column );
   void onHideDataNodeClicked( int row, int column );
