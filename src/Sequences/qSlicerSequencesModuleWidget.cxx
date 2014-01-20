@@ -480,7 +480,7 @@ void qSlicerSequencesModuleWidget::onHideDataNodeClicked( int row, int column )
   // Change the eye for the current sequence node
   QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
   this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentRoot, currentIndexValue.c_str() ) );
-  d->TableWidget_DataNodes->setItem( row, DATA_NODE_VIS_COLUMN, visItem ); // This changes current bundle to NULL
+  d->TableWidget_DataNodes->setItem( row, DATA_NODE_VIS_COLUMN, visItem ); // This changes current item to NULL
   d->TableWidget_DataNodes->setCurrentCell( row, column ); // Reset the current cell so updating the sequence node works
 
   this->UpdateRootNode();

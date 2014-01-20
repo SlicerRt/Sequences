@@ -542,12 +542,12 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     d->Label_IndexUnit->setText("");
   }
   
-  int numberOfBundles=multidimDataRootNode->GetNumberOfDataNodes();
-  if (numberOfBundles>0)
+  int numberOfDataNodes=multidimDataRootNode->GetNumberOfDataNodes();
+  if (numberOfDataNodes>0)
   {
     d->slider_IndexValue->setEnabled(true);
     d->slider_IndexValue->setMinimum(0);      
-    d->slider_IndexValue->setMaximum(numberOfBundles-1);        
+    d->slider_IndexValue->setMaximum(numberOfDataNodes-1);        
     vcrControlsEnabled=true;
     
     bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
@@ -575,7 +575,7 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     }
     else
     {
-      qWarning() << "Bundle "<<selectedItemNumber<<" has no index value defined";
+      qWarning() << "Item "<<selectedItemNumber<<" has no index value defined";
       d->label_IndexValue->setText("");
       d->slider_IndexValue->setValue(0);
     }  
