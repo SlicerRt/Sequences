@@ -439,6 +439,12 @@ void qSlicerSequencesModuleWidget::onRemoveDataNodeButtonClicked()
   currentRoot->RemoveDataNodeAtValue( currentIndexValue.c_str() );  
 
   this->UpdateRootNode();
+
+  // If the data node list have become empty then refresh the candidate nodes list, as we now accept any kind of nodes
+  if (d->TableWidget_DataNodes->rowCount()==0)
+  {
+    this->UpdateCandidateNodes();
+  }
 }
 
 //-----------------------------------------------------------------------------
