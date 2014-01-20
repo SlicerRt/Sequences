@@ -18,6 +18,10 @@
 // Qt includes
 #include <QtPlugin>
 
+// Slicer includes
+#include "qSlicerIOManager.h"
+#include "qSlicerNodeWriter.h"
+
 // Sequence Logic includes
 #include <vtkSlicerSequencesLogic.h>
 
@@ -103,6 +107,9 @@ QStringList qSlicerSequencesModule::dependencies() const
 void qSlicerSequencesModule::setup()
 {
   this->Superclass::setup();
+  // Register IOs
+  qSlicerIOManager* ioManager = qSlicerApplication::application()->ioManager();
+  ioManager->registerIO(new qSlicerNodeWriter("Sequences", QString("SequenceFile"), QStringList() << "vtkMRMLSequenceNode", this));
 }
 
 //-----------------------------------------------------------------------------
