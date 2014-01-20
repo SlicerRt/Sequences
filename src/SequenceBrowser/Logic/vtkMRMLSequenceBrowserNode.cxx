@@ -50,7 +50,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 {
   this->SetHideFromEditors(false);
   this->PlaybackActive=false;
-  this->PlaybackRateFps=5.0;
+  this->PlaybackRateFps=10.0;
   this->PlaybackLooped=true;
   this->SelectedItemNumber=0;
   this->LastPostfixIndex=0;
@@ -485,11 +485,13 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
     }
     if (strcmp(foundNodeId,nodeId)==0)
     {
+      // the iterator will become invalid, so make a copy of its content
+      std::string rolePostfix=(*rolePostfixIt);
       bool oldModify=this->StartModify();
-      this->RemoveAllNodeReferenceIDs(rootNodeRef.c_str());
-      RemoveVirtualOutputDataNode(*rolePostfixIt);
-      RemoveVirtualOutputDisplayNodes(*rolePostfixIt);
       this->VirtualNodePostfixes.erase(rolePostfixIt);
+      this->RemoveAllNodeReferenceIDs(rootNodeRef.c_str());
+      RemoveVirtualOutputDataNode(rolePostfix);
+      RemoveVirtualOutputDisplayNodes(rolePostfix);      
       this->EndModify(oldModify);
       return;
     }

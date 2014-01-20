@@ -32,6 +32,15 @@
 #include "vtkMRMLSequenceBrowserNode.h"
 #include "vtkMRMLSequenceNode.h"
 
+enum
+{
+  SYNCH_NODES_SELECTION_COLUMN=0,
+  SYNCH_NODES_NAME_COLUMN,
+  SYNCH_NODES_TYPE_COLUMN,
+  SYNCH_NODES_STATUS_COLUMN,
+  SYNCH_NODES_NUMBER_OF_COLUMNS // this must be the last line in this enum
+};
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Sequence
 class qSlicerSequenceBrowserModuleWidgetPrivate: public Ui_qSlicerSequenceBrowserModuleWidget
@@ -47,9 +56,6 @@ public:
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
   bool ModuleWindowInitialized;
-
-  /// Map that associates dose volume checkboxes to the corresponding MRML node IDs and the dose unit name
-  //std::map<QCheckBox*, std::pair<std::string, std::string> > CheckboxToSynchronizedRootNodeIdMap;
 
   std::string ActiveBrowserNodeID;
   QTimer* PlaybackTimer; 
@@ -154,8 +160,9 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect( d->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), this, SLOT(setPlaybackRateFps(double)) );
   d->PlaybackTimer->connect(d->PlaybackTimer, SIGNAL(timeout()),this, SLOT(onVcrNext()));  
 
-  d->tableWidget_SynchronizedRootNodes->setColumnWidth(0, 20);
-  d->tableWidget_SynchronizedRootNodes->setColumnWidth(1, 300);
+  d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
+  d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
+  d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_TYPE_COLUMN, 100);
 
   connect( d->tableWidget_SynchronizedRootNodes, SIGNAL(currentItemChanged(QTableWidgetItem*,QTableWidgetItem*)), this, SLOT(storeSelectedTableItemText(QTableWidgetItem*,QTableWidgetItem*)) );
 
@@ -179,6 +186,19 @@ void qSlicerSequenceBrowserModuleWidget::enter()
       this->mrmlScene()->AddNode(newBrowserNode);      
       setActiveBrowserNode(newBrowserNode);
     }
+    // set up mrml scene observations so that the GUI gets updated
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::NodeAddedEvent,
+      this, SLOT(onNodeAddedEvent(vtkObject*, vtkObject*)));
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::NodeRemovedEvent,
+      this, SLOT(onNodeRemovedEvent(vtkObject*, vtkObject*)));
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::EndImportEvent,
+      this, SLOT(onMRMLSceneEndImportEvent()));
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::EndBatchProcessEvent,
+      this, SLOT(onMRMLSceneEndBatchProcessEvent()));
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::EndCloseEvent,
+      this, SLOT(onMRMLSceneEndCloseEvent()));
+    this->qvtkReconnect(this->mrmlScene(), vtkMRMLScene::EndRestoreEvent,
+      this, SLOT(onMRMLSceneEndRestoreEvent()));
   }
   else
   {
@@ -187,6 +207,72 @@ void qSlicerSequenceBrowserModuleWidget::enter()
 
   this->Superclass::enter();
 }
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onNodeAddedEvent(vtkObject*, vtkObject* node)
+{
+  if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
+  {
+    return;
+  }
+  refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onNodeRemovedEvent(vtkObject* scene, vtkObject* node)
+{
+  Q_UNUSED(scene);
+  Q_UNUSED(node);
+  if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
+    {
+    return;
+    }
+  refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndImportEvent()
+{
+  refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndRestoreEvent()
+{
+  refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndBatchProcessEvent()
+{
+  if (!this->mrmlScene())
+    {
+    return;
+    }
+  refreshSynchronizedRootNodesTable();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndCloseEvent()
+{
+  if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
+    {
+    return;
+    }
+  refreshSynchronizedRootNodesTable();
+} 
+
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::exit()
+{
+  this->Superclass::exit();
+
+  // we do not remove mrml scene observations, because replay may run while the
+  // module GUI is not shown
+  // this->qvtkDisconnectAll();
+} 
+
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* node)
@@ -529,20 +615,10 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
   // Clear the table
   for (int row=0; row<d->tableWidget_SynchronizedRootNodes->rowCount(); row++)
   {
-    QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedRootNodes->item(row,0));
+    QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedRootNodes->item(row,SYNCH_NODES_SELECTION_COLUMN));
     disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
-    // delete checkbox; ???
+    // delete checkbox; - needed?
   }
-  /*
-  std::map<QCheckBox*, std::pair<std::string, std::string> >::iterator it;
-  for (it = d->CheckboxToSynchronizedRootNodeIdMap.begin(); it != d->CheckboxToSynchronizedRootNodeIdMap.end(); ++it)
-  {
-    QCheckBox* checkbox = it->first;
-    disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
-    delete checkbox;
-  }
-  d->CheckboxToSynchronizedRootNodeIdMap.clear();
-  */
   d->tableWidget_SynchronizedRootNodes->clearContents();
 
   if (d->activeBrowserNode()==NULL)
@@ -566,19 +642,22 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
   checkbox->setEnabled(false);
   checkbox->setToolTip(tr("Master sequence node"));
   std::string statusString="Master";
-  //d->CheckboxToSynchronizedRootNodeIdMap[checkbox] = std::pair<std::string, std::string>(multidimDataRootNode->GetID(), statusString);
   bool checked = true; // master is always checked
   checkbox->setChecked(checked);
   checkbox->setProperty("MRMLNodeID",QString(multidimDataRootNode->GetID()));
-  d->tableWidget_SynchronizedRootNodes->setCellWidget(0, 0, checkbox);
+  d->tableWidget_SynchronizedRootNodes->setCellWidget(0, SYNCH_NODES_SELECTION_COLUMN, checkbox);
   
   QTableWidgetItem* nodeNameItem = new QTableWidgetItem( QString(multidimDataRootNode->GetName()) );
   nodeNameItem->setFlags(nodeNameItem->flags() ^ Qt::ItemIsEditable);
-  d->tableWidget_SynchronizedRootNodes->setItem(0, 1, nodeNameItem );
+  d->tableWidget_SynchronizedRootNodes->setItem(0, SYNCH_NODES_NAME_COLUMN, nodeNameItem );  
   
+  QTableWidgetItem* typeItem = new QTableWidgetItem( QString(multidimDataRootNode->GetDataNodeTagName().c_str()) );
+  typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
+  d->tableWidget_SynchronizedRootNodes->setItem(0, SYNCH_NODES_TYPE_COLUMN, typeItem);
+
   QTableWidgetItem* statusItem = new QTableWidgetItem( QString(statusString.c_str()) );
   statusItem->setFlags(statusItem->flags() ^ Qt::ItemIsEditable);
-  d->tableWidget_SynchronizedRootNodes->setItem(0, 2, statusItem);
+  d->tableWidget_SynchronizedRootNodes->setItem(0, SYNCH_NODES_STATUS_COLUMN, statusItem);
 
   if (compatibleNodes->GetNumberOfItems() < 1)
   {
@@ -600,7 +679,6 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
     QCheckBox* checkbox = new QCheckBox(d->tableWidget_SynchronizedRootNodes);
     checkbox->setToolTip(tr("Include this node in synchronized browsing"));
     std::string statusString;
-    //d->CheckboxToSynchronizedRootNodeIdMap[checkbox] = std::pair<std::string, std::string>(compatibleNode->GetID(), statusString);
     checkbox->setProperty("MRMLNodeID",QString(compatibleNode->GetID()));
 
     // Set previous checked state of the checkbox
@@ -609,9 +687,15 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
 
     connect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
 
-    d->tableWidget_SynchronizedRootNodes->setCellWidget(i+1, 0, checkbox);
-    d->tableWidget_SynchronizedRootNodes->setItem(i+1, 1, new QTableWidgetItem( QString(compatibleNode->GetName()) ) );    
-    //d->tableWidget_SynchronizedRootNodes->setItem(i+1, 2, new QTableWidgetItem( QString::number(weight,'f',2) ) );
+    d->tableWidget_SynchronizedRootNodes->setCellWidget(i+1, SYNCH_NODES_SELECTION_COLUMN, checkbox);
+    
+    QTableWidgetItem* nameItem = new QTableWidgetItem( QString(compatibleNode->GetName()) );
+    nameItem->setFlags(nameItem->flags() ^ Qt::ItemIsEditable);
+    d->tableWidget_SynchronizedRootNodes->setItem(i+1, SYNCH_NODES_NAME_COLUMN, nameItem);
+
+    QTableWidgetItem* typeItem = new QTableWidgetItem( QString(compatibleNode->GetDataNodeTagName().c_str()) );
+    typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
+    d->tableWidget_SynchronizedRootNodes->setItem(i+1, SYNCH_NODES_TYPE_COLUMN, typeItem);
   }
 
 }
@@ -623,18 +707,17 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged(i
 
   if (d->activeBrowserNode()==NULL)
   {
-    // TODO
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged: Invalid activeBrowserNode";
     return;
   }
   
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
-    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged: Invalid sender checkbox for show/hide in chart checkbox state change";
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged: Invalid sender checkbox";
     return;
   }
 
-  //std::string synchronizedNodeId = d->CheckboxToSynchronizedRootNodeIdMap[senderCheckbox].first;
   std::string synchronizedNodeId = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
 
   // Add or delete node to/from the list

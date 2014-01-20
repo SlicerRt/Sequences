@@ -201,7 +201,7 @@ bool vtkMRMLSequenceStorageNode::WriteToMRB(const char* fullName, vtkMRMLScene *
 
   // TODO: switch to QTemporaryDir in Qt5.
   // For now, create a named directory and use Qt calls to remove it
-  //QString tempDir = qSlicerCoreApplication::application()->temporaryPath();
+  // use the output directory as temporary directory. This may not be ideal if the output directory has limited storage space (e.g., USB stick).
   QString tempDir = basePath;
   QFileInfo pack(QDir(tempDir), //QDir::tempPath(),
     QString("__BundleSaveTemp-") + 
@@ -262,7 +262,8 @@ bool vtkMRMLSequenceStorageNode::WriteToMRB(const char* fullName, vtkMRMLScene *
   //
   // Now clean up the temp directory
   //
-  if ( !RemoveDirRecursively(bundlePath) )
+  QString tmpPath = pack.absoluteFilePath();
+  if ( !RemoveDirRecursively(tmpPath) )
   {
     QMessageBox::critical(0, QObject::tr("Save scene as MRB"), QObject::tr("Could not remove temp directory"));
     return false;

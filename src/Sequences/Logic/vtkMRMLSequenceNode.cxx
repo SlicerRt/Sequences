@@ -176,6 +176,8 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
     this->SequenceScene->CopyNode(node);
   }
 
+  this->IndexEntries=snode->IndexEntries;
+
   this->DisableModifiedEventOff();
   this->InvokePendingModifiedEvent();
 }
@@ -375,6 +377,29 @@ std::string vtkMRMLSequenceNode::GetDataNodeClassName()
   }
   const char* className=node->GetClassName();
   return SAFE_CHAR_POINTER(className);
+}
+
+//-----------------------------------------------------------------------------
+std::string vtkMRMLSequenceNode::GetDataNodeTagName()
+{
+  std::string undefinedReturn="undefined";
+  if (this->IndexEntries.empty())
+  {
+    return undefinedReturn;
+  }
+  // All the nodes should be of the same class, so just get the class from the first one
+  vtkMRMLNode* node=this->IndexEntries[0].DataNode;
+  if (node==NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceNode::GetDataNodeClassName node is invalid");
+    return undefinedReturn;
+  }
+  const char* tagName=node->GetNodeTagName();
+  if (tagName==NULL)
+  {
+    return undefinedReturn;
+  }
+  return tagName;
 }
 
 //-----------------------------------------------------------------------------

@@ -60,6 +60,14 @@ protected slots:
   void onVcrLast();
   void synchronizedRootNodeCheckStateChanged(int aState);
 
+  /// Respond to the scene events
+  void onNodeAddedEvent(vtkObject* scene, vtkObject* node);
+  void onNodeRemovedEvent(vtkObject* scene, vtkObject* node);
+  void onMRMLSceneEndImportEvent();
+  void onMRMLSceneEndRestoreEvent();
+  void onMRMLSceneEndBatchProcessEvent();
+  void onMRMLSceneEndCloseEvent(); 
+
 protected:
   void updateWidgetFromMRML();
 
@@ -70,6 +78,7 @@ protected:
   
   virtual void setup();  
   virtual void enter();
+  void exit();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSequenceBrowserModuleWidget);

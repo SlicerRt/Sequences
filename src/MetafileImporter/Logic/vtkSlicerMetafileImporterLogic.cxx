@@ -49,6 +49,7 @@
 #include <algorithm>
 
 static const char IMAGE_NODE_BASE_NAME[]="Image";
+static const char NODE_BASE_NAME_SEPARATOR[]="-";
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerMetafileImporterLogic);
@@ -190,8 +191,7 @@ static std::string SEQMETA_FIELD_FRAME_FIELD_PREFIX = "Seq_Frame";
 static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 
 //----------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic
-::ReadTransforms( const std::string& fileName, std::deque< vtkMRMLNode* > &createdNodes )
+void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName, std::deque< vtkMRMLNode* > &createdNodes )
 {
   // Open in binary mode because we determine the start of the image buffer also during this read
   const char* flags = "rb";
@@ -318,8 +318,23 @@ void vtkSlicerMetafileImporterLogic
         this->GetMRMLScene()->AddNode(transformsRootNode);
         transformsRootNode->SetIndexName("time");
         transformsRootNode->SetIndexUnit("s");
-        std::string transformsRootName=this->BaseNodeName+"/"+transform->GetName();        
+        std::string transformsRootName=this->BaseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();        
         transformsRootNode->SetName( transformsRootName.c_str() );
+
+        // Create storage node
+        vtkMRMLStorageNode *storageNode = transformsRootNode->CreateDefaultStorageNode();    
+        if (storageNode)
+        {
+          this->GetMRMLScene()->AddNode(storageNode);
+          storageNode->Delete(); // now the scene owns the storage node
+          transformsRootNode->SetAndObserveStorageNodeID(storageNode->GetID());
+          transformsRootNode->StorableModified(); // marks as modified, so the volume will be written to file on save
+        }
+        else
+        {
+          vtkErrorMacro("Failed to create storage node for the imported image sequence");
+        }
+
         transformsRootNode->StartModify();
         transformRootNodes[transform->GetName()]=transformsRootNode;
       }
@@ -355,15 +370,29 @@ void vtkSlicerMetafileImporterLogic
 
 //----------------------------------------------------------------------------
 // Read the spacing and dimentions of the image.
-vtkMRMLNode* vtkSlicerMetafileImporterLogic
-::ReadImages( const std::string& fileName )
+vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& fileName )
 {
+  // Create sequence node
   vtkSmartPointer<vtkMRMLSequenceNode> imagesRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
   this->GetMRMLScene()->AddNode(imagesRootNode);
   imagesRootNode->SetIndexName("time");
   imagesRootNode->SetIndexUnit("s");
-  std::string imagesRootName=this->BaseNodeName+"/Images";
+  std::string imagesRootName=this->BaseNodeName+NODE_BASE_NAME_SEPARATOR+"Image";
   imagesRootNode->SetName( this->GetMRMLScene()->GenerateUniqueName(imagesRootName).c_str() );
+
+  // Create storage node
+  vtkMRMLStorageNode *storageNode = imagesRootNode->CreateDefaultStorageNode();    
+  if (storageNode)
+  {
+    this->GetMRMLScene()->AddNode(storageNode);
+    storageNode->Delete(); // now the scene owns the storage node
+    imagesRootNode->SetAndObserveStorageNodeID(storageNode->GetID());
+    imagesRootNode->StorableModified(); // marks as modified, so the volume will be written to file on save
+  }
+  else
+  {
+    vtkErrorMacro("Failed to create storage node for the imported image sequence");
+  }
 
   int imagesRootNodeDisableModify = imagesRootNode->StartModify();
 
@@ -413,37 +442,6 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic
     std::string paramValueString=this->FrameNumberToIndexValueMap[frameNumber];
     slice->SetHideFromEditors(false);
     imagesRootNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
-
-    // Create display node
-    // TODO: add the display node to the Sequence hierarchy?
-    /*
-    vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode > displayNode = vtkSmartPointer< vtkMRMLScalarVolumeDisplayNode >::New();
-    displayNode->SetDefaultColorMap();
-    displayNode->SetHideFromEditors(true);
-    std::string displayNodeName=std::string(slice->GetName())+" display";
-    displayNode->SetName(displayNodeName.c_str());
-    this->GetMRMLScene()->AddNode( displayNode );
-    slice->SetAndObserveDisplayNodeID( displayNode->GetID() );   
-    */
-
-    // Create storage node
-    /*
-    vtkMRMLStorageNode *storageNode = slice->CreateDefaultStorageNode();    
-    if (storageNode)
-    {
-      this->GetMRMLScene()->AddNode(storageNode);
-      storageNode->Delete(); // now the scene owns the storage node
-      slice->SetAndObserveStorageNodeID(storageNode->GetID());
-      std::string filename=std::string(slice->GetName())+".nrrd";
-      storageNode->SetFileName(filename.c_str());
-      slice->StorableModified(); // marks as modified, so the volume will be written to file on save
-    }
-    else
-    {
-      vtkErrorMacro("Failed to create storage node for the imported slice");
-    }
-    */
-
   }
 
   imagesRootNode->EndModify(imagesRootNodeDisableModify);

@@ -98,8 +98,11 @@ public:
 
   int GetNumberOfDataNodes();
 
-  /// Return the class name of the data nodes. If there are no data nodes yet then it returns empty string.
+  /// Return the class name of the data nodes (e.g., vtkMRMLTransformNode). If there are no data nodes yet then it returns empty string.
   std::string GetDataNodeClassName();
+
+  /// Return the human-readable type name of the data nodes (e.g., TransformNode). If there are no data nodes yet then it returns the string "undefined".
+  std::string GetDataNodeTagName();
 
   vtkMRMLScene* GetSequenceScene();
 

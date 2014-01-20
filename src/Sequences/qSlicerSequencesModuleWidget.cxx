@@ -376,30 +376,37 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
 
   currentRoot->SetDataNodeAtValue(currentCandidateNode, currentIndexValue.c_str() );
 
-  // Auto-increment the Index value in the new data textbox if it is an integer
+  // Auto-increment the Index value in the new data textbox
+  
   QString oldIndexValue=d->LineEdit_NewDataNodeIndexValue->text();
-  bool isNumeric=false;
-  int oldIndexNumber = oldIndexValue.toDouble(&isNumeric);
-  if (isNumeric)
+  bool isIndexValueNumeric=false;
+  double oldIndexNumber = oldIndexValue.toDouble(&isIndexValueNumeric);
+  if (isIndexValueNumeric)
   {
-    QString newIndexValue=QString::number(oldIndexNumber+1);
+    double incrementValue=d->DoubleSpinBox_IndexValueAutoIncrement->value();
+    QString newIndexValue=QString::number(oldIndexNumber+incrementValue);
     d->LineEdit_NewDataNodeIndexValue->setText(newIndexValue);
   }
 
   this->UpdateRootNode();
   this->UpdateCandidateNodes();
 
-  // Restore candidate node selection
+  // Restore candidate node selection / auto-advance to the next node
+  int selectionOffset=0; // can be 0 or 1, the selection in the data nodes list moves forward by this number of elements
+  if (d->CheckBox_AutoAdvanceDataSelection->checkState()==Qt::Checked)
+  {
+    selectionOffset=1;
+  }
   d->GetDataNodeCandidates( candidateNodes, currentRoot );
   for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* selectedCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
     if (selectedCandidateNode==currentCandidateNode)
     {      
-      if (i+1<d->ListWidget_CandidateDataNodes->count())
+      if (i+selectionOffset<d->ListWidget_CandidateDataNodes->count())
       {
         // not at the end of the list, so select the next item
-        d->ListWidget_CandidateDataNodes->setCurrentRow(i+1);
+        d->ListWidget_CandidateDataNodes->setCurrentRow(i+selectionOffset);
       }
       else
       {
@@ -497,19 +504,7 @@ void qSlicerSequencesModuleWidget::UpdateRootNode()
   setEnableWidgets(true);
 
   // Put the correct properties in the root node table
-  QString typeName=currentRoot->GetDataNodeClassName().c_str();
-  if (typeName.startsWith("vtkMRML"))
-  {
-    typeName.remove(0,7);
-  }
-  if (typeName.endsWith("Node"))
-  {
-    typeName.remove(typeName.length()-4,4);
-  }
-  if (typeName.isEmpty())
-  {
-    typeName="undefined";
-  }
+  QString typeName=currentRoot->GetDataNodeTagName().c_str();
   d->Label_DataNodeTypeValue->setText( typeName.toLatin1().constData() ); // TODO: maybe use the node->tag instead?
 
   d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( currentRoot->GetIndexName() ) );
