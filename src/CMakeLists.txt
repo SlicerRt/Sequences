@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 2.8.9)
 project(MultidimData)
 
 #-----------------------------------------------------------------------------
-set(EXTENSION_HOMEPAGE "http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/Sequence")
+set(EXTENSION_HOMEPAGE "http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData")
 set(EXTENSION_CATEGORY "Multidimensional data")
 set(EXTENSION_CONTRIBUTORS "Andras Lasso (PerkLab, Queen's), Matthew Holden (PerkLab, Queen's), Kevin Wang (PMH)")
 set(EXTENSION_DESCRIPTION "A set of modules for generic multidimensional data management in Slicer")
-set(EXTENSION_ICONURL "https://subversion.assembla.com/svn/slicerrt/trunk/Sequence/src/Sequences.png")
-set(EXTENSION_SCREENSHOTURLS "http://wiki.slicer.org/slicerWiki/images/4/42/Slicer-r19441-MultiDimension-screenshot.png")
+set(EXTENSION_ICONURL "http://www.slicer.org/slicerWiki/images/c/cc/MultidimDataLogo.png")
+set(EXTENSION_SCREENSHOTURLS "http://www.slicer.org/slicerWiki/images/1/17/CardiacCtReplay.gif http://www.slicer.org/slicerWiki/images/0/0f/UltrasoundToolGuidance3dOnly.gif http://www.slicer.org/slicerWiki/images/e/ea/ShapeModelSequenceBrowsing3dOnly.gif http://www.slicer.org/slicerWiki/images/thumb/5/5b/SequenceEditor.png/504px-SequenceEditor.png http://www.slicer.org/slicerWiki/images/thumb/e/ef/SequenceBrowser.png/397px-SequenceBrowser.png")
 
 #-----------------------------------------------------------------------------
 find_package(Slicer REQUIRED)
