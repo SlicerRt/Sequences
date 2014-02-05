@@ -306,6 +306,7 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
 //---------------------------------------------------------------------------
 void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source)
 {
+  int oldModified=target->StartModify();
   if (target->IsA("vtkMRMLScalarVolumeNode"))
   {
     vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
@@ -343,6 +344,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   {
     target->CopyWithSingleModifiedEvent(source);
   }
+  target->EndModify(oldModified);
 }
 
 //---------------------------------------------------------------------------
