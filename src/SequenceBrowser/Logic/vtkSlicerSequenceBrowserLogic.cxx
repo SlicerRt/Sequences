@@ -15,6 +15,8 @@
 
 ==============================================================================*/
 
+//#define ENABLE_PERFORMANCE_PROFILING
+
 // Sequence Logic includes
 #include "vtkSlicerSequenceBrowserLogic.h"
 #include "vtkMRMLSequenceBrowserNode.h"
@@ -34,6 +36,10 @@
 
 // STL includes
 #include <algorithm>
+
+#ifdef ENABLE_PERFORMANCE_PROFILING
+#include "vtkTimerLog.h"
+#endif 
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerSequenceBrowserLogic);
@@ -122,6 +128,11 @@ void vtkSlicerSequenceBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 //---------------------------------------------------------------------------
 void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
 {
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  timer->StartTimer();  
+#endif 
+
   if (this->UpdateVirtualOutputNodesInProgress)
   {
     // avoid infinitie loops (caused by triggering a node update during a node update)
@@ -288,6 +299,11 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   }
 
   this->UpdateVirtualOutputNodesInProgress=false;
+
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  timer->StopTimer();
+  vtkWarningMacro("UpdateVirtualOutputNodes: " << timer->GetElapsedTime() << "sec\n");
+#endif 
 }
 
 //---------------------------------------------------------------------------
@@ -319,13 +335,13 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
   }
-  if (target->IsA("vtkMRMLModelNode"))
+  else if (target->IsA("vtkMRMLModelNode"))
   {
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
     targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
   }
-  if (target->IsA("vtkMRMLCameraNode"))
+  else if (target->IsA("vtkMRMLCameraNode"))
   {
     vtkMRMLCameraNode* targetCameraNode=vtkMRMLCameraNode::SafeDownCast(target);
     vtkMRMLCameraNode* sourceCameraNode=vtkMRMLCameraNode::SafeDownCast(source);
