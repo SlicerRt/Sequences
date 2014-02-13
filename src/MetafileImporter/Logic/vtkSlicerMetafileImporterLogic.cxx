@@ -372,6 +372,28 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
 // Read the spacing and dimentions of the image.
 vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& fileName )
 {
+  #ifdef ENABLE_PERFORMANCE_PROFILING
+  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  timer->StartTimer();  
+#endif
+  vtkSmartPointer< vtkMetaImageReader > imageReader = vtkSmartPointer< vtkMetaImageReader >::New();
+  imageReader->SetFileName( fileName.c_str() );
+  imageReader->Update();
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  timer->StopTimer();
+  vtkWarningMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
+#endif  
+
+  // check for loading error
+  // if there is a loading error then all the extents are set to 0
+  // (although it corresponds to an 1x1x1 image size)
+  if (imageReader->GetDataExtent()[0]==0 && imageReader->GetDataExtent()[1]==0
+    && imageReader->GetDataExtent()[2]==0 && imageReader->GetDataExtent()[3]==0
+    && imageReader->GetDataExtent()[4]==0 && imageReader->GetDataExtent()[5]==0)
+  {       
+    return NULL;
+  }
+
   // Create sequence node
   vtkSmartPointer<vtkMRMLSequenceNode> imagesRootNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
   this->GetMRMLScene()->AddNode(imagesRootNode);
@@ -396,26 +418,12 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
 
   int imagesRootNodeDisableModify = imagesRootNode->StartModify();
 
-  // Grab the image data from the mha file
-
-#ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
-  timer->StartTimer();  
-#endif
-  vtkSmartPointer< vtkMetaImageReader > imageReader = vtkSmartPointer< vtkMetaImageReader >::New();
-  imageReader->SetFileName( fileName.c_str() );
-  imageReader->Update();
-#ifdef ENABLE_PERFORMANCE_PROFILING
-  timer->StopTimer();
-  vtkWarningMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
-#endif
-
+  // Grab the image data from the mha file  
   vtkImageData* imageData = imageReader->GetOutput();
-  int* dimensions = imageData->GetDimensions();
-  double* spacing = imageData->GetSpacing();
-
   vtkSmartPointer<vtkImageData> emptySliceImageData=vtkSmartPointer<vtkImageData>::New();
+  int* dimensions = imageData->GetDimensions();
   emptySliceImageData->SetDimensions(dimensions[0],dimensions[1],1);
+  double* spacing = imageData->GetSpacing();
   emptySliceImageData->SetSpacing(spacing[0],spacing[1],1);
   emptySliceImageData->SetOrigin(0,0,0);  
   emptySliceImageData->SetScalarType(imageData->GetScalarType());
