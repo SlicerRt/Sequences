@@ -30,12 +30,12 @@
 #include <set>
 #include <map>
 
-#include "vtkSlicerSequenceBrowserModuleLogicExport.h"
+#include "vtkSlicerSequenceBrowserModuleMRMLExport.h"
 
 class vtkMRMLSequenceNode;
 class vtkMRMLDisplayNode;
 
-class VTK_SLICER_SEQUENCEBROWSER_MODULE_LOGIC_EXPORT vtkMRMLSequenceBrowserNode : public vtkMRMLNode
+class VTK_SLICER_SEQUENCEBROWSER_MODULE_MRML_EXPORT vtkMRMLSequenceBrowserNode : public vtkMRMLNode
 {
 public:
   static vtkMRMLSequenceBrowserNode *New();

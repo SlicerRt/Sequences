@@ -1,23 +1,25 @@
-project(vtkSlicer${MODULE_NAME}ModuleLogic)
+project(vtkSlicer${MODULE_NAME}ModuleMRML)
 
 set(KIT ${PROJECT_NAME})
 
-set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
+set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT")
 
 set(${KIT}_INCLUDE_DIRECTORIES
+  ${Slicer_Base_INCLUDE_DIRS}
   )
 
 set(${KIT}_SRCS
-  vtkSlicer${MODULE_NAME}Logic.cxx
-  vtkSlicer${MODULE_NAME}Logic.h
+  vtkMRML${MODULE_NAME}Node.cxx
+  vtkMRML${MODULE_NAME}Node.h
   )
 
 set(${KIT}_TARGET_LIBRARIES
-  vtkSlicer${MODULE_NAME}ModuleMRML
+  ${MRML_LIBRARIES}
+  vtkSlicerSequencesModuleMRML
   )
 
 #-----------------------------------------------------------------------------
-SlicerMacroBuildModuleLogic(
+SlicerMacroBuildModuleMRML(
   NAME ${KIT}
   EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
   INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}

@@ -26,7 +26,7 @@
 #include <deque>
 #include <set>
 
-#include "vtkSlicerSequencesModuleLogicExport.h"
+#include "vtkSlicerSequencesModuleMRMLExport.h"
 
 class vtkMRMLDisplayNode;
 
@@ -44,7 +44,7 @@ class vtkMRMLDisplayNode;
 /// If an index is numeric then it is sorted differently and equality determined using
 /// a numerical tolerance instead of exact string matching.
 
-class VTK_SLICER_SEQUENCES_MODULE_LOGIC_EXPORT vtkMRMLSequenceNode : public vtkMRMLStorableNode
+class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLSequenceNode : public vtkMRMLStorableNode
 {
 public:
   static vtkMRMLSequenceNode *New();

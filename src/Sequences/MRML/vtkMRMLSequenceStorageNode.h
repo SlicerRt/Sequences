@@ -18,13 +18,13 @@
 #ifndef __vtkMRMLSequenceStorageNode_h
 #define __vtkMRMLSequenceStorageNode_h
 
-#include "vtkSlicerSequencesModuleLogicExport.h"
+#include "vtkSlicerSequencesModuleMRMLExport.h"
 #include "vtkMRMLStorageNode.h"
 
 /// \brief MRML node for model storage on disk.
 ///
 /// Storage nodes has methods to read/write vtkPolyData to/from disk.
-class VTK_SLICER_SEQUENCES_MODULE_LOGIC_EXPORT vtkMRMLSequenceStorageNode : public vtkMRMLStorageNode
+class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLSequenceStorageNode : public vtkMRMLStorageNode
 {
 public:
   static vtkMRMLSequenceStorageNode *New();
