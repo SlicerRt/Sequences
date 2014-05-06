@@ -27,6 +27,7 @@
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
+#include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScene.h"
 
 // VTK includes
@@ -236,7 +237,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 
     // Mostly it is a shallow copy (for example for volumes, models)
     //targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
-    ShallowCopy(targetOutputNode, sourceNode);
+    this->ShallowCopy(targetOutputNode, sourceNode);
 
     // Generation of data node name: root node name (IndexName = IndexValue IndexUnit)
     const char* rootName=synchronizedRootNode->GetName();
@@ -316,7 +317,7 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
     return;
   }
 
-  UpdateVirtualOutputNodes(browserNode);
+  this->UpdateVirtualOutputNodes(browserNode);
 }
 
 //---------------------------------------------------------------------------
@@ -340,6 +341,13 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
     targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
+  }
+  else if (target->IsA("vtkMRMLLinearTransformNode"))
+  {
+    vtkMRMLLinearTransformNode* targetLinearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(target);
+    vtkMRMLLinearTransformNode* sourceLinearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(source);
+    targetLinearTransformNode->SetMatrixTransformToParent(sourceLinearTransformNode->GetMatrixTransformToParent());
+    targetLinearTransformNode->SetMatrixTransformFromParent(sourceLinearTransformNode->GetMatrixTransformFromParent());
   }
   else if (target->IsA("vtkMRMLCameraNode"))
   {

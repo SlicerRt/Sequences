@@ -54,8 +54,8 @@ vtkMRMLSequenceNode::~vtkMRMLSequenceNode()
 {
   this->SequenceScene->Delete();
   this->SequenceScene=NULL;
-  SetIndexName(NULL);
-  SetIndexUnit(NULL);
+  this->SetIndexName(NULL);
+  this->SetIndexUnit(NULL);
 }
 
 //----------------------------------------------------------------------------
@@ -493,7 +493,7 @@ void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
 void vtkMRMLSequenceNode::SetIndexTypeFromString(const char *indexTypeString)
 {
   int indexType=GetIndexTypeFromString(indexTypeString);
-  SetIndexType(indexType);
+  this->SetIndexType(indexType);
 }
 
 //-----------------------------------------------------------
