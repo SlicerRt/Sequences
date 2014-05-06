@@ -200,7 +200,7 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveRootNodeID(const char *rootNodeID)
   std::string rolePostfix;
   if (!this->VirtualNodePostfixes.empty())
   {
-    RemoveAllRootNodes();
+    this->RemoveAllRootNodes();
   }
   if (rootNodeID!=NULL)
   {
@@ -231,8 +231,8 @@ void vtkMRMLSequenceBrowserNode::RemoveAllVirtualOutputNodes()
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    RemoveVirtualOutputDataNode(*rolePostfixIt);
-    RemoveVirtualOutputDisplayNodes(*rolePostfixIt);
+    this->RemoveVirtualOutputDataNode(*rolePostfixIt);
+    this->RemoveVirtualOutputDisplayNodes(*rolePostfixIt);
   }
   this->EndModify(oldModify);
 }
@@ -259,7 +259,7 @@ void vtkMRMLSequenceBrowserNode::RemoveAllRootNodes()
       }
       continue;
     }
-    RemoveSynchronizedRootNode(node->GetID());
+    this->RemoveSynchronizedRootNode(node->GetID());
   }
   this->EndModify(oldModify);
 }
@@ -322,6 +322,7 @@ void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNod
   for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
   {
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
+    // Do we need to check if displayNode is NULL?
     displayNodes.push_back(displayNode);
   }
 }
@@ -366,11 +367,14 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
   {
     vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
-    this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());    
-    if (displayableNode)
+    if (displayNode) // Added to check if displayNode is valid
     {
-      displayableNode->AddAndObserveDisplayNodeID(displayNode->GetID());
-    }    
+      this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());    
+      if (displayableNode)
+      {
+        displayableNode->AddAndObserveDisplayNodeID(displayNode->GetID());
+      }
+    }
   }
 
   this->EndModify(oldModify);
@@ -490,8 +494,8 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
       bool oldModify=this->StartModify();
       this->VirtualNodePostfixes.erase(rolePostfixIt);
       this->RemoveAllNodeReferenceIDs(rootNodeRef.c_str());
-      RemoveVirtualOutputDataNode(rolePostfix);
-      RemoveVirtualOutputDisplayNodes(rolePostfix);      
+      this->RemoveVirtualOutputDataNode(rolePostfix);
+      this->RemoveVirtualOutputDisplayNodes(rolePostfix);      
       this->EndModify(oldModify);
       return;
     }
