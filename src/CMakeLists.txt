@@ -26,6 +26,7 @@ add_subdirectory(MetafileImporter)
 if (MULTIDIMDATA_ENABLE_EXPERIMENTAL_MODULES)
   # In development
   add_subdirectory(SequenceRegistration)
+  add_subdirectory(SequenceLabelStatistics)
 endif()
 
 #-----------------------------------------------------------------------------
