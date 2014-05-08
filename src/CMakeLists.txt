@@ -15,9 +15,18 @@ find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
+OPTION(MULTIDIMDATA_ENABLE_EXPERIMENTAL_MODULES "Enable the building of work-in-progress, experimental modules." OFF)
+
+
+#-----------------------------------------------------------------------------
 add_subdirectory(Sequences)
 add_subdirectory(SequenceBrowser)
 add_subdirectory(MetafileImporter)
+
+if (MULTIDIMDATA_ENABLE_EXPERIMENTAL_MODULES)
+  # In development
+  add_subdirectory(SequenceRegistration)
+endif()
 
 #-----------------------------------------------------------------------------
 include(${Slicer_EXTENSION_CPACK})
