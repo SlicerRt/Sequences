@@ -27,6 +27,7 @@ if (MULTIDIMDATA_ENABLE_EXPERIMENTAL_MODULES)
   # In development
   add_subdirectory(SequenceRegistration)
   add_subdirectory(SequenceLabelStatistics)
+  add_subdirectory(SequenceResample)
 endif()
 
 #-----------------------------------------------------------------------------
