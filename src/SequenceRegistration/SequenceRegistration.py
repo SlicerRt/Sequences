@@ -297,7 +297,7 @@ class SequenceRegistrationWidget:
 
   def onInputSelect(self):
     self.InputReady = self.fixedImageSelector.currentNode() and self.movingImageSequenceSelector.currentNode() 
-    self.RegistrationButton.enabled = self.InputReady and self.OutputReady
+    self.registerButton.enabled = self.InputReady and self.OutputReady
     if self.InputROISelector.currentNode():
       self.ROIVisibilityButton.enabled = True
     else:
@@ -310,7 +310,7 @@ class SequenceRegistrationWidget:
       
   def onOutputSelect(self):
     self.OutputReady = self.outputTransformSequenceSelector.currentNode() or self.outputImageSequenceSelector.currentNode() 
-    self.RegistrationButton.enabled = self.InputReady and self.OutputReady
+    self.registerButton.enabled = self.InputReady and self.OutputReady
     if self.outputTransformSequenceSelector.currentNode():
       self.updateChart()
     
@@ -391,7 +391,7 @@ class SequenceRegistrationWidget:
     initializeTransformModeOption = self.initializeTransformModeOption
     
     outputTransformSequenceNode = self.outputTransformSequenceSelector.currentNode()
-    outputImageSequenceNode = self.outputImageSequenceSelector.currentNode()
+    outputVolumeSequenceNode = self.outputImageSequenceSelector.currentNode()
 
     logic = SequenceRegistrationLogic()
 
@@ -574,13 +574,13 @@ class SequenceRegistrationLogic:
         outputVolumeNode = slicer.vtkMRMLScalarVolumeNode()
         slicer.mrmlScene.AddNode(outputVolumeNode)
 
-      initialTransformNode = lastTransformNode
+      initialTransformNode = linearTransformSequenceNode.GetNthDataNode(i-1)
       if initialTransformNode:
         slicer.mrmlScene.AddNode(initialTransformNode)
       else:
         initialTransformNode = None
 
-      self.RegisterImage(movingVolumeNode, fixedVolumeNode, outputTransformNode, outputVolumeNode, initializeTransformMode, initialTransformNode, maskVolumeNode)
+      self.RegisterImage(fixedVolumeNode, movingVolumeNode, outputTransformNode, outputVolumeNode, initializeTransformMode, initialTransformNode, maskVolumeNode)
       if linearTransformSequenceNode:
         linearTransformSequenceNode.SetDataNodeAtValue(outputTransformNode, movingVolumeIndexValue)
       if outputVolumeSequenceNode:
@@ -589,7 +589,9 @@ class SequenceRegistrationLogic:
       if initialTransformNode:
         slicer.mrmlScene.RemoveNode(initialTransformNode)
       slicer.mrmlScene.RemoveNode(movingVolumeNode)
-      lastTransform = outputTransformNode
+      if outputVolumeNode:
+        slicer.mrmlScene.RemoveNode(outputVolumeNode)
+      # lastTransform = outputTransformNode
       slicer.mrmlScene.RemoveNode(outputTransformNode)
 
     if linearTransformSequenceNode:  
@@ -632,7 +634,7 @@ class SequenceRegistrationLogic:
 
       parametersRigid["linearTransform"] = linearTransformNode.GetID()
       if outputVolumeNode:
-        parametersRigid["OutputImagefileName"] = outputTransformNode.GetID()
+        parametersRigid["outputVolume"] = outputVolumeNode.GetID()
 
       parametersRigid["useRigid"] = True
       parametersRigid["numberOfIterations"] = 200
