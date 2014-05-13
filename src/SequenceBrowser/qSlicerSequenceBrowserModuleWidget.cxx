@@ -24,13 +24,32 @@
 #include "qSlicerSequenceBrowserModuleWidget.h"
 #include "ui_qSlicerSequenceBrowserModuleWidget.h"
 
+// QSlicer includes
+#include "qSlicerApplication.h"
+#include "qSlicerLayoutManager.h" 
+#include "qMRMLSliceWidget.h"
+#include "qMRMLSliceView.h"
+
 // MRML includes
 #include "vtkMRMLScene.h"
+#include "vtkMRMLScalarVolumeNode.h"
 
 // Sequence includes
 #include "vtkSlicerSequenceBrowserLogic.h"
 #include "vtkMRMLSequenceBrowserNode.h"
 #include "vtkMRMLSequenceNode.h"
+
+// VTK includes
+#include <vtkInteractorObserver.h>
+#include <vtkFloatArray.h>
+#include <vtkTable.h>
+#include <vtkChartXY.h>
+#include <vtkPlot.h>
+#include <vtkAxis.h>
+#include <vtkMatrix4x4.h>
+#include <vtkImageData.h>
+
+
 
 enum
 {
@@ -50,8 +69,14 @@ protected:
   qSlicerSequenceBrowserModuleWidget* const q_ptr;
 public:
   qSlicerSequenceBrowserModuleWidgetPrivate(qSlicerSequenceBrowserModuleWidget& object);
+  ~qSlicerSequenceBrowserModuleWidgetPrivate();
   vtkSlicerSequenceBrowserLogic* logic() const;
   vtkMRMLSequenceBrowserNode* activeBrowserNode() const;
+
+  void init();
+  void resetInteractiveCharting();
+  qMRMLSliceWidget * slicerWidget(vtkInteractorObserver * interactorStyle) const;
+  QList<vtkInteractorObserver*> currentLayoutSliceViewInteractorStyles() const;
 
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
@@ -59,6 +84,14 @@ public:
 
   std::string ActiveBrowserNodeID;
   QTimer* PlaybackTimer; 
+
+  qSlicerLayoutManager * LayoutManager;
+  QList<vtkInteractorObserver*> ObservedInteractorStyles;
+
+  vtkChartXY* ChartXY;
+  vtkTable* ChartTable;
+  vtkFloatArray* ArrayX;
+  vtkFloatArray* ArrayY;
 };
 
 //-----------------------------------------------------------------------------
@@ -69,7 +102,29 @@ qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPri
   : q_ptr(&object)
   , ModuleWindowInitialized(false)
   , PlaybackTimer(NULL)
+  , LayoutManager(0)
+  , ChartXY(0)
+  , ChartTable(0)
+  , ArrayX(0)
+  , ArrayY(0)
 {
+}
+
+//-----------------------------------------------------------------------------
+qSlicerSequenceBrowserModuleWidgetPrivate::~qSlicerSequenceBrowserModuleWidgetPrivate()
+{
+  if (ChartTable)
+  {
+    this->ChartTable->Delete();
+  }
+  if (ArrayX)
+  {
+    this->ArrayX->Delete();
+  }
+  if (ArrayY)
+  {
+    this->ArrayY->Delete();
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -102,6 +157,65 @@ qSlicerSequenceBrowserModuleWidgetPrivate::logic() const
   }
   return logic;
 } 
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidgetPrivate::init()
+{
+  this->ChartXY = this->ChartView_iCharting->chart();
+  this->ChartTable = vtkTable::New();
+  this->ArrayX = vtkFloatArray::New();
+  this->ArrayY = vtkFloatArray::New();
+  this->ArrayX->SetName("X axis");
+  this->ArrayY->SetName("Y axis");
+  this->ChartTable->AddColumn(this->ArrayX);
+  this->ChartTable->AddColumn(this->ArrayY);
+
+  this->resetInteractiveCharting();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidgetPrivate::resetInteractiveCharting()
+{
+  this->ChartXY->RemovePlot(0);
+  //this->ChartXY->RemovePlot(0);
+}
+
+//-----------------------------------------------------------------------------
+qMRMLSliceWidget * qSlicerSequenceBrowserModuleWidgetPrivate::slicerWidget(vtkInteractorObserver * interactorStyle) const
+{
+  if (!this->LayoutManager)
+  {
+    return 0;
+  }
+  foreach(const QString& sliceViewName, this->LayoutManager->sliceViewNames())
+  {
+    qMRMLSliceWidget * sliceWidget = this->LayoutManager->sliceWidget(sliceViewName);
+    Q_ASSERT(sliceWidget);
+    if (sliceWidget->sliceView()->interactorStyle() == interactorStyle)
+    {
+      return sliceWidget;
+    }
+  }
+  return 0;
+}
+
+//-----------------------------------------------------------------------------
+QList<vtkInteractorObserver*>
+qSlicerSequenceBrowserModuleWidgetPrivate::currentLayoutSliceViewInteractorStyles() const
+{
+  QList<vtkInteractorObserver*> interactorStyles;
+  if (!this->LayoutManager)
+  {
+    return interactorStyles;
+  }
+  foreach(const QString& sliceViewName, this->LayoutManager->sliceViewNames())
+  {
+    qMRMLSliceWidget * sliceWidget = this->LayoutManager->sliceWidget(sliceViewName);
+    Q_ASSERT(sliceWidget);
+    interactorStyles << sliceWidget->sliceView()->interactorStyle();
+  }
+  return interactorStyles;
+}
 
 //-----------------------------------------------------------------------------
 // qSlicerSequenceBrowserModuleWidget methods
@@ -148,6 +262,8 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
   
+  d->init();
+
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multidimDataRootNodeChanged(vtkMRMLNode*)) );
   connect( d->slider_IndexValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedItemNumber(int)) );  
@@ -168,6 +284,9 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   // Handle scene change event if occurs
   qvtkConnect( d->logic(), vtkCommand::ModifiedEvent, this, SLOT( onLogicModified() ) );
+
+  // Add layout connection to transform info widget
+  this->setLayoutManager(qSlicerApplication::application()->layoutManager());
 
 }
 
@@ -215,7 +334,7 @@ void qSlicerSequenceBrowserModuleWidget::onNodeAddedEvent(vtkObject*, vtkObject*
   {
     return;
   }
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 }
 
 //-----------------------------------------------------------------------------
@@ -227,19 +346,19 @@ void qSlicerSequenceBrowserModuleWidget::onNodeRemovedEvent(vtkObject* scene, vt
     {
     return;
     }
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndImportEvent()
 {
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndRestoreEvent()
 {
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 }
 
 //-----------------------------------------------------------------------------
@@ -249,7 +368,7 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndBatchProcessEvent()
     {
     return;
     }
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 }
 
 //-----------------------------------------------------------------------------
@@ -259,7 +378,7 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndCloseEvent()
     {
     return;
     }
-  refreshSynchronizedRootNodesTable();
+  this->refreshSynchronizedRootNodesTable();
 } 
 
 
@@ -278,7 +397,7 @@ void qSlicerSequenceBrowserModuleWidget::exit()
 void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* node)
 {
   vtkMRMLSequenceBrowserNode* browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(node);  
-  setActiveBrowserNode(browserNode);
+  this->setActiveBrowserNode(browserNode);
 }
 
 
@@ -286,19 +405,19 @@ void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* n
 void qSlicerSequenceBrowserModuleWidget::multidimDataRootNodeChanged(vtkMRMLNode* inputNode)
 {
   vtkMRMLSequenceNode* multidimDataRootNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);  
-  setSequenceRootNode(multidimDataRootNode);
+  this->setSequenceRootNode(multidimDataRootNode);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
-  updateWidgetFromMRML();
+  this->updateWidgetFromMRML();
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vtkObject* inputNode)
 {
-  updateWidgetFromMRML();  
+  this->updateWidgetFromMRML();  
 }
 
 //-----------------------------------------------------------------------------
@@ -379,7 +498,7 @@ void qSlicerSequenceBrowserModuleWidget::setPlaybackLoopEnabled(bool loopEnabled
   if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "onVcrPlaybackLoopStateChanged failed: no active browser node is selected";
-    updateWidgetFromMRML();
+    this->updateWidgetFromMRML();
     return;
   }
   if (loopEnabled!=d->activeBrowserNode()->GetPlaybackLooped())
@@ -395,7 +514,7 @@ void qSlicerSequenceBrowserModuleWidget::setPlaybackRateFps(double playbackRateF
   if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setPlaybackRateFps failed: no active browser node is selected";
-    updateWidgetFromMRML();
+    this->updateWidgetFromMRML();
     return;
   }
   if (playbackRateFps!=d->activeBrowserNode()->GetPlaybackRateFps())
@@ -419,7 +538,7 @@ void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBro
   }
   d->MRMLNodeComboBox_ActiveBrowser->setCurrentNode(browserNode);
 
-  updateWidgetFromMRML();
+  this->updateWidgetFromMRML();
 }
 
 
@@ -430,7 +549,7 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
   if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setSequenceRootNode failed: no active browser node is selected";
-    updateWidgetFromMRML();
+    this->updateWidgetFromMRML();
     return;
   }
   if (multidimDataRootNode!=d->activeBrowserNode()->GetRootNode())
@@ -446,7 +565,7 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
     d->activeBrowserNode()->SetAndObserveRootNodeID(multidimDataRootNodeId);
 
     // Update d->activeBrowserNode()->SetAndObserveSelectedSequenceNodeID
-    setSelectedItemNumber(0);
+    this->setSelectedItemNumber(0);
 
     d->activeBrowserNode()->EndModify(oldModify);
   }   
@@ -459,7 +578,7 @@ void qSlicerSequenceBrowserModuleWidget::setSelectedItemNumber(int itemNumber)
   if (d->activeBrowserNode()==NULL)
   {
     qCritical() << "setSelectedItemNumber failed: no active browser node is selected";
-    updateWidgetFromMRML();
+    this->updateWidgetFromMRML();
     return;
   }
   int selectedItemNumber=-1;
@@ -730,3 +849,128 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged(i
     d->activeBrowserNode()->RemoveSynchronizedRootNode(synchronizedNodeId.c_str());
   }
 }
+
+//-----------------------------------------------------------------------------
+CTK_GET_CPP(qSlicerSequenceBrowserModuleWidget, qSlicerLayoutManager*, layoutManager, LayoutManager)
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::setLayoutManager(qSlicerLayoutManager* layoutManager)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+
+  if (layoutManager == d->LayoutManager)
+  {
+    return;
+  }
+  if (d->LayoutManager)
+  {
+    disconnect(d->LayoutManager, SIGNAL(layoutChanged()), this, SLOT(onLayoutChanged()));
+  }
+  if (layoutManager)
+  {
+    connect(layoutManager, SIGNAL(layoutChanged()), this, SLOT(onLayoutChanged()));
+  }
+  d->LayoutManager = layoutManager;
+
+  this->onLayoutChanged();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onLayoutChanged()
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+
+  // Remove observers
+  foreach(vtkInteractorObserver * observedInteractorStyle, d->ObservedInteractorStyles)
+  {
+    foreach(int event, QList<int>() << vtkCommand::MouseMoveEvent << vtkCommand::EnterEvent << vtkCommand::LeaveEvent)
+    {
+      qvtkDisconnect(observedInteractorStyle, event,
+                     this, SLOT(processEvent(vtkObject*,void*,ulong,void*)));
+    }
+  }
+  d->ObservedInteractorStyles.clear();
+
+  // Add observers
+  foreach(vtkInteractorObserver * interactorStyle, d->currentLayoutSliceViewInteractorStyles())
+  {
+    foreach(int event, QList<int>() << vtkCommand::MouseMoveEvent << vtkCommand::EnterEvent << vtkCommand::LeaveEvent)
+    {
+      qvtkConnect(interactorStyle, event,
+                  this, SLOT(processEvent(vtkObject*,void*,ulong,void*)));
+    }
+    d->ObservedInteractorStyles << interactorStyle;
+  }
+}
+
+//------------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::processEvent(vtkObject* caller, void* callData, unsigned long eventId, void* clientData)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  Q_UNUSED(callData);
+  Q_UNUSED(clientData);
+
+  if (!d->pushButton_iCharting->isChecked())
+  {
+    return;
+  }
+  if (d->activeBrowserNode()==NULL)
+  {
+    return;
+  }
+  vtkMRMLSequenceNode* rootNode=d->activeBrowserNode()->GetRootNode();  
+  if (rootNode==NULL)
+  {
+    return;
+  }
+
+  if (eventId == vtkCommand::LeaveEvent)
+  {
+    d->resetInteractiveCharting();
+  }
+  else if (eventId == vtkCommand::EnterEvent || eventId == vtkCommand::MouseMoveEvent)
+  {
+    // compute RAS
+    vtkInteractorObserver * interactorStyle = vtkInteractorObserver::SafeDownCast(caller);
+    Q_ASSERT(d->ObservedInteractorStyles.indexOf(interactorStyle) != -1);
+    vtkRenderWindowInteractor * interactor = interactorStyle->GetInteractor();
+    int xy[2] = {-1, -1};
+    interactor->GetEventPosition(xy);
+    qMRMLSliceWidget * sliceWidget = d->slicerWidget(interactorStyle);
+    Q_ASSERT(sliceWidget);
+    const qMRMLSliceView * sliceView = sliceWidget->sliceView();
+    QList<double> xyz = const_cast<qMRMLSliceView *>(sliceView)->convertDeviceToXYZ(QList<int>() << xy[0] << xy[1]);
+    QList<double> ras = const_cast<qMRMLSliceView *>(sliceView)->convertXYZToRAS(xyz);
+    vtkMRMLSliceLogic * sliceLogic = sliceWidget->sliceLogic();
+    vtkMRMLSliceNode * sliceNode = sliceWidget->mrmlSliceNode();
+
+    int numberOfDataNodes = rootNode->GetNumberOfDataNodes();
+    d->ChartTable->SetNumberOfRows(numberOfDataNodes);
+
+    for (int i = 0; i<numberOfDataNodes; i++)
+    {
+      vtkMRMLScalarVolumeNode *vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(i));
+      if (vNode)
+      {
+        vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
+        vNode->GetRASToIJKMatrix(mat);
+        const double rasTmp[4] = {ras[0], ras[1], ras[2], 1};
+        double *xyzNew = mat->MultiplyDoublePoint(rasTmp);
+        double val = vNode->GetImageData()->GetScalarComponentAsDouble(xyzNew[0], xyzNew[1], xyzNew[2], 0);
+
+        d->ChartTable->SetValue(i, 0, i);
+        d->ChartTable->SetValue(i, 1, val);
+      }
+    }
+    d->ChartTable->Update();
+    d->ChartXY->RemovePlot(0);
+    d->ChartXY->RemovePlot(0);
+
+    d->ChartXY->GetAxis(0)->SetTitle("Signal Intensity");
+    d->ChartXY->GetAxis(1)->SetTitle("Time");
+    vtkPlot* line = d->ChartXY->AddPlot(vtkChart::LINE);
+    line->SetInput(d->ChartTable, 0, 1);
+    line->SetColor(255,0,0,255);
+  }
+}
+
