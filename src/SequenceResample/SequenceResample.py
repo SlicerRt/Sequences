@@ -268,6 +268,8 @@ class SequenceResampleLogic:
     """
     Run the actual algorithm
     """
+    if outputSequenceNode:
+      outputSequenceNode.RemoveAllDataNodes()
     numOfImageNodes = referenceSequenceNode.GetNumberOfDataNodes()
 
     for i in xrange(numOfImageNodes):
@@ -282,12 +284,12 @@ class SequenceResampleLogic:
       inputNode.GetIJKToRASMatrix(inputIJK2RASMatrix)
       referenceRAS2IJKMatrix = vtk.vtkMatrix4x4()
       referenceNode.GetRASToIJKMatrix(referenceRAS2IJKMatrix)
-      inputRAS2RASMatrix = transformNode.GetMatrixTransformToParent()
+      inputRAS2RASMatrix = transformNode.GetTransformToParent()
     
-      resampleTransform = vtk.vtkTransform()
+      resampleTransform = vtk.vtkGeneralTransform()
       resampleTransform.Identity()
       resampleTransform.PostMultiply()
-      resampleTransform.SetMatrix(inputIJK2RASMatrix)
+      resampleTransform.Concatenate(inputIJK2RASMatrix)
       resampleTransform.Concatenate(inputRAS2RASMatrix) 
       resampleTransform.Concatenate(referenceRAS2IJKMatrix)
       resampleTransform.Inverse()
