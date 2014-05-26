@@ -208,7 +208,7 @@ class SequenceRegistrationWidget:
     self.outputTransformSequenceSelector.selectNodeUponCreation = True
     self.outputTransformSequenceSelector.addEnabled = True
     self.outputTransformSequenceSelector.removeEnabled = True
-    self.outputTransformSequenceSelector.noneEnabled = False
+    self.outputTransformSequenceSelector.noneEnabled = True
     self.outputTransformSequenceSelector.showHidden = False
     self.outputTransformSequenceSelector.showChildNodeTypes = False
     self.outputTransformSequenceSelector.setMRMLScene( slicer.mrmlScene )
@@ -223,63 +223,64 @@ class SequenceRegistrationWidget:
     self.outputImageSequenceSelector.selectNodeUponCreation = True
     self.outputImageSequenceSelector.addEnabled = True
     self.outputImageSequenceSelector.removeEnabled = True
-    self.outputImageSequenceSelector.noneEnabled = False
+    self.outputImageSequenceSelector.noneEnabled = True
     self.outputImageSequenceSelector.showHidden = False
     self.outputImageSequenceSelector.showChildNodeTypes = False
     self.outputImageSequenceSelector.setMRMLScene( slicer.mrmlScene )
     self.outputImageSequenceSelector.setToolTip( "Please select a sequence image node." )
     outputsFormLayout.addRow("Output sequence image node: ", self.outputImageSequenceSelector)
 
-    plottingCollapsibleButton = ctk.ctkCollapsibleButton()
-    plottingCollapsibleButton.text = "Plotting"
-    plottingCollapsibleButton.collapsed = 0
-    self.layout.addWidget(plottingCollapsibleButton)
+	# Comment out the following code as this functionality is not moved to Sequence Browser module
+    # plottingCollapsibleButton = ctk.ctkCollapsibleButton()
+    # plottingCollapsibleButton.text = "Plotting"
+    # plottingCollapsibleButton.collapsed = 0
+    # self.layout.addWidget(plottingCollapsibleButton)
     
-    plottingFrameLayout = qt.QGridLayout(plottingCollapsibleButton)
+    # plottingFrameLayout = qt.QGridLayout(plottingCollapsibleButton)
 
-    self.ChartingDisplayOptions = ("LR","AP","SI")
-    self.chartingDisplayOption = 'LR'
-    #
-    #Initialization
-    #
-    self.chartGroupBox = qt.QGroupBox("Display options:")
-    self.chartGroupBoxLayout = qt.QHBoxLayout(self.chartGroupBox)
-    plottingFrameLayout.addWidget(self.chartGroupBox,0,0,1,3)
+    # self.ChartingDisplayOptions = ("LR","AP","SI")
+    # self.chartingDisplayOption = 'LR'
+    # #
+    # #Initialization
+    # #
+    # self.chartGroupBox = qt.QGroupBox("Display options:")
+    # self.chartGroupBoxLayout = qt.QHBoxLayout(self.chartGroupBox)
+    # plottingFrameLayout.addWidget(self.chartGroupBox,0,0,1,3)
 
-    #
-    # layout selection
-    #
-    for chartingDisplayOption in self.ChartingDisplayOptions:
-      chartingDisplayOptionButton = qt.QRadioButton(chartingDisplayOption)
-      chartingDisplayOptionButton.connect('clicked()', lambda cdo=chartingDisplayOption: self.selectChartingDisplayOption(cdo))
-      self.chartGroupBoxLayout.addWidget(chartingDisplayOptionButton)
-    #self.groupBoxLayout.addRow("Layout", layoutHolder)
+    # #
+    # # layout selection
+    # #
+    # for chartingDisplayOption in self.ChartingDisplayOptions:
+      # chartingDisplayOptionButton = qt.QRadioButton(chartingDisplayOption)
+      # chartingDisplayOptionButton.connect('clicked()', lambda cdo=chartingDisplayOption: self.selectChartingDisplayOption(cdo))
+      # self.chartGroupBoxLayout.addWidget(chartingDisplayOptionButton)
+    # #self.groupBoxLayout.addRow("Layout", layoutHolder)
 
-    # add chart container widget
-    self.__chartView = ctk.ctkVTKChartView(w)
-    plottingFrameLayout.addWidget(self.__chartView,1,0,1,3)
+    # # add chart container widget
+    # self.__chartView = ctk.ctkVTKChartView(w)
+    # plottingFrameLayout.addWidget(self.__chartView,1,0,1,3)
 
-    self.__chart = self.__chartView.chart()
-    self.__chartTable = vtk.vtkTable()
-    self.__xArray = vtk.vtkFloatArray()
-    self.__yArray = vtk.vtkFloatArray()
-    self.__zArray = vtk.vtkFloatArray()
-    self.__mArray = vtk.vtkFloatArray()
-    # will crash if there is no name
-    self.__xArray.SetName('')
-    self.__yArray.SetName('signal intensity')
-    self.__zArray.SetName('')
-    self.__mArray.SetName('signal intensity')
-    self.__chartTable.AddColumn(self.__xArray)
-    self.__chartTable.AddColumn(self.__yArray)
-    self.__chartTable.AddColumn(self.__zArray)
-    self.__chartTable.AddColumn(self.__mArray)
+    # self.__chart = self.__chartView.chart()
+    # self.__chartTable = vtk.vtkTable()
+    # self.__xArray = vtk.vtkFloatArray()
+    # self.__yArray = vtk.vtkFloatArray()
+    # self.__zArray = vtk.vtkFloatArray()
+    # self.__mArray = vtk.vtkFloatArray()
+    # # will crash if there is no name
+    # self.__xArray.SetName('')
+    # self.__yArray.SetName('signal intensity')
+    # self.__zArray.SetName('')
+    # self.__mArray.SetName('signal intensity')
+    # self.__chartTable.AddColumn(self.__xArray)
+    # self.__chartTable.AddColumn(self.__yArray)
+    # self.__chartTable.AddColumn(self.__zArray)
+    # self.__chartTable.AddColumn(self.__mArray)
 
     self.outputTransformSequenceSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOutputSelect)
     self.outputImageSequenceSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOutputSelect)
 
     # Add vertical spacer
-    # self.layout.addStretch(1)
+    self.layout.addStretch(1)
 
   def onROIVisible(self):
     roi = self.InputROISelector.currentNode()
@@ -297,6 +298,7 @@ class SequenceRegistrationWidget:
 
   def onInputSelect(self):
     self.InputReady = self.fixedImageSelector.currentNode() and self.movingImageSequenceSelector.currentNode() 
+    print "input ready", self.InputReady
     self.registerButton.enabled = self.InputReady and self.OutputReady
     if self.InputROISelector.currentNode():
       self.ROIVisibilityButton.enabled = True
@@ -311,8 +313,9 @@ class SequenceRegistrationWidget:
   def onOutputSelect(self):
     self.OutputReady = self.outputTransformSequenceSelector.currentNode() or self.outputImageSequenceSelector.currentNode() 
     self.registerButton.enabled = self.InputReady and self.OutputReady
-    if self.outputTransformSequenceSelector.currentNode():
-      self.updateChart()
+    print "output ready", self.OutputReady
+    # if self.outputTransformSequenceSelector.currentNode():
+      # self.updateChart()
     
   def updateChart(self):
     outputTransformSequenceNode = self.outputTransformSequenceSelector.currentNode()
@@ -409,13 +412,8 @@ class SequenceRegistrationWidget:
     logic.RegisterImageSequence(fixedVolumeNode, movingVolumeSequenceNode, outputTransformSequenceNode, outputVolumeSequenceNode, initializeTransformModeOption, initialTransformNode, self.maskVolumeNode)
     print("finish the registration")
     
-    self.updateChart()
+    # self.updateChart()
     
-    #x = outputTransformNode.GetMatrixTransformToParent().GetElement(0,3)
-    #y = outputTransformNode.GetMatrixTransformToParent().GetElement(1,3)
-    #z = outputTransformNode.GetMatrixTransformToParent().GetElement(2,3)
-    #print "transform:", x, y, z
-
   def onReload(self,moduleName="SequenceRegistration"):
     """Generic reload method for any scripted module.
     ModuleWizard will subsitute correct default moduleName.
@@ -567,6 +565,7 @@ class SequenceRegistrationLogic:
       slicer.mrmlScene.AddNode(movingVolumeNode)
 
       outputTransformNode = slicer.vtkMRMLLinearTransformNode()
+      #outputTransformNode = slicer.vtkMRMLBSplineTransformNode()
       slicer.mrmlScene.AddNode(outputTransformNode)
     
       outputVolumeNode = None	
@@ -591,13 +590,16 @@ class SequenceRegistrationLogic:
       slicer.mrmlScene.RemoveNode(movingVolumeNode)
       if outputVolumeNode:
         slicer.mrmlScene.RemoveNode(outputVolumeNode)
-      # lastTransform = outputTransformNode
+      # Initialize the lastTransform so the next registration can start with this transform
+      lastTransform = outputTransformNode
       slicer.mrmlScene.RemoveNode(outputTransformNode)
-
+    # This is required as a temp workaround to use the transform sequence to map baseline ROI to sequence ROI
+    
     if linearTransformSequenceNode:  
       for i in range(numOfImageNodes):
         transformNode = linearTransformSequenceNode.GetNthDataNode(i)
         transformNode.Inverse()
+    
 
   def RegisterImage(self, fixedVolumeNode, movingVolumeNode, linearTransformNode, outputVolumeNode=None, initializeTransformMode='useGeometryAlign', initialTransformNode=None, maskVolumeNode=None):
     try:
@@ -632,30 +634,36 @@ class SequenceRegistrationLogic:
       else:
         parametersRigid["maskProcessingMode"] = 'NOMASK'
 
-      parametersRigid["linearTransform"] = linearTransformNode.GetID()
       if outputVolumeNode:
         parametersRigid["outputVolume"] = outputVolumeNode.GetID()
 
-      parametersRigid["useRigid"] = True
-      parametersRigid["numberOfIterations"] = 200
-      
       # parameters needed for 4D target tracking 
       # MSE seems to be working better than MMI
       # needs to inhibit the rotation for 4D tracking
       parametersRigid["costMetric"] = 'MSE'
       parametersRigid["translationScale"] = 100000.0
+      parametersRigid["numberOfIterations"] = 100
       
-      self.cliROIRigidNode = None
-      self.cliROIRigidNode = slicer.cli.run(rigidReg, self.cliROIRigidNode, parametersRigid)
+
+
+      parametersRigid["useRigid"] = True
+      parametersRigid["linearTransform"] = linearTransformNode.GetID()
+      
+      # # parametersRigid["useBSpline"] = True
+      # # parametersRigid["bsplineTransform"] = linearTransformNode.GetID()
+      # # parametersRigid["splineGridSize"] = '10,10,6'
+
+      self.cliROIRegistrationNode = None
+      self.cliROIRegistrationNode = slicer.cli.run(rigidReg, self.cliROIRegistrationNode, parametersRigid)
       waitCount = 0
 
-      while self.cliROIRigidNode.GetStatusString() != 'Completed' and waitCount < 60:
-        print(self.cliROIRigidNode.GetStatusString())
+      while self.cliROIRegistrationNode.GetStatusString() != 'Completed' and waitCount < 100:
+        print(self.cliROIRegistrationNode.GetStatusString())
         self.delayDisplay( "Register moving image to fixed image using rigid registration... %d" % waitCount )
         waitCount += 1
       self.delayDisplay("Register gMR to rMR using rigid registration finished",1)
       
-      # self.assertTrue( self.cliROIRigidNode.GetStatusString() == 'Completed' )
+      # self.assertTrue( self.cliROIRegistrationNode.GetStatusString() == 'Completed' )
       
     except Exception, e:
       import traceback
