@@ -91,44 +91,39 @@ class SequenceLabelStatisticsWidget:
     self.reloadAndTestButton.connect('clicked()', self.onReloadAndTest)
 
     #
+    # Parameter Area
+    #
+    parametersCollapsibleButton1 = ctk.ctkCollapsibleButton()
+    parametersCollapsibleButton1.text = "Parameters"
+    self.layout.addWidget(parametersCollapsibleButton1)
+
+    # Layout within the dummy collapsible button
+    parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton1)
+    
+    #
     # the grayscale volume selector
     #
-    self.grayscaleSelectorFrame = qt.QFrame(self.parent)
-    self.grayscaleSelectorFrame.setLayout(qt.QHBoxLayout())
-    self.parent.layout().addWidget(self.grayscaleSelectorFrame)
-
-    self.grayscaleSelectorLabel = qt.QLabel("Grayscale Volume: ", self.grayscaleSelectorFrame)
-    self.grayscaleSelectorLabel.setToolTip( "Select the grayscale volume (background grayscale scalar volume node) for statistics calculations")
-    self.grayscaleSelectorFrame.layout().addWidget(self.grayscaleSelectorLabel)
-
-    self.grayscaleSelector = slicer.qMRMLNodeComboBox(self.grayscaleSelectorFrame)
+    self.grayscaleSelector = slicer.qMRMLNodeComboBox()
     self.grayscaleSelector.nodeTypes = ( ("vtkMRMLSequenceNode"), "" )
     # self.grayscaleSelector.addAttribute( "vtkMRMLSequenceNode", "LabelMap", 0 )
     self.grayscaleSelector.selectNodeUponCreation = False
     self.grayscaleSelector.addEnabled = False
     self.grayscaleSelector.removeEnabled = False
-    self.grayscaleSelector.noneEnabled = True
+    self.grayscaleSelector.noneEnabled = False
     self.grayscaleSelector.showHidden = False
     self.grayscaleSelector.showChildNodeTypes = False
     self.grayscaleSelector.setMRMLScene( slicer.mrmlScene )
+    self.grayscaleSelector.setToolTip( "Select the grayscale volume (background grayscale scalar volume node) for statistics calculations." )
     # TODO: need to add a QLabel
     # self.grayscaleSelector.SetLabelText( "Master Volume:" )
-    self.grayscaleSelectorFrame.layout().addWidget(self.grayscaleSelector)
+    parametersFormLayout.addRow("Grayscale Volume Sequence: ", self.grayscaleSelector)
 
     #
     # the label volume selector
     #
-    self.labelSelectorFrame = qt.QFrame()
-    self.labelSelectorFrame.setLayout( qt.QHBoxLayout() )
-    self.parent.layout().addWidget( self.labelSelectorFrame )
-
-    self.labelSelectorLabel = qt.QLabel()
-    self.labelSelectorLabel.setText( "Label Map: " )
-    self.labelSelectorFrame.layout().addWidget( self.labelSelectorLabel )
-
     self.labelSelector = slicer.qMRMLNodeComboBox()
-    self.labelSelector.nodeTypes = ( "vtkMRMLSequenceNode", "" )
-    # self.labelSelector.addAttribute( "vtkMRMLSequenceNode", "LabelMap", "1" )
+    self.labelSelector.nodeTypes = ( "vtkMRMLSequenceNode", "vtkMRMLScalarVolumeNode" )
+    self.labelSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", "1" )
     # todo addAttribute
     self.labelSelector.selectNodeUponCreation = False
     self.labelSelector.addEnabled = False
@@ -138,23 +133,23 @@ class SequenceLabelStatisticsWidget:
     self.labelSelector.showChildNodeTypes = False
     self.labelSelector.setMRMLScene( slicer.mrmlScene )
     self.labelSelector.setToolTip( "Pick the label map to edit" )
-    self.labelSelectorFrame.layout().addWidget( self.labelSelector )
+    parametersFormLayout.addRow("Labelmap/Sequence: ", self.labelSelector)
 
     # Apply button
     self.applyButton = qt.QPushButton("Apply")
     self.applyButton.toolTip = "Calculate Statistics."
     self.applyButton.enabled = False
-    self.parent.layout().addWidget(self.applyButton)
+    parametersFormLayout.addRow(self.applyButton)
 
     # model and view for stats table
     self.view = qt.QTableView()
     self.view.sortingEnabled = True
-    self.parent.layout().addWidget(self.view)
+    parametersFormLayout.addRow(self.view)
 
     # Chart button
     self.chartFrame = qt.QFrame()
     self.chartFrame.setLayout(qt.QHBoxLayout())
-    self.parent.layout().addWidget(self.chartFrame)
+    parametersFormLayout.addRow(self.chartFrame)
     self.chartButton = qt.QPushButton("Chart")
     self.chartButton.toolTip = "Make a chart from the current statistics."
     self.chartFrame.layout().addWidget(self.chartButton)
@@ -173,10 +168,10 @@ class SequenceLabelStatisticsWidget:
     self.saveButton = qt.QPushButton("Save")
     self.saveButton.toolTip = "Calculate Statistics."
     self.saveButton.enabled = False
-    self.parent.layout().addWidget(self.saveButton)
+    parametersFormLayout.addRow(self.saveButton)
 
     # Add vertical spacer
-    self.parent.layout().addStretch(1)
+    self.layout.addStretch(1)
 
     # connections
     self.applyButton.connect('clicked()', self.onApply)
@@ -199,9 +194,11 @@ class SequenceLabelStatisticsWidget:
     if not self.grayscaleNode or not self.labelNode:
       return False
     
-    if not self.grayscaleNode.GetNumberOfDataNodes() or not self.labelNode.GetNumberOfDataNodes():
+    if not self.grayscaleNode.GetNumberOfDataNodes():
       return False
-      
+    if self.labelNode.IsA("vtkMRMLSequenceNode"):
+      if not self.labelNode.GetNumberOfDataNodes():
+        return False
     return True
 
   def onApply(self):
@@ -247,8 +244,8 @@ class SequenceLabelStatisticsWidget:
   def populateStats(self):
     if not self.logic:
       return
-    displayNode = self.labelNode.GetNthDataNode(0).GetDisplayNode()
-    colorNode = displayNode.GetColorNode()
+    #displayNode = self.labelNode.GetNthDataNode(0).GetDisplayNode()
+    #colorNode = displayNode.GetColorNode()
     #lut = colorNode.GetLookupTable()
     self.items = []
     self.model = qt.QStandardItemModel()
@@ -343,13 +340,16 @@ class SequenceLabelStatisticsLogic:
     #import numpy
 
     numOfDataNodes = grayscaleNode.GetNumberOfDataNodes()
-    numOfDataNodes2 = labelNode.GetNumberOfDataNodes()
-    
-    if numOfDataNodes != numOfDataNodes2:
-      return
+    if labelNode.IsA("vtkMRMLSequenceNode"):
+      numOfDataNodes2 = labelNode.GetNumberOfDataNodes()
+      if numOfDataNodes != numOfDataNodes2:
+        return
     
     self.keys = ("Index", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
-    cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetNthDataNode(0).GetSpacing())
+    if labelNode.IsA("vtkMRMLSequenceNode"):
+      cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetNthDataNode(0).GetSpacing())
+    elif labelNode.isA("vtkMRMLScalarVolumeNode"):
+      cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetSpacing())
     ccPerCubicMM = 0.001
 
     # TODO: progress and status updates
@@ -359,6 +359,10 @@ class SequenceLabelStatisticsLogic:
     self.labelStats['Labels'] = []
 
     stataccum = vtk.vtkImageAccumulate()
+    if labelNode.IsA("vtkMRMLSequenceNode"):
+      stataccum.SetInput(labelNode.GetNthDataNode(0).GetImageData())
+    elif labelNode.IsA("vtkMRMLScalarVolumeNode"):
+      stataccum.SetInput(labelNode.GetImageData())
     stataccum.SetInput(labelNode.GetNthDataNode(0).GetImageData())
     stataccum.Update()
     # lo = int(stataccum.GetMin()[0])
@@ -375,7 +379,10 @@ class SequenceLabelStatisticsLogic:
       # //logic copied from slicer2 SequenceLabelStatistics MaskStat
       # // create the binary volume of the label
       thresholder = vtk.vtkImageThreshold()
-      thresholder.SetInput(labelNode.GetNthDataNode(i).GetImageData())
+      if labelNode.IsA("vtkMRMLSequenceNode"):
+        thresholder.SetInput(labelNode.GetNthDataNode(i).GetImageData())
+      elif labelNode.IsA("vtkMRMLScalarVolumeNode"):
+        thresholder.SetInput(labelNode.GetImageData())
       thresholder.SetInValue(1)
       thresholder.SetOutValue(0)
       thresholder.ReplaceOutOn()
@@ -458,8 +465,9 @@ class SequenceLabelStatisticsLogic:
     chartNode.SetProperty('default', 'showLegend', 'off')
 
     # series level properties
-    if labelNode.GetNthDataNode(0).GetDisplayNode() != None and labelNode.GetNthDataNode(0).GetDisplayNode().GetColorNode() != None:
-      chartNode.SetProperty(valueToPlot, 'lookupTable', labelNode.GetNthDataNode(0).GetDisplayNode().GetColorNodeID())
+    if labelNode.IsA("vtkMRMLSequenceNode"):
+      if labelNode.GetNthDataNode(0).GetDisplayNode() != None and labelNode.GetNthDataNode(0).GetDisplayNode().GetColorNode() != None:
+        chartNode.SetProperty(valueToPlot, 'lookupTable', labelNode.GetNthDataNode(0).GetDisplayNode().GetColorNodeID())
     else:
       chartNode.SetProperty(valueToPlot, 'lookupTable', slicer.mrmlScene.GetNodeByID('vtkMRMLColorTableNodeRed'))
 
