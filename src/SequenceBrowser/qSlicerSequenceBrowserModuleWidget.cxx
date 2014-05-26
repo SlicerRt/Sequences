@@ -33,6 +33,7 @@
 // MRML includes
 #include "vtkMRMLScene.h"
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLTransformNode.h"
 
 // Sequence includes
 #include "vtkSlicerSequenceBrowserLogic.h"
@@ -48,6 +49,7 @@
 #include <vtkAxis.h>
 #include <vtkMatrix4x4.h>
 #include <vtkImageData.h>
+#include <vtkAbstractTransform.h>
 
 
 
@@ -91,7 +93,9 @@ public:
   vtkChartXY* ChartXY;
   vtkTable* ChartTable;
   vtkFloatArray* ArrayX;
-  vtkFloatArray* ArrayY;
+  vtkFloatArray* ArrayY1;
+  vtkFloatArray* ArrayY2;
+  vtkFloatArray* ArrayY3;
 };
 
 //-----------------------------------------------------------------------------
@@ -106,7 +110,9 @@ qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPri
   , ChartXY(0)
   , ChartTable(0)
   , ArrayX(0)
-  , ArrayY(0)
+  , ArrayY1(0)
+  , ArrayY2(0)
+  , ArrayY3(0)
 {
 }
 
@@ -121,9 +127,17 @@ qSlicerSequenceBrowserModuleWidgetPrivate::~qSlicerSequenceBrowserModuleWidgetPr
   {
     this->ArrayX->Delete();
   }
-  if (ArrayY)
+  if (ArrayY1)
   {
-    this->ArrayY->Delete();
+    this->ArrayY1->Delete();
+  }
+  if (ArrayY2)
+  {
+    this->ArrayY2->Delete();
+  }
+  if (ArrayY3)
+  {
+    this->ArrayY3->Delete();
   }
 }
 
@@ -164,11 +178,17 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::init()
   this->ChartXY = this->ChartView_iCharting->chart();
   this->ChartTable = vtkTable::New();
   this->ArrayX = vtkFloatArray::New();
-  this->ArrayY = vtkFloatArray::New();
+  this->ArrayY1 = vtkFloatArray::New();
+  this->ArrayY2 = vtkFloatArray::New();
+  this->ArrayY3 = vtkFloatArray::New();
   this->ArrayX->SetName("X axis");
-  this->ArrayY->SetName("Y axis");
+  this->ArrayY1->SetName("Y1 axis");
+  this->ArrayY2->SetName("Y2 axis");
+  this->ArrayY3->SetName("Y3 axis");
   this->ChartTable->AddColumn(this->ArrayX);
-  this->ChartTable->AddColumn(this->ArrayY);
+  this->ChartTable->AddColumn(this->ArrayY1);
+  this->ChartTable->AddColumn(this->ArrayY2);
+  this->ChartTable->AddColumn(this->ArrayY3);
 
   this->resetInteractiveCharting();
 }
@@ -177,7 +197,8 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::init()
 void qSlicerSequenceBrowserModuleWidgetPrivate::resetInteractiveCharting()
 {
   this->ChartXY->RemovePlot(0);
-  //this->ChartXY->RemovePlot(0);
+  this->ChartXY->RemovePlot(0);
+  this->ChartXY->RemovePlot(0);
 }
 
 //-----------------------------------------------------------------------------
@@ -947,30 +968,78 @@ void qSlicerSequenceBrowserModuleWidget::processEvent(vtkObject* caller, void* c
     int numberOfDataNodes = rootNode->GetNumberOfDataNodes();
     d->ChartTable->SetNumberOfRows(numberOfDataNodes);
 
-    for (int i = 0; i<numberOfDataNodes; i++)
+    vtkMRMLScalarVolumeNode *vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(0));
+    if (vNode)
     {
-      vtkMRMLScalarVolumeNode *vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(i));
-      if (vNode)
+      int numOfScalarComponents = 0;
+      numOfScalarComponents = vNode->GetImageData()->GetNumberOfScalarComponents();
+      if (numOfScalarComponents > 3)
       {
-        vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
-        vNode->GetRASToIJKMatrix(mat);
-        const double rasTmp[4] = {ras[0], ras[1], ras[2], 1};
-        double *xyzNew = mat->MultiplyDoublePoint(rasTmp);
-        double val = vNode->GetImageData()->GetScalarComponentAsDouble(xyzNew[0], xyzNew[1], xyzNew[2], 0);
-
+        return;
+      }
+      for (int i = 0; i<numberOfDataNodes; i++)
+      {
+        vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(i));
         d->ChartTable->SetValue(i, 0, i);
-        d->ChartTable->SetValue(i, 1, val);
+        for (int c = 0; c<numOfScalarComponents; c++)
+        {
+          vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
+          vNode->GetRASToIJKMatrix(mat);
+          const double rasTmp[4] = {ras[0], ras[1], ras[2], 1};
+          double *xyzNew = mat->MultiplyDoublePoint(rasTmp);
+          double val = vNode->GetImageData()->GetScalarComponentAsDouble(xyzNew[0], xyzNew[1], xyzNew[2], c);
+
+          d->ChartTable->SetValue(i, c+1, val);
+        }
+      }
+      //d->ChartTable->Update();
+      d->ChartXY->RemovePlot(0);
+      d->ChartXY->RemovePlot(0);
+      d->ChartXY->RemovePlot(0);
+
+      d->ChartXY->GetAxis(0)->SetTitle("Signal Intensity");
+      d->ChartXY->GetAxis(1)->SetTitle("Time");
+
+      for (int c = 0; c<numOfScalarComponents; c++)
+      {
+        vtkPlot* line = d->ChartXY->AddPlot(vtkChart::LINE);
+        line->SetInput(d->ChartTable, 0, c+1);
+        //line->SetColor(255,0,0,255);
       }
     }
-    d->ChartTable->Update();
-    d->ChartXY->RemovePlot(0);
-    d->ChartXY->RemovePlot(0);
+    
+    vtkMRMLTransformNode *tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(0));
+    if (tNode)
+    {
+      for (int i = 0; i<numberOfDataNodes; i++)
+      {
+        tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(i));
+        vtkAbstractTransform* Trans2Parent = tNode->GetTransformToParent();
 
-    d->ChartXY->GetAxis(0)->SetTitle("Signal Intensity");
-    d->ChartXY->GetAxis(1)->SetTitle("Time");
-    vtkPlot* line = d->ChartXY->AddPlot(vtkChart::LINE);
-    line->SetInput(d->ChartTable, 0, 1);
-    line->SetColor(255,0,0,255);
+        double* newRas = Trans2Parent->TransformDoublePoint(ras[0], ras[1], ras[2]);
+
+        d->ChartTable->SetValue(i, 0, i);
+        d->ChartTable->SetValue(i, 1, newRas[0]-ras[0]);
+        d->ChartTable->SetValue(i, 2, newRas[1]-ras[1]);
+        d->ChartTable->SetValue(i, 3, newRas[2]-ras[2]);
+      }
+      //d->ChartTable->Update();
+      d->ChartXY->RemovePlot(0);
+      d->ChartXY->RemovePlot(0);
+      d->ChartXY->RemovePlot(0);
+
+      d->ChartXY->GetAxis(0)->SetTitle("Displacement");
+      d->ChartXY->GetAxis(1)->SetTitle("Time");
+      vtkPlot* lineX = d->ChartXY->AddPlot(vtkChart::LINE);
+      lineX->SetInput(d->ChartTable, 0, 1);
+      lineX->SetColor(255,0,0,255);
+      vtkPlot* lineY = d->ChartXY->AddPlot(vtkChart::LINE);
+      lineY->SetInput(d->ChartTable, 0, 2);
+      lineY->SetColor(0,255,0,255);
+      vtkPlot* lineZ = d->ChartXY->AddPlot(vtkChart::LINE);
+      lineZ->SetInput(d->ChartTable, 0, 3);
+      lineZ->SetColor(0,0,255,255);
+    }
   }
 }
 

@@ -28,6 +28,8 @@
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLLinearTransformNode.h"
+#include "vtkMRMLGridTransformNode.h"
+#include "vtkMRMLBSplineTransformNode.h"
 #include "vtkMRMLScene.h"
 
 // VTK includes
@@ -348,6 +350,20 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkMRMLLinearTransformNode* sourceLinearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(source);
     targetLinearTransformNode->SetMatrixTransformToParent(sourceLinearTransformNode->GetMatrixTransformToParent());
     targetLinearTransformNode->SetMatrixTransformFromParent(sourceLinearTransformNode->GetMatrixTransformFromParent());
+  }
+  else if (target->IsA("vtkMRMLBSplineTransformNode"))
+  {
+    vtkMRMLBSplineTransformNode* targetBSplineTransformNode=vtkMRMLBSplineTransformNode::SafeDownCast(target);
+    vtkMRMLBSplineTransformNode* sourceBSplineTransformNode=vtkMRMLBSplineTransformNode::SafeDownCast(source);
+    targetBSplineTransformNode->SetAndObserveTransformToParent(sourceBSplineTransformNode->GetTransformToParent());
+    targetBSplineTransformNode->SetAndObserveTransformFromParent(sourceBSplineTransformNode->GetTransformFromParent());
+  }
+  else if (target->IsA("vtkMRMLGridTransformNode"))
+  {
+    vtkMRMLGridTransformNode* targetGridTransformNode=vtkMRMLGridTransformNode::SafeDownCast(target);
+    vtkMRMLGridTransformNode* sourceGridTransformNode=vtkMRMLGridTransformNode::SafeDownCast(source);
+    targetGridTransformNode->SetAndObserveTransformToParent(sourceGridTransformNode->GetTransformToParent());
+    targetGridTransformNode->SetAndObserveTransformFromParent(sourceGridTransformNode->GetTransformFromParent());
   }
   else if (target->IsA("vtkMRMLCameraNode"))
   {
