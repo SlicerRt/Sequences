@@ -435,7 +435,15 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
     vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
     vtkSmartPointer<vtkImageData> sliceImageData=vtkSmartPointer<vtkImageData>::New();
     sliceImageData->DeepCopy(emptySliceImageData);
+
+#if (VTK_MAJOR_VERSION <= 5)
+    sliceImageData->SetScalarType(imageData->GetScalarType());
+    sliceImageData->SetNumberOfScalarComponents(imageData->GetNumberOfScalarComponents());
+    sliceImageData->AllocateScalars();
+#else
     sliceImageData->AllocateScalars(imageData->GetScalarType(), imageData->GetNumberOfScalarComponents());
+#endif
+
     unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, frameNumber);
     memcpy(sliceImageData->GetScalarPointer(), startPtr, sliceSize);
 

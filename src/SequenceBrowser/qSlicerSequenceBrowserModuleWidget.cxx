@@ -1003,7 +1003,11 @@ void qSlicerSequenceBrowserModuleWidget::processEvent(vtkObject* caller, void* c
       for (int c = 0; c<numOfScalarComponents; c++)
       {
         vtkPlot* line = d->ChartXY->AddPlot(vtkChart::LINE);
+#if (VTK_MAJOR_VERSION <= 5)
+        line->SetInput(d->ChartTable, 0, c+1);
+#else
         line->SetInputData(d->ChartTable, 0, c+1);
+#endif
         //line->SetColor(255,0,0,255);
       }
     }
@@ -1031,13 +1035,19 @@ void qSlicerSequenceBrowserModuleWidget::processEvent(vtkObject* caller, void* c
       d->ChartXY->GetAxis(0)->SetTitle("Displacement");
       d->ChartXY->GetAxis(1)->SetTitle("Time");
       vtkPlot* lineX = d->ChartXY->AddPlot(vtkChart::LINE);
-      lineX->SetInputData(d->ChartTable, 0, 1);
-      lineX->SetColor(255,0,0,255);
       vtkPlot* lineY = d->ChartXY->AddPlot(vtkChart::LINE);
-      lineY->SetInputData(d->ChartTable, 0, 2);
-      lineY->SetColor(0,255,0,255);
       vtkPlot* lineZ = d->ChartXY->AddPlot(vtkChart::LINE);
+#if (VTK_MAJOR_VERSION <= 5)
+      lineX->SetInput(d->ChartTable, 0, 1);
+      lineY->SetInput(d->ChartTable, 0, 2);
+      lineZ->SetInput(d->ChartTable, 0, 3);
+#else
+      lineX->SetInputData(d->ChartTable, 0, 1);
+      lineY->SetInputData(d->ChartTable, 0, 2);
       lineZ->SetInputData(d->ChartTable, 0, 3);
+#endif
+      lineX->SetColor(255,0,0,255);
+      lineY->SetColor(0,255,0,255);
       lineZ->SetColor(0,0,255,255);
     }
   }
