@@ -527,22 +527,34 @@ class SequenceRegistrationLogic:
     refImageData = refVolumeNode.GetImageData()
     imageData.SetOrigin(refImageData.GetOrigin())
     imageData.SetSpacing(refImageData.GetSpacing())
-    imageData.SetExtent(refImageData.GetWholeExtent())
-    imageData.SetScalarTypeToUnsignedChar()
-    imageData.AllocateScalars()
+    
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      imageData.SetExtent(refImageData.GetWholeExtent())
+      imageData.SetScalarTypeToUnsignedChar()
+      imageData.AllocateScalars()
+    else:
+      imageData.SetExtent(refImageData.GetExtent())
+      imageData.AllocateScalars(vtk.VTK_UNSIGNED_CHAR,1)
 
     # Convert the implicit function to a stencil
     functionToStencil = vtk.vtkImplicitFunctionToImageStencil()
     functionToStencil.SetInput(roiBox)
     functionToStencil.SetOutputOrigin(refImageData.GetOrigin())
-    functionToStencil.SetOutputSpacing(refImageData.GetSpacing())
-    functionToStencil.SetOutputWholeExtent(refImageData.GetWholeExtent())
+    functionToStencil.SetOutputSpacing(refImageData.GetSpacing())    
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      functionToStencil.SetOutputWholeExtent(refImageData.GetWholeExtent())
+    else:
+      functionToStencil.SetOutputWholeExtent(refImageData.GetExtent())
     functionToStencil.Update()
 
     # Apply the stencil to the volume
     stencilToImage=vtk.vtkImageStencil()
-    stencilToImage.SetInput(imageData)
-    stencilToImage.SetStencil(functionToStencil.GetOutput())
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      stencilToImage.SetInput(imageData)
+      stencilToImage.SetStencil(functionToStencil.GetOutput())
+    else:
+      stencilToImage.SetInputData(imageData)    
+      stencilToImage.SetStencilData(functionToStencil.GetOutput())
     stencilToImage.ReverseStencilOn()
     stencilToImage.SetBackgroundValue(1)
     stencilToImage.Update()
