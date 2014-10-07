@@ -27,6 +27,7 @@
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
+#include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLGridTransformNode.h"
 #include "vtkMRMLBSplineTransformNode.h"
@@ -343,6 +344,12 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
     targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
+  }
+  else if (target->IsA("vtkMRMLMarkupsFiducialNode"))
+  {
+    vtkMRMLMarkupsFiducialNode* targetMarkupsFiducialNode=vtkMRMLMarkupsFiducialNode::SafeDownCast(target);
+    vtkMRMLMarkupsFiducialNode* sourceMarkupsFiducialNode=vtkMRMLMarkupsFiducialNode::SafeDownCast(source);
+    targetMarkupsFiducialNode->Copy(sourceMarkupsFiducialNode);
   }
   else if (target->IsA("vtkMRMLLinearTransformNode"))
   {
