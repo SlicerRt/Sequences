@@ -275,9 +275,14 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
       importedTransformNodes[frameNumber].push_back(currentTransform);
     }
 
-    if ( frameFieldName.find( "Timestamp" ) != std::string::npos )
+    if ( frameFieldName.compare( "Timestamp" ) == 0 )
     {
-      this->FrameNumberToIndexValueMap[frameNumber] = value;
+      double timestampSec = atof(value.c_str());
+      // round timestamp to 3 decimal digits, as timestamp is included in node names and having lots of decimal digits would
+      // sometimes lead to extremely long node names
+      std::ostringstream timestampSecStr;
+      timestampSecStr << std::fixed << std::setprecision(3) << timestampSec << std::ends; 
+      this->FrameNumberToIndexValueMap[frameNumber] = timestampSecStr.str();
     }
 
     if ( ferror( stream ) )
