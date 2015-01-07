@@ -25,7 +25,7 @@ class SequenceLabelStatistics:
     except AttributeError:
       slicer.selfTests = {}
     slicer.selfTests['SequenceLabelStatistics'] = self.runTest
-    
+
   def runTest(self):
     tester = SequenceLabelStatisticsTest()
     tester.runTest()
@@ -36,6 +36,8 @@ class SequenceLabelStatistics:
 
 class SequenceLabelStatisticsWidget:
   def __init__(self, parent=None):
+    settings = qt.QSettings()
+    self.isDeveloperMode = settings.value('QtTesting/Enabled')
     self.chartOptions = ("Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
     if not parent:
       self.parent = slicer.qMRMLWidget()
@@ -65,30 +67,31 @@ class SequenceLabelStatisticsWidget:
     w.show()
     #self.layout = layout
 
-    #
-    # Reload and Test area
-    #
-    reloadCollapsibleButton = ctk.ctkCollapsibleButton()
-    reloadCollapsibleButton.text = "Reload && Test"
-    self.layout.addWidget(reloadCollapsibleButton)
-    reloadFormLayout = qt.QFormLayout(reloadCollapsibleButton)
+    if self.isDeveloperMode:
+      #
+      # Reload and Test area
+      #
+      reloadCollapsibleButton = ctk.ctkCollapsibleButton()
+      reloadCollapsibleButton.text = "Reload && Test"
+      self.layout.addWidget(reloadCollapsibleButton)
+      reloadFormLayout = qt.QFormLayout(reloadCollapsibleButton)
 
-    # reload button
-    # (use this during development, but remove it when delivering
-    #  your module to users)
-    self.reloadButton = qt.QPushButton("Reload")
-    self.reloadButton.toolTip = "Reload this module."
-    self.reloadButton.name = "SequenceLabelStatistics Reload"
-    reloadFormLayout.addWidget(self.reloadButton)
-    self.reloadButton.connect('clicked()', self.onReload)
+      # reload button
+      # (use this during development, but remove it when delivering
+      #  your module to users)
+      self.reloadButton = qt.QPushButton("Reload")
+      self.reloadButton.toolTip = "Reload this module."
+      self.reloadButton.name = "SequenceLabelStatistics Reload"
+      reloadFormLayout.addWidget(self.reloadButton)
+      self.reloadButton.connect('clicked()', self.onReload)
 
-    # reload and test button
-    # (use this during development, but remove it when delivering
-    #  your module to users)
-    self.reloadAndTestButton = qt.QPushButton("Reload and Test")
-    self.reloadAndTestButton.toolTip = "Reload this module and then run the self tests."
-    reloadFormLayout.addWidget(self.reloadAndTestButton)
-    self.reloadAndTestButton.connect('clicked()', self.onReloadAndTest)
+      # reload and test button
+      # (use this during development, but remove it when delivering
+      #  your module to users)
+      self.reloadAndTestButton = qt.QPushButton("Reload and Test")
+      self.reloadAndTestButton.toolTip = "Reload this module and then run the self tests."
+      reloadFormLayout.addWidget(self.reloadAndTestButton)
+      self.reloadAndTestButton.connect('clicked()', self.onReloadAndTest)
 
     #
     # Parameter Area
@@ -99,7 +102,7 @@ class SequenceLabelStatisticsWidget:
 
     # Layout within the dummy collapsible button
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton1)
-    
+
     #
     # the grayscale volume selector
     #
@@ -180,6 +183,11 @@ class SequenceLabelStatisticsWidget:
     self.grayscaleSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onGrayscaleSelect)
     self.labelSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onLabelSelect)
 
+    # Set initial state
+    self.grayscaleNode = self.grayscaleSelector.currentNode()
+    self.labelNode = self.labelSelector.currentNode()
+    self.applyButton.enabled = bool(self.grayscaleNode) and bool(self.labelNode)
+
   def onGrayscaleSelect(self, node):
     self.grayscaleNode = node
     self.applyButton.enabled = bool(self.grayscaleNode) and bool(self.labelNode)
@@ -193,7 +201,7 @@ class SequenceLabelStatisticsWidget:
     algorithm assumptions"""
     if not self.grayscaleNode or not self.labelNode:
       return False
-    
+
     if not self.grayscaleNode.GetNumberOfDataNodes():
       return False
     if self.labelNode.IsA("vtkMRMLSequenceNode"):
@@ -327,7 +335,7 @@ class SequenceLabelStatisticsWidget:
     except Exception, e:
       import traceback
       traceback.print_exc()
-      qt.QMessageBox.warning(slicer.util.mainWindow(), 
+      qt.QMessageBox.warning(slicer.util.mainWindow(),
           "Reload and Test", 'Exception!\n\n' + str(e) + "\n\nSee Python Console for Stack Trace")
 
 class SequenceLabelStatisticsLogic:
@@ -343,12 +351,13 @@ class SequenceLabelStatisticsLogic:
     if labelNode.IsA("vtkMRMLSequenceNode"):
       numOfDataNodes2 = labelNode.GetNumberOfDataNodes()
       if numOfDataNodes != numOfDataNodes2:
+        sys.stderr.write('Number of nodes in the grayscale volume sequence does not match the number of nodes in the labelmap volume sequence')
         return
-    
+
     self.keys = ("Index", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
     if labelNode.IsA("vtkMRMLSequenceNode"):
       cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetNthDataNode(0).GetSpacing())
-    elif labelNode.isA("vtkMRMLScalarVolumeNode"):
+    elif labelNode.IsA("vtkMRMLScalarVolumeNode"):
       cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetSpacing())
     ccPerCubicMM = 0.001
 
@@ -359,14 +368,23 @@ class SequenceLabelStatisticsLogic:
     self.labelStats['Labels'] = []
 
     stataccum = vtk.vtkImageAccumulate()
-    if labelNode.IsA("vtkMRMLSequenceNode"):
-      stataccum.SetInput(labelNode.GetNthDataNode(0).GetImageData())
-    elif labelNode.IsA("vtkMRMLScalarVolumeNode"):
-      stataccum.SetInput(labelNode.GetImageData())
-    stataccum.SetInput(labelNode.GetNthDataNode(0).GetImageData())
+    isLabelmapSequence = labelNode.IsA("vtkMRMLSequenceNode")
+    if isLabelmapSequence:
+      stataccumInput = labelNode.GetNthDataNode(0).GetImageData()
+    else:
+      stataccumInput = labelNode.GetImageData()
+
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      stataccum.SetInput(stataccumInput)
+    else:
+      stataccum.SetInputData(stataccumInput)
+
     stataccum.Update()
     # lo = int(stataccum.GetMin()[0])
     hi = int(stataccum.GetMax()[0])
+
+    # We select the highest label index for analysis
+    selectedLabelIndex = hi
 
     for i in xrange(numOfDataNodes):
 
@@ -378,15 +396,22 @@ class SequenceLabelStatisticsLogic:
       # to create the binary volume of the label
       # //logic copied from slicer2 SequenceLabelStatistics MaskStat
       # // create the binary volume of the label
+      if isLabelmapSequence:
+        stataccumInput = labelNode.GetNthDataNode(0).GetImageData()
+        if vtk.VTK_MAJOR_VERSION <= 5:
+          stataccum.SetInput(stataccumInput)
+        else:
+          stataccum.SetInputData(stataccumInput)
+
       thresholder = vtk.vtkImageThreshold()
-      if labelNode.IsA("vtkMRMLSequenceNode"):
-        thresholder.SetInput(labelNode.GetNthDataNode(i).GetImageData())
-      elif labelNode.IsA("vtkMRMLScalarVolumeNode"):
-        thresholder.SetInput(labelNode.GetImageData())
+      if vtk.VTK_MAJOR_VERSION <= 5:
+        thresholder.SetInput(stataccumInput)
+      else:
+        thresholder.SetInputData(stataccumInput)
       thresholder.SetInValue(1)
       thresholder.SetOutValue(0)
       thresholder.ReplaceOutOn()
-      thresholder.ThresholdBetween(hi,hi)
+      thresholder.ThresholdBetween(selectedLabelIndex,selectedLabelIndex)
       thresholder.SetOutputScalarType(grayscaleNode.GetNthDataNode(i).GetImageData().GetScalarType())
       thresholder.Update()
 
@@ -394,14 +419,21 @@ class SequenceLabelStatisticsLogic:
 
       #  use vtk's statistics class with the binary labelmap as a stencil
       stencil = vtk.vtkImageToImageStencil()
-      stencil.SetInput(thresholder.GetOutput())
+      if vtk.VTK_MAJOR_VERSION <= 5:
+        stencil.SetInput(thresholder.GetOutput())
+      else:
+        stencil.SetInputData(thresholder.GetOutput())
       stencil.ThresholdBetween(1, 1)
 
       # this.InvokeEvent(vtkSequenceLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.5")
 
       stat1 = vtk.vtkImageAccumulate()
-      stat1.SetInput(grayscaleNode.GetNthDataNode(i).GetImageData())
-      stat1.SetStencil(stencil.GetOutput())
+      if vtk.VTK_MAJOR_VERSION <= 5:
+        stat1.SetInput(grayscaleNode.GetNthDataNode(i).GetImageData())
+        stat1.SetStencil(stencil.GetOutput())
+      else:
+        stat1.SetInputData(grayscaleNode.GetNthDataNode(i).GetImageData())
+        stat1.SetStencilData(stencil.GetOutput())
       stat1.Update()
 
       # this.InvokeEvent(vtkSequenceLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.75")
@@ -495,7 +527,7 @@ class SequenceLabelStatisticsLogic:
     fp.close()
 
   def hasImageData(self,volumeNode):
-    """This is a dummy logic method that 
+    """This is a dummy logic method that
     returns true if the passed in volume
     node has valid image data
     """

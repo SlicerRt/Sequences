@@ -97,7 +97,23 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
       // not the first index, add a separator before adding values
       of << ";";
     }
-    of << indexIt->DataNode->GetID() << ":" << indexIt->IndexValue;
+    if (indexIt->DataNode==NULL)
+    {
+      // If we have a data node ID then store that, it is the most we know about the node that should be there
+      if (!indexIt->DataNodeID.empty())
+      {
+        // this is normal when sequence node is in scene view
+        of << indexIt->DataNodeID << ":" << indexIt->IndexValue;
+      }
+      else
+      {
+        vtkErrorMacro("Error while writing node "<<(this->GetID()?this->GetID():"(unknown)")<<" to XML: data node is invalid at index value "<<indexIt->IndexValue);
+      }
+    }
+    else
+    {
+      of << indexIt->DataNode->GetID() << ":" << indexIt->IndexValue;
+    }
   }
   of << "\"";
 
@@ -193,7 +209,27 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
     this->SequenceScene->CopyNode(node);
   }
 
-  this->IndexEntries=snode->IndexEntries;
+  this->IndexEntries.clear();
+  for(std::deque< IndexEntryType >::iterator sourceIndexIt=snode->IndexEntries.begin(); sourceIndexIt!=snode->IndexEntries.end(); ++sourceIndexIt)
+  {
+    IndexEntryType seqItem;
+    seqItem.IndexValue=sourceIndexIt->IndexValue;
+    if (sourceIndexIt->DataNode!=NULL)
+    {
+      seqItem.DataNode=this->SequenceScene->GetNodeByID(sourceIndexIt->DataNode->GetID());
+      seqItem.DataNodeID.clear();
+    }
+    if (seqItem.DataNode==NULL)
+    {
+      // data node was not found, at least copy its ID
+      seqItem.DataNodeID=sourceIndexIt->DataNodeID;
+      if (seqItem.DataNodeID.empty())
+      {
+        vtkWarningMacro("vtkMRMLSequenceNode::Copy: node was not found at index value "<<seqItem.IndexValue);
+      }
+    }
+    this->IndexEntries.push_back(seqItem);
+  }  
 
   this->DisableModifiedEventOff();
   this->InvokePendingModifiedEvent();
@@ -485,7 +521,11 @@ void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
   for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
   {
     indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
-    indexIt->DataNodeID.clear(); // clear the ID to remove redundancy in the data
+    if (indexIt->DataNode!=NULL)
+    {
+      // clear the ID to remove redundancy in the data
+      indexIt->DataNodeID.clear();
+    }
   }
 }
 

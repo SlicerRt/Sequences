@@ -24,7 +24,6 @@
 #include "qSlicerSequenceBrowserModuleExport.h"
 
 class qSlicerSequenceBrowserModuleWidgetPrivate;
-class qSlicerLayoutManager;
 class vtkMRMLSequenceNode;
 class vtkMRMLSequenceBrowserNode;
 class vtkMRMLNode;
@@ -44,17 +43,15 @@ public:
   void setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
   void setSequenceRootNode(vtkMRMLSequenceNode* multidimDataRootNode);
 
-  qSlicerLayoutManager* layoutManager()const;
-  void setLayoutManager(qSlicerLayoutManager* layoutManager);
-
 public slots:
+  void setMRMLScene(vtkMRMLScene* scene);
+
   void setSelectedItemNumber(int itemNumber);
   void setPlaybackEnabled(bool play);
   void setPlaybackRateFps(double playbackRateFps);
   void setPlaybackLoopEnabled(bool loopEnabled);  
 
-  void onLayoutChanged();
-  void processEvent(vtkObject* sender, void* callData, unsigned long eventId, void* clientData);
+  void updateChart();
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);

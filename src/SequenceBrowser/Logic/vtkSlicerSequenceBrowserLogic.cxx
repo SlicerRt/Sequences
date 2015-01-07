@@ -173,6 +173,9 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   std::vector< vtkMRMLSequenceNode* > synchronizedRootNodes;
   browserNode->GetSynchronizedRootNodes(synchronizedRootNodes, true);
   
+  // Store the previous modified state of nodes to allow calling EndModify when all the nodes are updated (to prevent multiple renderings on partial update)
+  std::vector< std::pair<vtkMRMLNode*, int> > nodeModifiedStates;
+
   for (std::vector< vtkMRMLSequenceNode* >::iterator sourceRootNodeIt=synchronizedRootNodes.begin(); sourceRootNodeIt!=synchronizedRootNodes.end(); ++sourceRootNodeIt)
   {
     vtkMRMLSequenceNode* synchronizedRootNode=(*sourceRootNodeIt);
@@ -239,7 +242,8 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     targetOutputNode->SetName(sourceNode->GetName());
 
     // Mostly it is a shallow copy (for example for volumes, models)
-    //targetOutputNode->CopyWithSingleModifiedEvent(sourceNode);
+    std::pair<vtkMRMLNode*, int> nodeModifiedState(targetOutputNode, targetOutputNode->StartModify());
+    nodeModifiedStates.push_back(nodeModifiedState);
     this->ShallowCopy(targetOutputNode, sourceNode);
 
     // Generation of data node name: root node name (IndexName = IndexValue IndexUnit)
@@ -302,6 +306,12 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 
   }
 
+  // Finalize modifications, all at once. These will fire the node modified events and update renderers.
+  for (std::vector< std::pair<vtkMRMLNode*, int> >::iterator nodeModifiedStateIt = nodeModifiedStates.begin(); nodeModifiedStateIt!=nodeModifiedStates.end(); ++nodeModifiedStateIt)
+  {
+    (nodeModifiedStateIt->first)->EndModify(nodeModifiedStateIt->second);
+  }
+
   this->UpdateVirtualOutputNodesInProgress=false;
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -331,13 +341,13 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   {
     vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
     vtkMRMLScalarVolumeNode* sourceScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(source);
-    targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData());
-    //targetScalarVolumeNode->SetAndObserveTransformNodeID(sourceScalarVolumeNode->GetTransformNodeID());
+    // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
     sourceScalarVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
     targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
     targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
+    targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
   }
   else if (target->IsA("vtkMRMLModelNode"))
   {
@@ -351,26 +361,12 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkMRMLMarkupsFiducialNode* sourceMarkupsFiducialNode=vtkMRMLMarkupsFiducialNode::SafeDownCast(source);
     targetMarkupsFiducialNode->Copy(sourceMarkupsFiducialNode);
   }
-  else if (target->IsA("vtkMRMLLinearTransformNode"))
+  else if (target->IsA("vtkMRMLTransformNode"))
   {
-    vtkMRMLLinearTransformNode* targetLinearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(target);
-    vtkMRMLLinearTransformNode* sourceLinearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(source);
-    targetLinearTransformNode->SetMatrixTransformToParent(sourceLinearTransformNode->GetMatrixTransformToParent());
-    targetLinearTransformNode->SetMatrixTransformFromParent(sourceLinearTransformNode->GetMatrixTransformFromParent());
-  }
-  else if (target->IsA("vtkMRMLBSplineTransformNode"))
-  {
-    vtkMRMLBSplineTransformNode* targetBSplineTransformNode=vtkMRMLBSplineTransformNode::SafeDownCast(target);
-    vtkMRMLBSplineTransformNode* sourceBSplineTransformNode=vtkMRMLBSplineTransformNode::SafeDownCast(source);
-    targetBSplineTransformNode->SetAndObserveTransformToParent(sourceBSplineTransformNode->GetTransformToParent());
-    targetBSplineTransformNode->SetAndObserveTransformFromParent(sourceBSplineTransformNode->GetTransformFromParent());
-  }
-  else if (target->IsA("vtkMRMLGridTransformNode"))
-  {
-    vtkMRMLGridTransformNode* targetGridTransformNode=vtkMRMLGridTransformNode::SafeDownCast(target);
-    vtkMRMLGridTransformNode* sourceGridTransformNode=vtkMRMLGridTransformNode::SafeDownCast(source);
-    targetGridTransformNode->SetAndObserveTransformToParent(sourceGridTransformNode->GetTransformToParent());
-    targetGridTransformNode->SetAndObserveTransformFromParent(sourceGridTransformNode->GetTransformFromParent());
+    vtkMRMLTransformNode* targetTransformNode=vtkMRMLTransformNode::SafeDownCast(target);
+    vtkMRMLTransformNode* sourceTransformNode=vtkMRMLTransformNode::SafeDownCast(source);
+    vtkAbstractTransform* transform=sourceTransformNode->GetTransformToParent();
+    targetTransformNode->SetAndObserveTransformToParent(transform);
   }
   else if (target->IsA("vtkMRMLCameraNode"))
   {
@@ -389,6 +385,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   }
   else
   {
+    // TODO: maybe get parent transform and restore it after the copy
     target->CopyWithSingleModifiedEvent(source);
   }
   target->EndModify(oldModified);

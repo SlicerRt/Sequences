@@ -25,12 +25,10 @@
 #include "ui_qSlicerSequenceBrowserModuleWidget.h"
 
 // QSlicer includes
-#include "qSlicerApplication.h"
-#include "qSlicerLayoutManager.h" 
-#include "qMRMLSliceWidget.h"
-#include "qMRMLSliceView.h"
+//#include "qSlicerApplication.h"
 
 // MRML includes
+#include "vtkMRMLCrosshairNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLTransformNode.h"
@@ -41,17 +39,17 @@
 #include "vtkMRMLSequenceNode.h"
 
 // VTK includes
-#include <vtkInteractorObserver.h>
-#include <vtkFloatArray.h>
-#include <vtkTable.h>
-#include <vtkChartXY.h>
-#include <vtkPlot.h>
-#include <vtkAxis.h>
-#include <vtkMatrix4x4.h>
-#include <vtkImageData.h>
 #include <vtkAbstractTransform.h>
-
-
+#include <vtkAxis.h>
+#include <vtkChartXY.h>
+#include <vtkFloatArray.h>
+#include <vtkGeneralTransform.h>
+#include <vtkImageData.h>
+#include <vtkMath.h>
+#include <vtkNew.h>
+#include <vtkPlot.h>
+#include <vtkTable.h>
+#include <vtkMatrix4x4.h>
 
 enum
 {
@@ -77,8 +75,8 @@ public:
 
   void init();
   void resetInteractiveCharting();
-  qMRMLSliceWidget * slicerWidget(vtkInteractorObserver * interactorStyle) const;
-  QList<vtkInteractorObserver*> currentLayoutSliceViewInteractorStyles() const;
+  void updateInteractiveCharting();
+  void setAndObserveCrosshairNode();
 
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
@@ -87,15 +85,14 @@ public:
   std::string ActiveBrowserNodeID;
   QTimer* PlaybackTimer; 
 
-  qSlicerLayoutManager * LayoutManager;
-  QList<vtkInteractorObserver*> ObservedInteractorStyles;
-
   vtkChartXY* ChartXY;
   vtkTable* ChartTable;
   vtkFloatArray* ArrayX;
   vtkFloatArray* ArrayY1;
   vtkFloatArray* ArrayY2;
   vtkFloatArray* ArrayY3;
+
+  vtkWeakPointer<vtkMRMLCrosshairNode> CrosshairNode;
 };
 
 //-----------------------------------------------------------------------------
@@ -106,7 +103,6 @@ qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPri
   : q_ptr(&object)
   , ModuleWindowInitialized(false)
   , PlaybackTimer(NULL)
-  , LayoutManager(0)
   , ChartXY(0)
   , ChartTable(0)
   , ArrayX(0)
@@ -114,6 +110,7 @@ qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPri
   , ArrayY2(0)
   , ArrayY3(0)
 {
+  this->CrosshairNode = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -139,6 +136,23 @@ qSlicerSequenceBrowserModuleWidgetPrivate::~qSlicerSequenceBrowserModuleWidgetPr
   {
     this->ArrayY3->Delete();
   }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidgetPrivate::setAndObserveCrosshairNode()
+{
+  Q_Q(qSlicerSequenceBrowserModuleWidget);
+
+  vtkMRMLCrosshairNode* crosshairNode = 0;
+  if (q->mrmlScene())
+    {
+    crosshairNode = vtkMRMLCrosshairNode::SafeDownCast(q->mrmlScene()->GetNthNodeByClass(0, "vtkMRMLCrosshairNode"));
+    }
+
+  q->qvtkReconnect(this->CrosshairNode.GetPointer(), crosshairNode,
+    vtkMRMLCrosshairNode::CursorPositionModifiedEvent,
+    q, SLOT(updateChart()));
+  this->CrosshairNode = crosshairNode;
 }
 
 //-----------------------------------------------------------------------------
@@ -202,40 +216,142 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::resetInteractiveCharting()
 }
 
 //-----------------------------------------------------------------------------
-qMRMLSliceWidget * qSlicerSequenceBrowserModuleWidgetPrivate::slicerWidget(vtkInteractorObserver * interactorStyle) const
+void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
 {
-  if (!this->LayoutManager)
+  Q_Q(qSlicerSequenceBrowserModuleWidget);
+
+  if (this->CrosshairNode.GetPointer()==NULL)
   {
-    return 0;
+    qWarning() << "qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting failed: crosshair node is not available";
+    resetInteractiveCharting();
+    return;
   }
-  foreach(const QString& sliceViewName, this->LayoutManager->sliceViewNames())
+  vtkMRMLSequenceNode* rootNode = this->activeBrowserNode() ? this->activeBrowserNode()->GetRootNode() : NULL;
+  if (rootNode==NULL)
   {
-    qMRMLSliceWidget * sliceWidget = this->LayoutManager->sliceWidget(sliceViewName);
-    Q_ASSERT(sliceWidget);
-    if (sliceWidget->sliceView()->interactorStyle() == interactorStyle)
+    resetInteractiveCharting();
+    return;
+  }
+  double croshairPosition_RAS[4]={0,0,0,1}; // homogeneous coordinate to allow transform by matrix multiplication
+  bool validPosition = this->CrosshairNode->GetCursorPositionRAS(croshairPosition_RAS);
+  if (!validPosition)
+  {
+    resetInteractiveCharting();
+    return;
+  }
+  vtkMRMLNode* virtualOutputNode = this->activeBrowserNode()->GetVirtualOutputDataNode(rootNode);
+  vtkMRMLTransformableNode* transformableVirtualOutputNode = vtkMRMLTransformableNode::SafeDownCast(virtualOutputNode);
+
+  int numberOfDataNodes = rootNode->GetNumberOfDataNodes();
+  this->ChartTable->SetNumberOfRows(numberOfDataNodes);
+
+  vtkMRMLScalarVolumeNode *vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(0));
+  if (vNode)
+  {
+    int numOfScalarComponents = 0;
+    numOfScalarComponents = vNode->GetImageData()->GetNumberOfScalarComponents();
+    if (numOfScalarComponents > 3)
     {
-      return sliceWidget;
+      return;
+    }
+    vtkNew<vtkGeneralTransform> worldTransform;
+    worldTransform->Identity();
+    vtkMRMLTransformNode *transformNode = transformableVirtualOutputNode ? transformableVirtualOutputNode->GetParentTransformNode() : NULL;
+    if ( transformNode )
+    {
+      transformNode->GetTransformFromWorld(worldTransform.GetPointer());
+    }
+
+    int numberOfValidPoints = 0;
+    for (int i = 0; i<numberOfDataNodes; i++)
+    {
+      vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(i));
+      this->ChartTable->SetValue(i, 0, i);
+
+      vtkNew<vtkGeneralTransform> worldToIjkTransform;
+      worldToIjkTransform->PostMultiply();
+      worldToIjkTransform->Identity();
+      vtkNew<vtkMatrix4x4> rasToIjkMatrix;
+      vNode->GetRASToIJKMatrix(rasToIjkMatrix.GetPointer());
+      worldToIjkTransform->Concatenate(rasToIjkMatrix.GetPointer());
+      worldToIjkTransform->Concatenate(worldTransform.GetPointer());
+
+      double *crosshairPositionDouble_IJK = worldToIjkTransform->TransformDoublePoint(croshairPosition_RAS);
+      int croshairPosition_IJK[3]={vtkMath::Round(crosshairPositionDouble_IJK[0]), vtkMath::Round(crosshairPositionDouble_IJK[1]), vtkMath::Round(crosshairPositionDouble_IJK[2])};
+      int* imageExtent = vNode->GetImageData()->GetExtent();
+      bool isCrosshairInsideImage = imageExtent[0]<=croshairPosition_IJK[0] && croshairPosition_IJK[0]<=imageExtent[1] 
+          && imageExtent[2]<=croshairPosition_IJK[1] && croshairPosition_IJK[1]<=imageExtent[3]
+          && imageExtent[4]<=croshairPosition_IJK[2] && croshairPosition_IJK[2]<=imageExtent[5];
+      if (isCrosshairInsideImage)
+      {
+        numberOfValidPoints++;
+      }
+      for (int c = 0; c<numOfScalarComponents; c++)
+      {
+        double val = isCrosshairInsideImage ? vNode->GetImageData()->GetScalarComponentAsDouble(croshairPosition_IJK[0], croshairPosition_IJK[1], croshairPosition_IJK[2], c) : 0;
+        this->ChartTable->SetValue(i, c+1, val);
+      }
+    }
+    //this->ChartTable->Update();
+    this->ChartXY->RemovePlot(0);
+    this->ChartXY->RemovePlot(0);
+    this->ChartXY->RemovePlot(0);
+
+    if (numberOfValidPoints>0)
+    {
+      this->ChartXY->GetAxis(0)->SetTitle("Signal Intensity");
+      this->ChartXY->GetAxis(1)->SetTitle("Time");
+      for (int c = 0; c<numOfScalarComponents; c++)
+      {
+        vtkPlot* line = this->ChartXY->AddPlot(vtkChart::LINE);
+#if (VTK_MAJOR_VERSION <= 5)
+        line->SetInput(this->ChartTable, 0, c+1);
+#else
+        line->SetInputData(this->ChartTable, 0, c+1);
+#endif
+        //line->SetColor(255,0,0,255);
+      }
     }
   }
-  return 0;
-}
 
-//-----------------------------------------------------------------------------
-QList<vtkInteractorObserver*>
-qSlicerSequenceBrowserModuleWidgetPrivate::currentLayoutSliceViewInteractorStyles() const
-{
-  QList<vtkInteractorObserver*> interactorStyles;
-  if (!this->LayoutManager)
+  vtkMRMLTransformNode *tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(0));
+  if (tNode)
   {
-    return interactorStyles;
+    for (int i = 0; i<numberOfDataNodes; i++)
+    {
+      tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(i));
+      vtkAbstractTransform* trans2Parent = tNode->GetTransformToParent();
+
+      double* transformedcroshairPosition_RAS = trans2Parent->TransformDoublePoint(croshairPosition_RAS);
+
+      this->ChartTable->SetValue(i, 0, i);
+      this->ChartTable->SetValue(i, 1, transformedcroshairPosition_RAS[0]-croshairPosition_RAS[0]);
+      this->ChartTable->SetValue(i, 2, transformedcroshairPosition_RAS[1]-croshairPosition_RAS[1]);
+      this->ChartTable->SetValue(i, 3, transformedcroshairPosition_RAS[2]-croshairPosition_RAS[2]);
+    }
+    //this->ChartTable->Update();
+    this->ChartXY->RemovePlot(0);
+    this->ChartXY->RemovePlot(0);
+    this->ChartXY->RemovePlot(0);
+
+    this->ChartXY->GetAxis(0)->SetTitle("Displacement");
+    this->ChartXY->GetAxis(1)->SetTitle("Time");
+    vtkPlot* lineX = this->ChartXY->AddPlot(vtkChart::LINE);
+    vtkPlot* lineY = this->ChartXY->AddPlot(vtkChart::LINE);
+    vtkPlot* lineZ = this->ChartXY->AddPlot(vtkChart::LINE);
+#if (VTK_MAJOR_VERSION <= 5)
+    lineX->SetInput(this->ChartTable, 0, 1);
+    lineY->SetInput(this->ChartTable, 0, 2);
+    lineZ->SetInput(this->ChartTable, 0, 3);
+#else
+    lineX->SetInputData(this->ChartTable, 0, 1);
+    lineY->SetInputData(this->ChartTable, 0, 2);
+    lineZ->SetInputData(this->ChartTable, 0, 3);
+#endif
+    lineX->SetColor(255,0,0,255);
+    lineY->SetColor(0,255,0,255);
+    lineZ->SetColor(0,0,255,255);
   }
-  foreach(const QString& sliceViewName, this->LayoutManager->sliceViewNames())
-  {
-    qMRMLSliceWidget * sliceWidget = this->LayoutManager->sliceWidget(sliceViewName);
-    Q_ASSERT(sliceWidget);
-    interactorStyles << sliceWidget->sliceView()->interactorStyle();
-  }
-  return interactorStyles;
 }
 
 //-----------------------------------------------------------------------------
@@ -255,27 +371,21 @@ qSlicerSequenceBrowserModuleWidget::qSlicerSequenceBrowserModuleWidget(QWidget* 
 qSlicerSequenceBrowserModuleWidget::~qSlicerSequenceBrowserModuleWidget()
 {
 }
-/*
+
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::setMRMLScene(vtkMRMLScene* scene)
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
 
-  this->Superclass::setMRMLScene(scene);
-
-  qvtkReconnect( d->logic(), scene, vtkMRMLScene::EndImportEvent, this, SLOT(onSceneImportedEvent()) );
-
-  // Find parameters node or create it if there is none in the scene
-  if (scene &&  d->logic()->GetSequenceBrowserNode() == 0)
-  {
-    vtkMRMLNode* node = scene->GetNthNodeByClass(0, "vtkMRMLSequenceBrowserNode");
-    if (node)
+  if (this->mrmlScene() == scene)
     {
-      this->setSequenceBrowserNode( vtkMRMLSequenceBrowserNode::SafeDownCast(node) );
+    return;
     }
-  }
+  
+  this->Superclass::setMRMLScene(scene);
+  d->setAndObserveCrosshairNode();
 }
-*/
+
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::setup()
 {
@@ -300,15 +410,6 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_TYPE_COLUMN, 100);
-
-  connect( d->tableWidget_SynchronizedRootNodes, SIGNAL(currentItemChanged(QTableWidgetItem*,QTableWidgetItem*)), this, SLOT(storeSelectedTableItemText(QTableWidgetItem*,QTableWidgetItem*)) );
-
-  // Handle scene change event if occurs
-  qvtkConnect( d->logic(), vtkCommand::ModifiedEvent, this, SLOT( onLogicModified() ) );
-
-  // Add layout connection to transform info widget
-  this->setLayoutManager(qSlicerApplication::application()->layoutManager());
-
 }
 
 //-----------------------------------------------------------------------------
@@ -569,7 +670,8 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
   Q_D(qSlicerSequenceBrowserModuleWidget);
   if (d->activeBrowserNode()==NULL)
   {
-    qCritical() << "setSequenceRootNode failed: no active browser node is selected";
+    // this happens when entering the module (the node selector already finds a suitable root node so it selects it, but
+    // no browser node is selected yet)
     this->updateWidgetFromMRML();
     return;
   }
@@ -755,7 +857,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
   // Clear the table
   for (int row=0; row<d->tableWidget_SynchronizedRootNodes->rowCount(); row++)
   {
-    QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedRootNodes->item(row,SYNCH_NODES_SELECTION_COLUMN));
+    QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedRootNodes->cellWidget(row,SYNCH_NODES_SELECTION_COLUMN));
     disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
     // delete checkbox; - needed?
   }
@@ -871,185 +973,12 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedRootNodeCheckStateChanged(i
   }
 }
 
-//-----------------------------------------------------------------------------
-CTK_GET_CPP(qSlicerSequenceBrowserModuleWidget, qSlicerLayoutManager*, layoutManager, LayoutManager)
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setLayoutManager(qSlicerLayoutManager* layoutManager)
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-
-  if (layoutManager == d->LayoutManager)
-  {
-    return;
-  }
-  if (d->LayoutManager)
-  {
-    disconnect(d->LayoutManager, SIGNAL(layoutChanged()), this, SLOT(onLayoutChanged()));
-  }
-  if (layoutManager)
-  {
-    connect(layoutManager, SIGNAL(layoutChanged()), this, SLOT(onLayoutChanged()));
-  }
-  d->LayoutManager = layoutManager;
-
-  this->onLayoutChanged();
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onLayoutChanged()
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-
-  // Remove observers
-  foreach(vtkInteractorObserver * observedInteractorStyle, d->ObservedInteractorStyles)
-  {
-    foreach(int event, QList<int>() << vtkCommand::MouseMoveEvent << vtkCommand::EnterEvent << vtkCommand::LeaveEvent)
-    {
-      qvtkDisconnect(observedInteractorStyle, event,
-                     this, SLOT(processEvent(vtkObject*,void*,ulong,void*)));
-    }
-  }
-  d->ObservedInteractorStyles.clear();
-
-  // Add observers
-  foreach(vtkInteractorObserver * interactorStyle, d->currentLayoutSliceViewInteractorStyles())
-  {
-    foreach(int event, QList<int>() << vtkCommand::MouseMoveEvent << vtkCommand::EnterEvent << vtkCommand::LeaveEvent)
-    {
-      qvtkConnect(interactorStyle, event,
-                  this, SLOT(processEvent(vtkObject*,void*,ulong,void*)));
-    }
-    d->ObservedInteractorStyles << interactorStyle;
-  }
-}
-
 //------------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::processEvent(vtkObject* caller, void* callData, unsigned long eventId, void* clientData)
+void qSlicerSequenceBrowserModuleWidget::updateChart()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  Q_UNUSED(callData);
-  Q_UNUSED(clientData);
-
-  if (!d->pushButton_iCharting->isChecked())
+  if (  d->pushButton_iCharting->isChecked())
   {
-    return;
-  }
-  if (d->activeBrowserNode()==NULL)
-  {
-    return;
-  }
-  vtkMRMLSequenceNode* rootNode=d->activeBrowserNode()->GetRootNode();  
-  if (rootNode==NULL)
-  {
-    return;
-  }
-
-  if (eventId == vtkCommand::LeaveEvent)
-  {
-    d->resetInteractiveCharting();
-  }
-  else if (eventId == vtkCommand::EnterEvent || eventId == vtkCommand::MouseMoveEvent)
-  {
-    // compute RAS
-    vtkInteractorObserver * interactorStyle = vtkInteractorObserver::SafeDownCast(caller);
-    Q_ASSERT(d->ObservedInteractorStyles.indexOf(interactorStyle) != -1);
-    vtkRenderWindowInteractor * interactor = interactorStyle->GetInteractor();
-    int xy[2] = {-1, -1};
-    interactor->GetEventPosition(xy);
-    qMRMLSliceWidget * sliceWidget = d->slicerWidget(interactorStyle);
-    Q_ASSERT(sliceWidget);
-    const qMRMLSliceView * sliceView = sliceWidget->sliceView();
-    QList<double> xyz = const_cast<qMRMLSliceView *>(sliceView)->convertDeviceToXYZ(QList<int>() << xy[0] << xy[1]);
-    QList<double> ras = const_cast<qMRMLSliceView *>(sliceView)->convertXYZToRAS(xyz);
-    vtkMRMLSliceLogic * sliceLogic = sliceWidget->sliceLogic();
-    vtkMRMLSliceNode * sliceNode = sliceWidget->mrmlSliceNode();
-
-    int numberOfDataNodes = rootNode->GetNumberOfDataNodes();
-    d->ChartTable->SetNumberOfRows(numberOfDataNodes);
-
-    vtkMRMLScalarVolumeNode *vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(0));
-    if (vNode)
-    {
-      int numOfScalarComponents = 0;
-      numOfScalarComponents = vNode->GetImageData()->GetNumberOfScalarComponents();
-      if (numOfScalarComponents > 3)
-      {
-        return;
-      }
-      for (int i = 0; i<numberOfDataNodes; i++)
-      {
-        vNode = vtkMRMLScalarVolumeNode::SafeDownCast(rootNode->GetNthDataNode(i));
-        d->ChartTable->SetValue(i, 0, i);
-        for (int c = 0; c<numOfScalarComponents; c++)
-        {
-          vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
-          vNode->GetRASToIJKMatrix(mat);
-          const double rasTmp[4] = {ras[0], ras[1], ras[2], 1};
-          double *xyzNew = mat->MultiplyDoublePoint(rasTmp);
-          double val = vNode->GetImageData()->GetScalarComponentAsDouble(xyzNew[0], xyzNew[1], xyzNew[2], c);
-
-          d->ChartTable->SetValue(i, c+1, val);
-        }
-      }
-      //d->ChartTable->Update();
-      d->ChartXY->RemovePlot(0);
-      d->ChartXY->RemovePlot(0);
-      d->ChartXY->RemovePlot(0);
-
-      d->ChartXY->GetAxis(0)->SetTitle("Signal Intensity");
-      d->ChartXY->GetAxis(1)->SetTitle("Time");
-
-      for (int c = 0; c<numOfScalarComponents; c++)
-      {
-        vtkPlot* line = d->ChartXY->AddPlot(vtkChart::LINE);
-#if (VTK_MAJOR_VERSION <= 5)
-        line->SetInput(d->ChartTable, 0, c+1);
-#else
-        line->SetInputData(d->ChartTable, 0, c+1);
-#endif
-        //line->SetColor(255,0,0,255);
-      }
-    }
-    
-    vtkMRMLTransformNode *tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(0));
-    if (tNode)
-    {
-      for (int i = 0; i<numberOfDataNodes; i++)
-      {
-        tNode = vtkMRMLTransformNode::SafeDownCast(rootNode->GetNthDataNode(i));
-        vtkAbstractTransform* Trans2Parent = tNode->GetTransformToParent();
-
-        double* newRas = Trans2Parent->TransformDoublePoint(ras[0], ras[1], ras[2]);
-
-        d->ChartTable->SetValue(i, 0, i);
-        d->ChartTable->SetValue(i, 1, newRas[0]-ras[0]);
-        d->ChartTable->SetValue(i, 2, newRas[1]-ras[1]);
-        d->ChartTable->SetValue(i, 3, newRas[2]-ras[2]);
-      }
-      //d->ChartTable->Update();
-      d->ChartXY->RemovePlot(0);
-      d->ChartXY->RemovePlot(0);
-      d->ChartXY->RemovePlot(0);
-
-      d->ChartXY->GetAxis(0)->SetTitle("Displacement");
-      d->ChartXY->GetAxis(1)->SetTitle("Time");
-      vtkPlot* lineX = d->ChartXY->AddPlot(vtkChart::LINE);
-      vtkPlot* lineY = d->ChartXY->AddPlot(vtkChart::LINE);
-      vtkPlot* lineZ = d->ChartXY->AddPlot(vtkChart::LINE);
-#if (VTK_MAJOR_VERSION <= 5)
-      lineX->SetInput(d->ChartTable, 0, 1);
-      lineY->SetInput(d->ChartTable, 0, 2);
-      lineZ->SetInput(d->ChartTable, 0, 3);
-#else
-      lineX->SetInputData(d->ChartTable, 0, 1);
-      lineY->SetInputData(d->ChartTable, 0, 2);
-      lineZ->SetInputData(d->ChartTable, 0, 3);
-#endif
-      lineX->SetColor(255,0,0,255);
-      lineY->SetColor(0,255,0,255);
-      lineZ->SetColor(0,0,255,255);
-    }
+    d->updateInteractiveCharting();
   }
 }
-
