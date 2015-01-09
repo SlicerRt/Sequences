@@ -91,6 +91,17 @@ int vtkMRMLSequenceStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
 
   vtkDebugMacro("ReadDataInternal: extension = " << extension.c_str());
 
+  // Custom nodes (such as vtkMRMLSceneView node) must be registered in the sequence scene,
+  // otherwise the XML parser cannot instantiate them
+  if (this->GetScene() && sequenceNode->GetSequenceScene())
+  {
+    this->GetScene()->CopyRegisteredNodesToScene(sequenceNode->GetSequenceScene());
+  }
+  else
+  {
+    vtkErrorMacro("Cannot register nodes in the sequence node");
+  }
+
   int success = false;
   if (extension == std::string(".mrb"))
   {    

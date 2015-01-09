@@ -520,11 +520,14 @@ void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
   // By now the storage node imported the sequence scene, so we can get the pointers to the data nodes
   for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
   {
-    indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
-    if (indexIt->DataNode!=NULL)
+    if (indexIt->DataNode==NULL)
     {
-      // clear the ID to remove redundancy in the data
-      indexIt->DataNodeID.clear();
+      indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
+      if (indexIt->DataNode!=NULL)
+      {
+        // clear the ID to remove redundancy in the data
+        indexIt->DataNodeID.clear();
+      }
     }
   }
 }

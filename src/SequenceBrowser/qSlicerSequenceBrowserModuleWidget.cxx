@@ -859,18 +859,18 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
   {
     QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedRootNodes->cellWidget(row,SYNCH_NODES_SELECTION_COLUMN));
     disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedRootNodeCheckStateChanged(int) ) );
-    // delete checkbox; - needed?
   }
-  d->tableWidget_SynchronizedRootNodes->clearContents();
 
   if (d->activeBrowserNode()==NULL)
   {
+    d->tableWidget_SynchronizedRootNodes->setRowCount(0); // clear() would not actually remove the rows
     return;
   }
   // A valid active browser node is selected
   vtkMRMLSequenceNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
   if (multidimDataRootNode==NULL)
   {
+    d->tableWidget_SynchronizedRootNodes->setRowCount(0); // clear() would not actually remove the rows
     return;
   }
 
