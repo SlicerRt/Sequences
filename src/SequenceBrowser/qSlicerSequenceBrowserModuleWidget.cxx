@@ -18,7 +18,6 @@
 // Qt includes
 #include <QCheckBox>
 #include <QDebug>
-#include <QTimer>
 
 // SlicerQt includes
 #include "qSlicerSequenceBrowserModuleWidget.h"
@@ -83,7 +82,6 @@ public:
   bool ModuleWindowInitialized;
 
   std::string ActiveBrowserNodeID;
-  QTimer* PlaybackTimer; 
 
   vtkChartXY* ChartXY;
   vtkTable* ChartTable;
@@ -102,7 +100,6 @@ public:
 qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPrivate(qSlicerSequenceBrowserModuleWidget& object)
   : q_ptr(&object)
   , ModuleWindowInitialized(false)
-  , PlaybackTimer(NULL)
   , ChartXY(0)
   , ChartTable(0)
   , ArrayX(0)
@@ -363,8 +360,6 @@ qSlicerSequenceBrowserModuleWidget::qSlicerSequenceBrowserModuleWidget(QWidget* 
   , d_ptr( new qSlicerSequenceBrowserModuleWidgetPrivate(*this) )
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->PlaybackTimer=new QTimer(this);
-  d->PlaybackTimer->setSingleShot(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -405,7 +400,6 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect( d->pushButton_VcrPlayPause, SIGNAL(toggled(bool)), this, SLOT(setPlaybackEnabled(bool)) );
   connect( d->pushButton_VcrLoop, SIGNAL(toggled(bool)), this, SLOT(setPlaybackLoopEnabled(bool)) );
   connect( d->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), this, SLOT(setPlaybackRateFps(double)) );
-  d->PlaybackTimer->connect(d->PlaybackTimer, SIGNAL(timeout()),this, SLOT(onVcrNext()));  
 
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
@@ -560,41 +554,14 @@ void qSlicerSequenceBrowserModuleWidget::onVcrLast()
 void qSlicerSequenceBrowserModuleWidget::onVcrPrevious()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  int sliderValueToSet=d->slider_IndexValue->value()-1;
-  if (sliderValueToSet>=d->slider_IndexValue->minimum())
-  {
-    d->slider_IndexValue->setValue(sliderValueToSet);
-  }
+  d->logic()->SelectNextItem(d->activeBrowserNode(), -1);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onVcrNext()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  int sliderValueToSet=d->slider_IndexValue->value()+1;
-  if (sliderValueToSet<=d->slider_IndexValue->maximum())
-  {
-    d->slider_IndexValue->setValue(sliderValueToSet);
-  }
-  else
-  {
-      if (d->activeBrowserNode()==NULL)
-      {
-        qCritical() << "onVcrNext failed: no active browser node is selected";
-      }
-      else
-      {
-        if (d->activeBrowserNode()->GetPlaybackLooped())
-        {
-          onVcrFirst();
-        }
-        else
-        {
-          d->activeBrowserNode()->SetPlaybackActive(false);
-          onVcrFirst();
-        }
-      }
-  }
+  d->logic()->SelectNextItem(d->activeBrowserNode(), 1);
 }
 
 //-----------------------------------------------------------------------------
@@ -735,8 +702,8 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
     d->Label_IndexUnit->setText("");
     d->slider_IndexValue->setEnabled(false);
+    d->doubleSpinBox_VcrPlaybackRate->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
-    d->PlaybackTimer->stop();
     this->refreshSynchronizedRootNodesTable();
     return;
   }
@@ -746,6 +713,7 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   vtkMRMLSequenceNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
   d->MRMLNodeComboBox_SequenceRoot->setEnabled(true);  
   d->MRMLNodeComboBox_SequenceRoot->setCurrentNode(multidimDataRootNode);
+  d->doubleSpinBox_VcrPlaybackRate->setEnabled(true);
 
   // Set up the multidimensional input section (root node selector and sequence slider)
 
@@ -755,7 +723,6 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     d->Label_IndexUnit->setText("");
     d->slider_IndexValue->setEnabled(false);
     foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
-    d->PlaybackTimer->stop();
     this->refreshSynchronizedRootNodesTable();
     return;    
   }
@@ -827,24 +794,10 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     d->label_IndexValue->setText("");
     d->slider_IndexValue->setValue(0);
   }  
-  
+
+  d->doubleSpinBox_VcrPlaybackRate->setValue(d->activeBrowserNode()->GetPlaybackRateFps());
+
   foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
-  if (vcrControlsEnabled)
-  {
-    if (d->activeBrowserNode()->GetPlaybackActive() && d->activeBrowserNode()->GetPlaybackRateFps()>0)
-    {
-      int delayInMsec=1000.0/d->activeBrowserNode()->GetPlaybackRateFps();
-      d->PlaybackTimer->start(delayInMsec);
-    }
-    else
-    {
-      d->PlaybackTimer->stop();
-    }
-  }
-  else
-  {
-    d->PlaybackTimer->stop();
-  }
 
   this->refreshSynchronizedRootNodesTable();
 }

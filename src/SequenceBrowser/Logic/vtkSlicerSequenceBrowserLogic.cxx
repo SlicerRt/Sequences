@@ -37,6 +37,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkTimerLog.h>
 
 // STL includes
 #include <algorithm>
@@ -130,6 +131,109 @@ void vtkSlicerSequenceBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 }
 
 //---------------------------------------------------------------------------
+void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
+{
+  double updateStartTimeSec = vtkTimerLog::GetUniversalTime();
+
+  vtkMRMLScene* scene=this->GetMRMLScene();
+  if (scene==NULL)
+  {
+    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes failed: scene is invalid");
+    return;
+  }
+  // remove the procedural color nodes (after the fs proc nodes as
+  // getting them by class)
+  std::vector< vtkMRMLNode* > browserNodes;
+  int numBrowserNodes = this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceBrowserNode", browserNodes);
+  for (int i = 0; i < numBrowserNodes; i++)
+  {
+    vtkMRMLSequenceBrowserNode* browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(browserNodes[i]);
+    if (browserNode==NULL)
+    {
+      vtkErrorMacro("Browser node is invalid");
+      continue;
+    }
+    if (!browserNode->GetPlaybackActive())
+    {
+      this->LastSequenceBrowserUpdateTimeSec.erase(browserNode);
+      continue;
+    }
+    if ( this->LastSequenceBrowserUpdateTimeSec.find(browserNode) == this->LastSequenceBrowserUpdateTimeSec.end() )
+    {
+      // we just started to play now, no need to update output nodes yet
+      this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
+    }
+    else
+    {
+      // play is already in progress
+      double elapsedTimeSec = updateStartTimeSec - this->LastSequenceBrowserUpdateTimeSec[browserNode];
+      // compute how many items we need to jump; if not enough time passed to jump at least to the next item
+      // then we don't do anything (let the elapsed time cumulate)
+      int selectionIncrement = floor(elapsedTimeSec * browserNode->GetPlaybackRateFps());
+      if (selectionIncrement>0)
+      {
+        this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
+        this->SelectNextItem(browserNode, selectionIncrement);
+      }
+    }
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerSequenceBrowserLogic::SelectNextItem(vtkMRMLSequenceBrowserNode* browserNode, int selectionIncrement/*=1*/)
+{
+  if (browserNode==NULL)
+  {
+    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::SelectNextItem failed: browserNode is invalid");
+    return;
+  }
+  vtkMRMLSequenceNode* rootNode=browserNode->GetRootNode();
+  if (rootNode==NULL || rootNode->GetNumberOfDataNodes()==0)
+  {
+    // nothing to replay
+    return;
+  }
+  int selectedItemNumber=browserNode->GetSelectedItemNumber();
+  int browserNodeModify=browserNode->StartModify(); // invoke modification event once all the modifications has been completed
+  if (selectedItemNumber<0)
+  {
+    selectedItemNumber=0;
+  }
+  else
+  {
+    selectedItemNumber += selectionIncrement;
+    if (selectedItemNumber>=rootNode->GetNumberOfDataNodes())
+    {
+      if (browserNode->GetPlaybackLooped())
+      {
+        // wrap around and keep playback going
+        selectedItemNumber = selectedItemNumber % rootNode->GetNumberOfDataNodes();
+      }
+      else
+      {
+        browserNode->SetPlaybackActive(false);
+        selectedItemNumber=0;
+      }
+    }
+    else if (selectedItemNumber<0)
+    {
+      if (browserNode->GetPlaybackLooped())
+      {
+        // wrap around and keep playback going
+        selectedItemNumber = (selectedItemNumber % rootNode->GetNumberOfDataNodes()) + rootNode->GetNumberOfDataNodes();
+      }
+      else
+      {
+        browserNode->SetPlaybackActive(false);
+        selectedItemNumber=rootNode->GetNumberOfDataNodes()-1;
+      }
+    }
+  }
+  browserNode->SetSelectedItemNumber(selectedItemNumber);
+  browserNode->EndModify(browserNodeModify);
+}
+
+//---------------------------------------------------------------------------
 void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -139,7 +243,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 
   if (this->UpdateVirtualOutputNodesInProgress)
   {
-    // avoid infinitie loops (caused by triggering a node update during a node update)
+    // avoid infinite loops (caused by triggering a node update during a node update)
     return;
   }
   if (browserNode==NULL)

@@ -48,8 +48,14 @@ public:
   vtkTypeMacro(vtkSlicerSequenceBrowserLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  /// Refreshes the output of all the active browser nodes. Called regularly by a timer.
+  void UpdateAllVirtualOutputNodes();
+
   /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
   void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode);
+
+  /// Selectes the next sequence item for display
+  void SelectNextItem(vtkMRMLSequenceBrowserNode* browserNode, int selectionIncrement=1);
 
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* multidimDataRootNode);
 
@@ -68,6 +74,9 @@ protected:
   bool IsDataConnectorNode(vtkMRMLNode*);
 
   void ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source);
+
+  // Time of the last update of each browser node (in universal time)
+  std::map< vtkMRMLSequenceBrowserNode*, double > LastSequenceBrowserUpdateTimeSec;
 
 private:
 

@@ -16,7 +16,12 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QTimer>
 #include <QtPlugin>
+
+#include "qSlicerCoreApplication.h"
+
+#include "vtkMRMLScene.h"
 
 // SequenceBrowser Logic includes
 #include <vtkSlicerSequenceBrowserLogic.h>
@@ -24,6 +29,10 @@
 // SequenceBrowser includes
 #include "qSlicerSequenceBrowserModule.h"
 #include "qSlicerSequenceBrowserModuleWidget.h"
+
+#include "vtkMRMLSequenceBrowserNode.h"
+
+static const double UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC = 0.033; // refresh output with a maximum of 30FPS
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerSequenceBrowserModule, qSlicerSequenceBrowserModule);
@@ -34,6 +43,7 @@ class qSlicerSequenceBrowserModulePrivate
 {
 public:
   qSlicerSequenceBrowserModulePrivate();
+  QTimer UpdateAllVirtualOutputNodesTimer;
 };
 
 //-----------------------------------------------------------------------------
@@ -54,6 +64,15 @@ qSlicerSequenceBrowserModule
   : Superclass(_parent)
   , d_ptr(new qSlicerSequenceBrowserModulePrivate)
 {
+  Q_D(qSlicerSequenceBrowserModule);
+  connect(&d->UpdateAllVirtualOutputNodesTimer, SIGNAL(timeout()), this, SLOT(updateAllVirtualOutputNodes()));
+  vtkMRMLScene * scene = qSlicerCoreApplication::application()->mrmlScene();
+  if (scene)
+    {
+    // Need to listen for any new sequence browser nodes being added to start/stop timer
+    this->qvtkConnect(scene, vtkMRMLScene::NodeAddedEvent, this, SLOT(onNodeAddedEvent(vtkObject*,vtkObject*)));
+    this->qvtkConnect(scene, vtkMRMLScene::NodeRemovedEvent, this, SLOT(onNodeRemovedEvent(vtkObject*,vtkObject*)));
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -106,6 +125,22 @@ void qSlicerSequenceBrowserModule::setup()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::setMRMLScene(vtkMRMLScene* scene)
+{
+  vtkMRMLScene* oldScene = this->mrmlScene();
+  this->Superclass::setMRMLScene(scene);
+
+  if (scene == NULL)
+    {
+    return;
+    }
+
+  // Need to listen for any new sequence browser nodes being added to start/stop timer
+  this->qvtkReconnect(oldScene, scene, vtkMRMLScene::NodeAddedEvent, this, SLOT(onNodeAddedEvent(vtkObject*,vtkObject*)));
+  this->qvtkReconnect(oldScene, scene, vtkMRMLScene::NodeRemovedEvent, this, SLOT(onNodeRemovedEvent(vtkObject*,vtkObject*)));
+}
+
+//-----------------------------------------------------------------------------
 qSlicerAbstractModuleRepresentation * qSlicerSequenceBrowserModule
 ::createWidgetRepresentation()
 {
@@ -116,4 +151,59 @@ qSlicerAbstractModuleRepresentation * qSlicerSequenceBrowserModule
 vtkMRMLAbstractLogic* qSlicerSequenceBrowserModule::createLogic()
 {
   return vtkSlicerSequenceBrowserLogic::New();
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::onNodeAddedEvent(vtkObject*, vtkObject* node)
+{
+  Q_D(qSlicerSequenceBrowserModule);
+
+  vtkMRMLSequenceBrowserNode* sequenceBrowserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(node);
+  if (sequenceBrowserNode)
+    {
+    // If the timer is not active
+    if (!d->UpdateAllVirtualOutputNodesTimer.isActive())
+      {
+      d->UpdateAllVirtualOutputNodesTimer.start(UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC*1000.0);
+      }
+    }
+}
+
+
+// --------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::onNodeRemovedEvent(vtkObject*, vtkObject* node)
+{
+  Q_D(qSlicerSequenceBrowserModule);
+
+  vtkMRMLSequenceBrowserNode* sequenceBrowserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(node);
+  if (sequenceBrowserNode)
+    {
+    // If the timer is active
+    if (d->UpdateAllVirtualOutputNodesTimer.isActive())
+      {
+      // Check if there is any other sequence browser node left in the Scene
+      vtkMRMLScene * scene = qSlicerCoreApplication::application()->mrmlScene();
+      if (scene)
+        {
+        std::vector<vtkMRMLNode *> nodes;
+        this->mrmlScene()->GetNodesByClass("vtkMRMLSequenceBrowserNode", nodes);
+        if (nodes.size() == 0)
+          {
+          // The last sequence browser was removed
+          d->UpdateAllVirtualOutputNodesTimer.stop();
+          }
+        }
+      }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
+{
+  vtkMRMLAbstractLogic* l = this->logic();
+  vtkSlicerSequenceBrowserLogic * sequenceBrowserLogic = vtkSlicerSequenceBrowserLogic::SafeDownCast(l);
+  if (sequenceBrowserLogic)
+    {
+    sequenceBrowserLogic->UpdateAllVirtualOutputNodes();
+    }
 }
