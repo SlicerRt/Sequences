@@ -255,7 +255,8 @@ bool vtkMRMLSequenceStorageNode::WriteToMRB(const char* fullName, vtkMRMLScene *
   //
   vtkSmartPointer<vtkSlicerApplicationLogic> applicationLogic =  vtkSmartPointer<vtkSlicerApplicationLogic>::New();
   applicationLogic->SetAndObserveMRMLScene(scene);
-  bool retval = applicationLogic->SaveSceneToSlicerDataBundleDirectory(bundlePath.toLatin1(), imageData);
+  std::string bundlePathStd = bundlePath.toLatin1().constData();
+  bool retval = applicationLogic->SaveSceneToSlicerDataBundleDirectory(bundlePathStd.c_str(), imageData);
   if (!retval)
   {
     QMessageBox::critical(0, QObject::tr("Save scene as MRB"), QObject::tr("Failed to create bundle"));
@@ -263,8 +264,7 @@ bool vtkMRMLSequenceStorageNode::WriteToMRB(const char* fullName, vtkMRMLScene *
   }
 
   qDebug() << "zipping to " << fileInfo.absoluteFilePath();
-  if ( !applicationLogic->Zip(fileInfo.absoluteFilePath().toLatin1(),
-    bundlePath.toLatin1()) )
+  if ( !applicationLogic->Zip(fileInfo.absoluteFilePath().toLatin1().constData(), bundlePathStd.c_str()) )
   {
     QMessageBox::critical(0, QObject::tr("Save scene as MRB"), QObject::tr("Could not compress bundle"));
     return false;
@@ -288,8 +288,6 @@ bool vtkMRMLSequenceStorageNode::WriteToMRB(const char* fullName, vtkMRMLScene *
 //-----------------------------------------------------------------------------
 bool vtkMRMLSequenceStorageNode::ReadFromMRB(const char* fullName, vtkMRMLScene *scene)
 {
-  QString file = fullName;
-
   // TODO: switch to QTemporaryDir in Qt5.
   // For now, create a named directory and use
   // kwsys calls to remove it
@@ -298,29 +296,29 @@ bool vtkMRMLSequenceStorageNode::ReadFromMRB(const char* fullName, vtkMRMLScene 
     QDateTime::currentDateTime().toString("yyyy-MM-dd_hh+mm+ss.zzz") );
 
   qDebug() << "Unpacking bundle to " << unpackPath;
-
-  if (vtksys::SystemTools::FileIsDirectory(unpackPath.toLatin1()))
+  std::string unpackPathStd = unpackPath.toLatin1().constData();
+  if (vtksys::SystemTools::FileIsDirectory(unpackPathStd.c_str()))
   {
-    if ( !vtksys::SystemTools::RemoveADirectory(unpackPath.toLatin1()) )
+    if ( !vtksys::SystemTools::RemoveADirectory(unpackPathStd.c_str()) )
     {
       return false;
     }
   }
 
-  if ( !vtksys::SystemTools::MakeDirectory(unpackPath.toLatin1()) )
+  if ( !vtksys::SystemTools::MakeDirectory(unpackPathStd.c_str()) )
   {
     return false;
   }
 
   vtkNew<vtkMRMLApplicationLogic> appLogic;
   appLogic->SetMRMLScene( scene );
-  std::string mrmlFile = appLogic->UnpackSlicerDataBundle( file.toLatin1(), unpackPath.toLatin1() );
+  std::string mrmlFile = appLogic->UnpackSlicerDataBundle( fullName, unpackPathStd.c_str() );
 
   scene->SetURL(mrmlFile.c_str());
 
   int res = scene->Connect();
 
-  if ( !vtksys::SystemTools::RemoveADirectory(unpackPath.toLatin1()) )
+  if ( !vtksys::SystemTools::RemoveADirectory(unpackPathStd.c_str()) )
   {
     return false;
   }
