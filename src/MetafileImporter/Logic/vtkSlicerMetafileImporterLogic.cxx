@@ -29,6 +29,7 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
+#include "vtkMRMLVectorVolumeNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkMRMLSelectionNode.h"
 #include "vtkMRMLStorageNode.h"
@@ -437,7 +438,16 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
   {     
     // Add the image slice to scene as a volume    
 
-    vtkSmartPointer< vtkMRMLScalarVolumeNode > slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
+    vtkSmartPointer< vtkMRMLScalarVolumeNode > slice;
+    if (imageData->GetNumberOfScalarComponents() > 1)
+    {
+      slice = vtkSmartPointer< vtkMRMLVectorVolumeNode >::New();
+    }
+    else
+    {
+      slice = vtkSmartPointer< vtkMRMLScalarVolumeNode >::New();
+    }
+    
     vtkSmartPointer<vtkImageData> sliceImageData=vtkSmartPointer<vtkImageData>::New();
     sliceImageData->DeepCopy(emptySliceImageData);
 

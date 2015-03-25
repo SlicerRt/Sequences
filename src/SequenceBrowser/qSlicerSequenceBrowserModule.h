@@ -27,6 +27,7 @@
 #include "qSlicerSequenceBrowserModuleExport.h"
 
 class qSlicerSequenceBrowserModulePrivate;
+class vtkMRMLScene;
 class vtkObject;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
