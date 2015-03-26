@@ -9,7 +9,7 @@ from __main__ import vtk, qt, ctk, slicer
 class SequenceRegistration:
   def __init__(self, parent):
     parent.title = "Sequence Registration" 
-    parent.categories = ["Multidimensional data"]
+    parent.categories = ["Sequences"]
     parent.dependencies = []
     parent.contributors = ["Kevin Wang (PMH)"] # replace with "Firstname Lastname (Org)"
     parent.helpText = """

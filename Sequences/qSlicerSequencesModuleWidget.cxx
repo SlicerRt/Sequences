@@ -60,7 +60,7 @@ public:
 
   vtkSlicerSequencesLogic* logic() const;
   
-  /// Get a list of MLRML nodes that are in the scene but not added to the multidimensional data node at the chosen index value
+  /// Get a list of MLRML nodes that are in the scene but not added to the sequences data node at the chosen index value
   void GetDataNodeCandidates(vtkCollection* foundNodes, vtkMRMLSequenceNode* rootNode);
 };
 

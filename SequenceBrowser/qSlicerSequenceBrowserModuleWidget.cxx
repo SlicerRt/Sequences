@@ -391,7 +391,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   d->init();
 
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
-  connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(multidimDataRootNodeChanged(vtkMRMLNode*)) );
+  connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceDataRootNodeChanged(vtkMRMLNode*)) );
   connect( d->slider_IndexValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedItemNumber(int)) );  
   connect( d->pushButton_VcrFirst, SIGNAL(clicked()), this, SLOT(onVcrFirst()) );
   connect( d->pushButton_VcrPrevious, SIGNAL(clicked()), this, SLOT(onVcrPrevious()) );
@@ -518,10 +518,10 @@ void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* n
 
 
 //-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::multidimDataRootNodeChanged(vtkMRMLNode* inputNode)
+void qSlicerSequenceBrowserModuleWidget::sequenceDataRootNodeChanged(vtkMRMLNode* inputNode)
 {
-  vtkMRMLSequenceNode* multidimDataRootNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);  
-  this->setSequenceRootNode(multidimDataRootNode);
+  vtkMRMLSequenceNode* sequenceDataRootNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);  
+  this->setSequenceRootNode(sequenceDataRootNode);
 }
 
 //-----------------------------------------------------------------------------
@@ -632,7 +632,7 @@ void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBro
 
 
 // --------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode* multidimDataRootNode)
+void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode* sequenceDataRootNode)
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
   if (d->activeBrowserNode()==NULL)
@@ -642,17 +642,17 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
     this->updateWidgetFromMRML();
     return;
   }
-  if (multidimDataRootNode!=d->activeBrowserNode()->GetRootNode())
+  if (sequenceDataRootNode!=d->activeBrowserNode()->GetRootNode())
   {
     bool oldModify=d->activeBrowserNode()->StartModify();
 
     // Reconnect the input node's Modified() event observer
-    this->qvtkReconnect(d->activeBrowserNode()->GetRootNode(), multidimDataRootNode, vtkCommand::ModifiedEvent,
+    this->qvtkReconnect(d->activeBrowserNode()->GetRootNode(), sequenceDataRootNode, vtkCommand::ModifiedEvent,
       this, SLOT(onMRMLInputSequenceInputNodeModified(vtkObject*)));
 
-    char* multidimDataRootNodeId = multidimDataRootNode==NULL ? NULL : multidimDataRootNode->GetID();
+    char* sequenceDataRootNodeId = sequenceDataRootNode==NULL ? NULL : sequenceDataRootNode->GetID();
 
-    d->activeBrowserNode()->SetAndObserveRootNodeID(multidimDataRootNodeId);
+    d->activeBrowserNode()->SetAndObserveRootNodeID(sequenceDataRootNodeId);
 
     // Update d->activeBrowserNode()->SetAndObserveSelectedSequenceNodeID
     this->setSelectedItemNumber(0);
@@ -710,14 +710,14 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 
   // A valid active browser node is selected
   
-  vtkMRMLSequenceNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
+  vtkMRMLSequenceNode* sequenceDataRootNode = d->activeBrowserNode()->GetRootNode();  
   d->MRMLNodeComboBox_SequenceRoot->setEnabled(true);  
-  d->MRMLNodeComboBox_SequenceRoot->setCurrentNode(multidimDataRootNode);
+  d->MRMLNodeComboBox_SequenceRoot->setCurrentNode(sequenceDataRootNode);
   d->doubleSpinBox_VcrPlaybackRate->setEnabled(true);
 
-  // Set up the multidimensional input section (root node selector and sequence slider)
+  // Set up the sequenceensional input section (root node selector and sequence slider)
 
-  if (multidimDataRootNode==NULL)
+  if (sequenceDataRootNode==NULL)
   {
     d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
     d->Label_IndexUnit->setText("");
@@ -727,31 +727,31 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
     return;    
   }
 
-  // A valid multidimensional root node is selected
+  // A valid sequenceensional root node is selected
 
-  const char* indexName=multidimDataRootNode->GetIndexName();
+  const char* indexName=sequenceDataRootNode->GetIndexName();
   if (indexName!=NULL)
   {
     d->label_IndexName->setText(indexName);
   }
   else
   {
-    qWarning() << "Index name is not specified in node "<<multidimDataRootNode->GetID();
+    qWarning() << "Index name is not specified in node "<<sequenceDataRootNode->GetID();
     d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
   }
 
-  const char* indexUnit=multidimDataRootNode->GetIndexUnit();
+  const char* indexUnit=sequenceDataRootNode->GetIndexUnit();
   if (indexUnit!=NULL)
   {
     d->Label_IndexUnit->setText(indexUnit);
   }
   else
   {
-    qWarning() << "IndexUnit is not specified in node "<<multidimDataRootNode->GetID();
+    qWarning() << "IndexUnit is not specified in node "<<sequenceDataRootNode->GetID();
     d->Label_IndexUnit->setText("");
   }
   
-  int numberOfDataNodes=multidimDataRootNode->GetNumberOfDataNodes();
+  int numberOfDataNodes=sequenceDataRootNode->GetNumberOfDataNodes();
   if (numberOfDataNodes>0)
   {
     d->slider_IndexValue->setEnabled(true);
@@ -769,14 +769,14 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   }
   else
   {
-    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<multidimDataRootNode->GetID();
+    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceDataRootNode->GetID();
     d->slider_IndexValue->setEnabled(false);
   }   
 
   int selectedItemNumber=d->activeBrowserNode()->GetSelectedItemNumber();
   if (selectedItemNumber>=0)
   {
-    std::string indexValue=multidimDataRootNode->GetNthIndexValue(selectedItemNumber);
+    std::string indexValue=sequenceDataRootNode->GetNthIndexValue(selectedItemNumber);
     if (!indexValue.empty())
     {
       d->label_IndexValue->setText(indexValue.c_str());
@@ -820,15 +820,15 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
     return;
   }
   // A valid active browser node is selected
-  vtkMRMLSequenceNode* multidimDataRootNode = d->activeBrowserNode()->GetRootNode();  
-  if (multidimDataRootNode==NULL)
+  vtkMRMLSequenceNode* sequenceDataRootNode = d->activeBrowserNode()->GetRootNode();  
+  if (sequenceDataRootNode==NULL)
   {
     d->tableWidget_SynchronizedRootNodes->setRowCount(0); // clear() would not actually remove the rows
     return;
   }
 
   vtkSmartPointer<vtkCollection> compatibleNodes=vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetCompatibleNodesFromScene(compatibleNodes, multidimDataRootNode);  
+  d->logic()->GetCompatibleNodesFromScene(compatibleNodes, sequenceDataRootNode);  
   d->tableWidget_SynchronizedRootNodes->setRowCount(compatibleNodes->GetNumberOfItems()+1); // +1 because we add the master as well
 
   // Create a line for the master node
@@ -839,14 +839,14 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedRootNodesTable()
   std::string statusString="Master";
   bool checked = true; // master is always checked
   checkbox->setChecked(checked);
-  checkbox->setProperty("MRMLNodeID",QString(multidimDataRootNode->GetID()));
+  checkbox->setProperty("MRMLNodeID",QString(sequenceDataRootNode->GetID()));
   d->tableWidget_SynchronizedRootNodes->setCellWidget(0, SYNCH_NODES_SELECTION_COLUMN, checkbox);
   
-  QTableWidgetItem* nodeNameItem = new QTableWidgetItem( QString(multidimDataRootNode->GetName()) );
+  QTableWidgetItem* nodeNameItem = new QTableWidgetItem( QString(sequenceDataRootNode->GetName()) );
   nodeNameItem->setFlags(nodeNameItem->flags() ^ Qt::ItemIsEditable);
   d->tableWidget_SynchronizedRootNodes->setItem(0, SYNCH_NODES_NAME_COLUMN, nodeNameItem );  
   
-  QTableWidgetItem* typeItem = new QTableWidgetItem( QString(multidimDataRootNode->GetDataNodeTagName().c_str()) );
+  QTableWidgetItem* typeItem = new QTableWidgetItem( QString(sequenceDataRootNode->GetDataNodeTagName().c_str()) );
   typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
   d->tableWidget_SynchronizedRootNodes->setItem(0, SYNCH_NODES_TYPE_COLUMN, typeItem);
 

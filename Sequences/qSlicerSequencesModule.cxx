@@ -68,7 +68,7 @@ qSlicerSequencesModule::~qSlicerSequencesModule()
 //-----------------------------------------------------------------------------
 QString qSlicerSequencesModule::helpText()const
 {
-  return "This is a module for creating a node sequence from regular nodes and edit an existing sequence. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
+  return "This is a module for creating a node sequence from regular nodes and edit an existing sequence. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/Sequences\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ QIcon qSlicerSequencesModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerSequencesModule::categories() const
 {
-  return QStringList() << "Multidimensional data";
+  return QStringList() << "Sequences";
 }
 
 //-----------------------------------------------------------------------------

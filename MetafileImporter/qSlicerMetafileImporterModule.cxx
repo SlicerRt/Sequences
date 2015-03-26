@@ -70,7 +70,7 @@ qSlicerMetafileImporterModule::~qSlicerMetafileImporterModule()
 //-----------------------------------------------------------------------------
 QString qSlicerMetafileImporterModule::helpText()const
 {
-  return "This is a module for importing imageing and tracking information from a sequence metafile into node sequences. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
+  return "This is a module for importing imageing and tracking information from a sequence metafile into node sequences. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/Sequences\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
@@ -96,7 +96,7 @@ QIcon qSlicerMetafileImporterModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::categories() const
 {
-  return QStringList() << "Multidimensional data";
+  return QStringList() << "Sequences";
 }
 
 //-----------------------------------------------------------------------------
@@ -113,11 +113,11 @@ void qSlicerMetafileImporterModule::setup()
   qSlicerCoreApplication* app = qSlicerCoreApplication::application();
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
-  qSlicerAbstractCoreModule* multiDimensionModule = app->moduleManager()->module( "Sequences" );
+  qSlicerAbstractCoreModule* sequenceModule = app->moduleManager()->module( "Sequences" );
 
-  if ( multiDimensionModule )
+  if ( sequenceModule )
   {
-    metafileImporterLogic->SetSequencesLogic(vtkSlicerSequencesLogic::SafeDownCast( multiDimensionModule->logic() ));
+    metafileImporterLogic->SetSequencesLogic(vtkSlicerSequencesLogic::SafeDownCast( sequenceModule->logic() ));
   }
 
   // Register the IO

@@ -496,7 +496,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* multidimDataRootNode)
+void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceDataRootNode)
 {
   if (compatibleNodes==NULL)
   {
@@ -504,7 +504,7 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     return;
   }
   compatibleNodes->RemoveAllItems();
-  if (multidimDataRootNode==NULL)
+  if (sequenceDataRootNode==NULL)
   {
     // if root node is invalid then there is no compatible node
     return;
@@ -514,35 +514,35 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     vtkErrorMacro("Scene is invalid");
     return;
   }
-  if (multidimDataRootNode->GetIndexName()==NULL)
+  if (sequenceDataRootNode->GetIndexName()==NULL)
   {
     vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: root node index name is invalid");
     return;
   }
-  std::string masterRootNodeIndexName=multidimDataRootNode->GetIndexName();
-  vtkSmartPointer<vtkCollection> multidimNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceNode"));
+  std::string masterRootNodeIndexName=sequenceDataRootNode->GetIndexName();
+  vtkSmartPointer<vtkCollection> sequenceNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceNode"));
   vtkObject* nextObject = NULL;
-  for (multidimNodes->InitTraversal(); (nextObject = multidimNodes->GetNextItemAsObject()); )
+  for (sequenceNodes->InitTraversal(); (nextObject = sequenceNodes->GetNextItemAsObject()); )
   {
-    vtkMRMLSequenceNode* multidimNode = vtkMRMLSequenceNode::SafeDownCast(nextObject);
-    if (multidimNode==NULL)
+    vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(nextObject);
+    if (sequenceNode==NULL)
     {
       continue;
     }
-    if (multidimNode==multidimDataRootNode)
+    if (sequenceNode==sequenceDataRootNode)
     {
       // do not add the master node itself to the list of compatible nodes
       continue;
     }
-    if (multidimNode->GetIndexName()==NULL)
+    if (sequenceNode->GetIndexName()==NULL)
     {
       vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible root node index name is invalid");
       continue;
     }
-    if (masterRootNodeIndexName.compare(multidimNode->GetIndexName())==0)
+    if (masterRootNodeIndexName.compare(sequenceNode->GetIndexName())==0)
     {
       // index name is matching, so we consider it compatible
-      compatibleNodes->AddItem(multidimNode);
+      compatibleNodes->AddItem(sequenceNode);
     }
   }
 }

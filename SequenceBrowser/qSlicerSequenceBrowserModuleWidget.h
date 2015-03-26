@@ -41,7 +41,7 @@ public:
   virtual ~qSlicerSequenceBrowserModuleWidget();
 
   void setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
-  void setSequenceRootNode(vtkMRMLSequenceNode* multidimDataRootNode);
+  void setSequenceRootNode(vtkMRMLSequenceNode* sequenceDataRootNode);
 
 public slots:
   void setMRMLScene(vtkMRMLScene* scene);
@@ -55,7 +55,7 @@ public slots:
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);
-  void multidimDataRootNodeChanged(vtkMRMLNode*);
+  void sequenceDataRootNodeChanged(vtkMRMLNode*);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void onVcrFirst();

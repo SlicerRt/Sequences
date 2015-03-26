@@ -57,7 +57,7 @@ public:
   /// Selectes the next sequence item for display
   void SelectNextItem(vtkMRMLSequenceBrowserNode* browserNode, int selectionIncrement=1);
 
-  void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* multidimDataRootNode);
+  void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceDataRootNode);
 
 protected:
   vtkSlicerSequenceBrowserLogic();

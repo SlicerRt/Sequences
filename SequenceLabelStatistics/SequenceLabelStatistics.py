@@ -10,7 +10,7 @@ class SequenceLabelStatistics:
   def __init__(self, parent):
     import string
     parent.title = "Sequence Label Statistics"
-    parent.categories = ["Multidimensional data"]
+    parent.categories = ["Sequences"]
     parent.dependencies = []
     parent.contributors = ["Kevin Wang (PMH)"] # replace with "Firstname Lastname (Org)"
     parent.helpText = """

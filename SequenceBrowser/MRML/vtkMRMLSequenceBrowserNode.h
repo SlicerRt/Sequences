@@ -57,9 +57,9 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "SequenceBrowser";};
 
-  /// Set the multidimensional data node root
+  /// Set the sequence data node root
   void SetAndObserveRootNodeID(const char *rootNodeID);
-  /// Get the multidimensional data node root
+  /// Get the sequence data node root
   vtkMRMLSequenceNode* GetRootNode();
   
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)

@@ -52,7 +52,7 @@ public:
   static vtkSlicerMetafileImporterLogic *New();
   vtkTypeMacro(vtkSlicerMetafileImporterLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
-  void SetSequencesLogic(vtkSlicerSequencesLogic* multiDimensionLogic);
+  void SetSequencesLogic(vtkSlicerSequencesLogic* sequencesLogic);
 
 protected:
   vtkSlicerMetafileImporterLogic();

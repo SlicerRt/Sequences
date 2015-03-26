@@ -19,7 +19,7 @@
 
 ==============================================================================*/
 
-// MRMLMultidim includes
+// MRMLSequence includes
 #include "vtkMRMLSequenceBrowserNode.h"
 #include "vtkMRMLSequenceNode.h"
 

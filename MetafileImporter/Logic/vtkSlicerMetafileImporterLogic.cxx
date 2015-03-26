@@ -74,9 +74,9 @@ void vtkSlicerMetafileImporterLogic::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic::SetSequencesLogic(vtkSlicerSequencesLogic* multiDimensionLogic)
+void vtkSlicerMetafileImporterLogic::SetSequencesLogic(vtkSlicerSequencesLogic* sequencesLogic)
 {
-  this->SequencesLogic=multiDimensionLogic;
+  this->SequencesLogic=sequencesLogic;
 }
 
 //---------------------------------------------------------------------------

@@ -83,7 +83,7 @@ qSlicerSequenceBrowserModule::~qSlicerSequenceBrowserModule()
 //-----------------------------------------------------------------------------
 QString qSlicerSequenceBrowserModule::helpText()const
 {
-  return "This is a module for browsing or replaying a node sequence. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MultidimData\">online documentation</a>.";
+  return "This is a module for browsing or replaying a node sequence. See more information in the  <a href=\"http://www.slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/Sequences\">online documentation</a>.";
 }
 
 //-----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ QIcon qSlicerSequenceBrowserModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerSequenceBrowserModule::categories() const
 {
-  return QStringList() << "Multidimensional data";
+  return QStringList() << "Sequences";
 }
 
 //-----------------------------------------------------------------------------
