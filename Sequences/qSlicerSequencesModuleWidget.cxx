@@ -173,7 +173,7 @@ void qSlicerSequencesModuleWidget::setup()
   connect( d->LineEdit_IndexUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexUnitEdited() ) );
   connect( d->ComboBox_IndexType, SIGNAL( currentIndexChanged( const QString & ) ), this, SLOT( onIndexTypeEdited(QString) ) );
 
-  connect( d->TableWidget_DataNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onDataNodeChanged() ) );
+  //connect( d->TableWidget_DataNodes, SIGNAL( currentCellChanged( int, int, int, int ) ), this, SLOT( onDataNodeChanged() ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellChanged( int, int ) ), this, SLOT( onDataNodeEdited( int, int ) ) );
   connect( d->TableWidget_DataNodes, SIGNAL( cellClicked( int, int ) ), this, SLOT( onHideDataNodeClicked( int, int ) ) );
 
