@@ -402,7 +402,7 @@ void vtkMRMLSequenceBrowserNode::RemoveVirtualOutputDataNode(const std::string& 
   if (dataNode!=NULL)
   {
     this->Scene->RemoveNode(dataNode);
-    this->RemoveAllNodeReferenceIDs(dataNodeRef.c_str());
+    this->RemoveNodeReferenceIDs(dataNodeRef.c_str());
   }
   this->EndModify(oldModify);
 }
@@ -418,7 +418,7 @@ void vtkMRMLSequenceBrowserNode::RemoveVirtualOutputDisplayNodes(const std::stri
   {
     this->Scene->RemoveNode(*displayNodeIt);
   }
-  this->RemoveAllNodeReferenceIDs(displayNodesRef.c_str());  
+  this->RemoveNodeReferenceIDs(displayNodesRef.c_str());
   this->EndModify(oldModify);
 }
 
@@ -493,7 +493,7 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
       std::string rolePostfix=(*rolePostfixIt);
       bool oldModify=this->StartModify();
       this->VirtualNodePostfixes.erase(rolePostfixIt);
-      this->RemoveAllNodeReferenceIDs(rootNodeRef.c_str());
+      this->RemoveNodeReferenceIDs(rootNodeRef.c_str());
       this->RemoveVirtualOutputDataNode(rolePostfix);
       this->RemoveVirtualOutputDisplayNodes(rolePostfix);      
       this->EndModify(oldModify);
