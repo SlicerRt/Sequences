@@ -102,7 +102,7 @@ void qSlicerMetafileImporterModuleWidget
     dialog.show();
     dialog.setValue( 25 );
 
-    d->logic()->Read( fileName.toStdString() );
+    d->logic()->ReadSequenceMetafile( fileName.toStdString() );
 
     dialog.close();
   }

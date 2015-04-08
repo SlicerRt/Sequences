@@ -24,8 +24,10 @@
 // MRMLSequence includes
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceBrowserNode.h"
+#include "vtkMRMLVolumeSequenceStorageNode.h"
 
 // MRML includes
+#include "vtkCacheManager.h"
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
@@ -181,7 +183,7 @@ void UpdateTransformNodeFromString(vtkMRMLLinearTransformNode* transformNode, co
   matrix->SetElement( 3, 2, e32 );
   matrix->SetElement( 3, 3, e33 );
 
-  transformNode->SetAndObserveMatrixTransformToParent( matrix );
+  transformNode->SetMatrixTransformToParent( matrix );
 }
 
 
@@ -192,15 +194,22 @@ static std::string SEQMETA_FIELD_FRAME_FIELD_PREFIX = "Seq_Frame";
 static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 
 //----------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName, std::deque< vtkMRMLNode* > &createdNodes )
+bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::string& fileName,
+  const std::string &baseNodeName, std::deque< vtkMRMLNode* > &createdNodes,
+  std::map< int, std::string >& frameNumberToIndexValueMap)
 {
   // Open in binary mode because we determine the start of the image buffer also during this read
   const char* flags = "rb";
   FILE* stream = fopen( fileName.c_str(), flags ); // TODO: Removed error
+  if (stream == NULL)
+  {
+    vtkErrorMacro("Failed to open file for transform reading: "<<fileName);
+    return false;
+  }
 
   char line[ MAX_LINE_LENGTH + 1 ] = { 0 };
 
-  this->FrameNumberToIndexValueMap.clear();
+  frameNumberToIndexValueMap.clear();
 
   // This structure contains all the transform nodes that are read from the file.
   // The nodes are not added immediately to the scene to allow them properly named, using the timestamp index value.
@@ -283,7 +292,7 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
       // sometimes lead to extremely long node names
       std::ostringstream timestampSecStr;
       timestampSecStr << std::fixed << std::setprecision(3) << timestampSec << std::ends; 
-      this->FrameNumberToIndexValueMap[frameNumber] = timestampSecStr.str();
+      frameNumberToIndexValueMap[frameNumber] = timestampSecStr.str();
     }
 
     if ( ferror( stream ) )
@@ -311,7 +320,7 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
       // no transforms for this frame
       continue;
     }
-    std::string paramValueString=this->FrameNumberToIndexValueMap[currentFrameNumber];
+    std::string paramValueString = frameNumberToIndexValueMap[currentFrameNumber];
     for (std::vector<vtkMRMLLinearTransformNode*>::iterator transformIt=transformsForCurrentFrame->second.begin(); transformIt!=transformsForCurrentFrame->second.end(); ++transformIt)
     {
       vtkMRMLLinearTransformNode* transform=(*transformIt);
@@ -324,7 +333,7 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
         this->GetMRMLScene()->AddNode(transformsRootNode);
         transformsRootNode->SetIndexName("time");
         transformsRootNode->SetIndexUnit("s");
-        std::string transformsRootName=this->BaseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();        
+        std::string transformsRootName=baseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();        
         transformsRootNode->SetName( transformsRootName.c_str() );
 
         // Create storage node
@@ -371,15 +380,17 @@ void vtkSlicerMetafileImporterLogic::ReadTransforms( const std::string& fileName
     createdNodes.push_back(it->second);
   }
   transformRootNodes.clear();
-  
+ 
+  return true;
 }
 
 //----------------------------------------------------------------------------
 // Read the spacing and dimentions of the image.
-vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& fileName )
+vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages( const std::string& fileName,
+  const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap)
 {
-  #ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+#ifdef ENABLE_PERFORMANCE_PROFILING
+  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();
   timer->StartTimer();  
 #endif
   vtkSmartPointer< vtkMetaImageReader > imageReader = vtkSmartPointer< vtkMetaImageReader >::New();
@@ -405,7 +416,7 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
   this->GetMRMLScene()->AddNode(imagesRootNode);
   imagesRootNode->SetIndexName("time");
   imagesRootNode->SetIndexUnit("s");
-  std::string imagesRootName=this->BaseNodeName+NODE_BASE_NAME_SEPARATOR+"Image";
+  std::string imagesRootName=baseNodeName+NODE_BASE_NAME_SEPARATOR+"Image";
   imagesRootNode->SetName( this->GetMRMLScene()->GenerateUniqueName(imagesRootName).c_str() );
 
   // Create storage node
@@ -468,7 +479,7 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
     slice->SetName(nameStr.str().c_str());
     slice->SetAndObserveImageData(sliceImageData);
 
-    std::string paramValueString=this->FrameNumberToIndexValueMap[frameNumber];
+    std::string paramValueString = frameNumberToIndexValueMap[frameNumber];
     slice->SetHideFromEditors(false);
     imagesRootNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
   }
@@ -479,27 +490,31 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadImages( const std::string& file
 }
 
 //----------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic
-::Read( std::string fileName )
+bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName)
 {
-  //  this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
+  // Map the frame numbers to timestamps
+  std::map< int, std::string > frameNumberToIndexValueMap;
 
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
-  this->BaseNodeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+  std::string baseNodeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
   timer->StartTimer();
 #endif
   std::deque< vtkMRMLNode* > createdTransformNodes;
-  this->ReadTransforms( fileName, createdTransformNodes ); // TODO: Removed error macro
+  if (!this->ReadSequenceMetafileTransforms(fileName, baseNodeName, createdTransformNodes, frameNumberToIndexValueMap))
+  {
+    // error is logged in ReadTransforms
+    return false;
+  }
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
   vtkWarningMacro("ReadTransforms time: " << timer->GetElapsedTime() << "sec\n");
   timer->StartTimer();
 #endif
-  vtkMRMLNode* createdImageNode=this->ReadImages( fileName ); // TODO: Removed error macro
+  vtkMRMLNode* createdImageNode=this->ReadSequenceMetafileImages(fileName, baseNodeName, frameNumberToIndexValueMap);
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
   vtkWarningMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
@@ -516,10 +531,12 @@ void vtkSlicerMetafileImporterLogic
       createdTransformNodes.pop_front();
     }
   }
+
+  // Add a browser node and show the volume in the slice viewer for user convenience
   if (masterNode!=NULL)
   { 
     vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
-    sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(this->BaseNodeName).c_str());
+    sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(baseNodeName).c_str());
     this->GetMRMLScene()->AddNode(sequenceBrowserNode);
     sequenceBrowserNode->SetAndObserveRootNodeID(masterNode->GetID());
     for (std::deque< vtkMRMLNode* > :: iterator synchronizedNodesIt = createdTransformNodes.begin();
@@ -527,7 +544,6 @@ void vtkSlicerMetafileImporterLogic
     {
       sequenceBrowserNode->AddSynchronizedRootNode((*synchronizedNodesIt)->GetID());
     }
-
     // Show output volume in the slice viewer
     vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(vtkMRMLSequenceNode::SafeDownCast(masterNode));
     if (masterOutputNode->IsA("vtkMRMLVolumeNode"))
@@ -544,11 +560,77 @@ void vtkSlicerMetafileImporterLogic
         }
       } 
     }
-
   }
 
-//  this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
+  return true;
+}
 
-  this->FrameNumberToIndexValueMap.clear();
-  this->BaseNodeName.clear();
+//----------------------------------------------------------------------------
+bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName)
+{
+  int dotFound = fileName.find_last_of( "." );
+  int slashFound = fileName.find_last_of( "/" );
+  std::string volumeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+
+  vtkMRMLScene* scene = this->GetMRMLScene();
+  if (scene == NULL)
+  {
+    vtkErrorMacro("vtkSlicerMetafileImporterLogic::ReadVolumeSequence failed: scene is invalid");
+    return false;
+  }
+
+  vtkNew<vtkMRMLSequenceNode> volumeSequenceNode;
+  volumeSequenceNode->SetName(scene->GenerateUniqueName(volumeName).c_str());
+  scene->AddNode(volumeSequenceNode.GetPointer());
+
+  vtkNew<vtkMRMLVolumeSequenceStorageNode> storageNode;
+  //storageNode->SetCenterImage(options & vtkSlicerVolumesLogic::CenterImage);
+  scene->AddNode(storageNode.GetPointer());
+  volumeSequenceNode->SetAndObserveStorageNodeID(storageNode->GetID());
+
+  if (scene->GetCacheManager() && this->GetMRMLScene()->GetCacheManager()->IsRemoteReference(fileName.c_str()))
+    {
+    vtkDebugMacro("AddArchetypeVolume: input filename '" << fileName << "' is a URI");
+    // need to set the scene on the storage node so that it can look for file handlers
+    storageNode->SetURI(fileName.c_str());
+    //storageNode->SetScene(this->GetMRMLScene());
+    }
+  else
+    {
+      storageNode->SetFileName(fileName.c_str());
+    }
+
+  bool success = storageNode->ReadData(volumeSequenceNode.GetPointer());
+
+  if (!success)
+  {
+    scene->RemoveNode(storageNode.GetPointer());
+    scene->RemoveNode(volumeSequenceNode.GetPointer());
+    return false;
+  }
+
+  std::string browserNodeName = volumeName+" browser";
+  vtkNew<vtkMRMLSequenceBrowserNode> sequenceBrowserNode;
+  sequenceBrowserNode->SetName(scene->GenerateUniqueName(browserNodeName).c_str());
+  scene->AddNode(sequenceBrowserNode.GetPointer());
+  sequenceBrowserNode->SetAndObserveRootNodeID(volumeSequenceNode->GetID());
+
+  // Show output volume in the slice viewer
+  vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(volumeSequenceNode.GetPointer());
+  if (masterOutputNode->IsA("vtkMRMLVolumeNode"))
+  {
+    vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
+    vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
+    if (selectionNode)
+    {
+      selectionNode->SetReferenceActiveVolumeID(masterOutputNode->GetID());
+      if (appLogic)
+      {
+        appLogic->PropagateVolumeSelection();
+        appLogic->FitSliceToAll();
+      }
+    } 
+  }
+
+  return true;
 }

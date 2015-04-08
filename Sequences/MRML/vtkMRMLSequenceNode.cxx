@@ -261,38 +261,11 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
   if (displayableNode!=NULL)
   {
     vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
-    if (this->IndexEntries.size()==0)
+    int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
+    for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
     {
-      // This is the first node, so make a copy of the display node for the sequence
-      int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-      for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-      {
-        vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->SequenceScene->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
-        newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
-      }
-
-      // TODO: jsut for test
-      //std::vector< vtkMRMLDisplayNode* > displayNodes;
-      //GetDisplayNodesAtValue(displayNodes, indexValue);
-
-    }
-    else
-    {
-      // Overwrite the display nodes wih the display node(s) of the first node
-      vtkMRMLDisplayableNode* firstDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[0].DataNode);
-      if (firstDisplayableNode!=NULL)
-      {
-        newDisplayableNode->RemoveAllDisplayNodeIDs();
-        int numOfFirstDisplayNodes=firstDisplayableNode->GetNumberOfDisplayNodes();        
-        for (int firstDisplayNodeIndex=0; firstDisplayNodeIndex<numOfFirstDisplayNodes; firstDisplayNodeIndex++)
-        {
-          newDisplayableNode->AddAndObserveDisplayNodeID(firstDisplayableNode->GetNthDisplayNodeID(firstDisplayNodeIndex));
-        }
-      }
-      else
-      {
-        vtkErrorMacro("First node is not a displayable node");
-      }
+      vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->SequenceScene->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
+      newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
     }
   }
   
@@ -306,6 +279,7 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
     seqItemIndex=this->IndexEntries.size()-1;
   }
   this->IndexEntries[seqItemIndex].DataNode=newNode;
+  this->IndexEntries[seqItemIndex].DataNodeID.clear();
 }
 
 //----------------------------------------------------------------------------

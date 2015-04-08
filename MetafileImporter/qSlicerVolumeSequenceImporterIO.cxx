@@ -13,16 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  This file was originally developed by Julien Finet, Kitware Inc.
-  and was partially funded by NIH grant 3P41RR013218-12S1
-
 ==============================================================================*/
 
 // Qt includes
 #include <QDebug>
 
 // SlicerQt includes
-#include "qSlicerMetafileImporterIO.h"
+#include "qSlicerVolumeSequenceImporterIO.h"
 
 // Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
@@ -33,68 +30,66 @@
 #include <vtkSmartPointer.h>
 
 //-----------------------------------------------------------------------------
-class qSlicerMetafileImporterIOPrivate
+class qSlicerVolumeSequenceImporterIOPrivate
 {
 public:
   vtkSmartPointer<vtkSlicerMetafileImporterLogic> MetafileImporterLogic;
 };
 
 //-----------------------------------------------------------------------------
-qSlicerMetafileImporterIO::qSlicerMetafileImporterIO( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic, QObject* _parent)
+qSlicerVolumeSequenceImporterIO::qSlicerVolumeSequenceImporterIO( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic, QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerMetafileImporterIOPrivate)
+  , d_ptr(new qSlicerVolumeSequenceImporterIOPrivate)
 {
   this->setMetafileImporterLogic( newMetafileImporterLogic );
 }
 
 //-----------------------------------------------------------------------------
-qSlicerMetafileImporterIO::~qSlicerMetafileImporterIO()
+qSlicerVolumeSequenceImporterIO::~qSlicerVolumeSequenceImporterIO()
 {
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerMetafileImporterIO::setMetafileImporterLogic(vtkSlicerMetafileImporterLogic* newMetafileImporterLogic)
+void qSlicerVolumeSequenceImporterIO::setMetafileImporterLogic(vtkSlicerMetafileImporterLogic* newMetafileImporterLogic)
 {
-  Q_D(qSlicerMetafileImporterIO);
+  Q_D(qSlicerVolumeSequenceImporterIO);
   d->MetafileImporterLogic = newMetafileImporterLogic;
 }
 
 //-----------------------------------------------------------------------------
-vtkSlicerMetafileImporterLogic* qSlicerMetafileImporterIO::MetafileImporterLogic() const
+vtkSlicerMetafileImporterLogic* qSlicerVolumeSequenceImporterIO::metafileImporterLogic() const
 {
-  Q_D(const qSlicerMetafileImporterIO);
+  Q_D(const qSlicerVolumeSequenceImporterIO);
   return d->MetafileImporterLogic;
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerMetafileImporterIO::description() const
+QString qSlicerVolumeSequenceImporterIO::description() const
 {
-  return "Sequence Metafile";
+  return "Volume Sequence";
 }
 
 //-----------------------------------------------------------------------------
-qSlicerIO::IOFileType qSlicerMetafileImporterIO::fileType() const
+qSlicerIO::IOFileType qSlicerVolumeSequenceImporterIO::fileType() const
 {
-  return QString("Sequence Metafile");
+  return QString("Volume Sequence");
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerMetafileImporterIO::extensions() const
+QStringList qSlicerVolumeSequenceImporterIO::extensions() const
 {
-  return QStringList() << "Sequence Metafile (*.mha *.mhd)";
+  return QStringList() << "Volume Sequence (*.nrrd *.nhdr)";
 }
 
 //-----------------------------------------------------------------------------
-bool qSlicerMetafileImporterIO::load(const IOProperties& properties)
+bool qSlicerVolumeSequenceImporterIO::load(const IOProperties& properties)
 {
-  Q_D(qSlicerMetafileImporterIO);
+  Q_D(qSlicerVolumeSequenceImporterIO);
   if (!properties.contains("fileName"))
   {
-    qCritical() << "qSlicerMetafileImporterIO::load did not receive fileName property";
+    qCritical() << "qSlicerVolumeSequenceImporterIO::load did not receive fileName property";
   }
   QString fileName = properties["fileName"].toString();
   
-  d->MetafileImporterLogic->ReadSequenceMetafile( fileName.toStdString() );
-
-  return true; // TODO: Check to see read was successful first
+  return d->MetafileImporterLogic->ReadVolumeSequence( fileName.toStdString() );
 }

@@ -21,6 +21,7 @@
 // MRMLSequence includes
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
+#include "vtkMRMLVolumeSequenceStorageNode.h"
 
 // MRML includes
 #include "vtkMRMLScalarVolumeNode.h"
@@ -69,6 +70,7 @@ void vtkSlicerSequencesLogic::RegisterNodes()
   }
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLSequenceNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLSequenceStorageNode>::New());
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
 }
 
 //---------------------------------------------------------------------------

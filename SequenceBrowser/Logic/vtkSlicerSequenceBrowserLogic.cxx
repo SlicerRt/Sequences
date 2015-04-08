@@ -489,7 +489,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   }
   else
   {
-    // TODO: maybe get parent transform and restore it after the copy
+    // TODO: maybe get parent transform, display nodes, storage node, and restore it after the copy
     target->CopyWithSingleModifiedEvent(source);
   }
   target->EndModify(oldModified);

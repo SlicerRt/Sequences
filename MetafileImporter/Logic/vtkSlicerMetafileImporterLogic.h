@@ -71,27 +71,26 @@ private:
 
 public:
 
-  /*! Read file contents into the object */
-  void Read( std::string fileName );
+  /*! Read sequence metafile contents into the object */
+  bool ReadSequenceMetafile(const std::string& fileName);
+
+  /*! Read volume sequence from NRRD file. Returns true on success. */
+  bool ReadVolumeSequence(const std::string& fileName);
 
 protected:
 
   /*! Read all the fields in the metaimage file header */
-  void ReadTransforms(const std::string &fileName, std::deque< vtkMRMLNode* > &createdNodes );
+  bool ReadSequenceMetafileTransforms(const std::string& fileName, const std::string &baseNodeName,
+    std::deque< vtkMRMLNode* > &createdNodes, std::map< int, std::string >& frameNumberToIndexValueMap);
 
   /*! Read pixel data from the metaimage. Returns the pointer to the created image sequence. */
-  vtkMRMLNode* ReadImages(const std::string& fileName );
+  vtkMRMLNode* ReadSequenceMetafileImages(const std::string& fileName, const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap );
 
   /*! Generate a node name that contains the hierarchy name and index value */
   std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& indexValue);
 
   /*! Logic for Sequence hierarchy to manipulate nodes */
   vtkSlicerSequencesLogic* SequencesLogic;
-
-  /*! Map the frame numbers to timestamps */
-  std::map< int, std::string > FrameNumberToIndexValueMap;
-
-  std::string BaseNodeName;
 
 };
 
