@@ -96,7 +96,6 @@ class SequenceRegistrationWidget:
     #
     self.fixedImageSelector = slicer.qMRMLNodeComboBox()
     self.fixedImageSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    self.fixedImageSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.fixedImageSelector.selectNodeUponCreation = True
     self.fixedImageSelector.addEnabled = False
     self.fixedImageSelector.removeEnabled = False
@@ -112,7 +111,6 @@ class SequenceRegistrationWidget:
     #
     self.movingImageSequenceSelector = slicer.qMRMLNodeComboBox()
     self.movingImageSequenceSelector.nodeTypes = ( ("vtkMRMLSequenceNode"), "" )
-    # self.movingImageSequenceSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap",0 )
     self.movingImageSequenceSelector.selectNodeUponCreation = True
     self.movingImageSequenceSelector.addEnabled = False
     self.movingImageSequenceSelector.removeEnabled = False

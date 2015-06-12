@@ -108,7 +108,6 @@ class SequenceLabelStatisticsWidget:
     #
     self.grayscaleSelector = slicer.qMRMLNodeComboBox()
     self.grayscaleSelector.nodeTypes = ( ("vtkMRMLSequenceNode"), "" )
-    # self.grayscaleSelector.addAttribute( "vtkMRMLSequenceNode", "LabelMap", 0 )
     self.grayscaleSelector.selectNodeUponCreation = False
     self.grayscaleSelector.addEnabled = False
     self.grayscaleSelector.removeEnabled = False
@@ -125,8 +124,7 @@ class SequenceLabelStatisticsWidget:
     # the label volume selector
     #
     self.labelSelector = slicer.qMRMLNodeComboBox()
-    self.labelSelector.nodeTypes = ( "vtkMRMLSequenceNode", "vtkMRMLScalarVolumeNode" )
-    self.labelSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", "1" )
+    self.labelSelector.nodeTypes = ( "vtkMRMLSequenceNode", "vtkMRMLLabelMapVolumeNode" )
     # todo addAttribute
     self.labelSelector.selectNodeUponCreation = False
     self.labelSelector.addEnabled = False

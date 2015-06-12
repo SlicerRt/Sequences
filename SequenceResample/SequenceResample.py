@@ -90,7 +90,6 @@ class SequenceResampleWidget:
     #
     self.referenceSelector = slicer.qMRMLNodeComboBox()
     self.referenceSelector.nodeTypes = ( ("vtkMRMLSequenceNode"), "" )
-    # self.referenceSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.referenceSelector.selectNodeUponCreation = True
     self.referenceSelector.addEnabled = False
     self.referenceSelector.removeEnabled = False
@@ -107,7 +106,6 @@ class SequenceResampleWidget:
     #
     self.inputSelector = slicer.qMRMLNodeComboBox()
     self.inputSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
-    # self.inputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.inputSelector.selectNodeUponCreation = True
     self.inputSelector.addEnabled = False
     self.inputSelector.removeEnabled = False
@@ -139,7 +137,6 @@ class SequenceResampleWidget:
     #
     self.outputSelector = slicer.qMRMLNodeComboBox()
     self.outputSelector.nodeTypes = ( ("vtkMRMLSequenceNode"), "" )
-    # self.outputSelector.addAttribute( "vtkMRMLScalarVolumeNode", "LabelMap", 0 )
     self.outputSelector.selectNodeUponCreation = False
     self.outputSelector.addEnabled = True
     self.outputSelector.removeEnabled = True

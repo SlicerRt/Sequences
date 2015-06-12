@@ -26,6 +26,7 @@
 #include "vtkMRMLCameraNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLLabelMapVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLLinearTransformNode.h"
@@ -449,9 +450,19 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
     sourceScalarVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
     targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    targetScalarVolumeNode->SetLabelMap(sourceScalarVolumeNode->GetLabelMap());
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
     targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
+  }
+  if (target->IsA("vtkMRMLLabelMapVolumeNode"))
+  {
+    vtkMRMLLabelMapVolumeNode* targetLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(target);
+    vtkMRMLLabelMapVolumeNode* sourceLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(source);
+    // targetLabelMapVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
+    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
+    sourceLabelMapVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
+    targetLabelMapVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
+    targetLabelMapVolumeNode->SetName(sourceLabelMapVolumeNode->GetName());
+    targetLabelMapVolumeNode->SetAndObserveImageData(sourceLabelMapVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
   }
   else if (target->IsA("vtkMRMLModelNode"))
   {
