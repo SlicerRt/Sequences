@@ -123,10 +123,10 @@ void qSlicerMetafileImporterModule::setup()
 
   // Register the IO
   app->coreIOManager()->registerIO( new qSlicerMetafileImporterIO( metafileImporterLogic, this ) );
-  app->coreIOManager()->registerIO( new qSlicerNodeWriter( "MetafileImporter", QString( "SequenceMetafile" ), QStringList(), this ) );
+  app->coreIOManager()->registerIO( new qSlicerNodeWriter( "MetafileImporter", QString( "SequenceMetafile" ), QStringList(), true, this ) );
 
   app->coreIOManager()->registerIO( new qSlicerVolumeSequenceImporterIO( metafileImporterLogic, this ) );
-  app->coreIOManager()->registerIO( new qSlicerNodeWriter( "Sequences", QString( "VolumeSequenceFile" ), QStringList() << "vtkMRMLSequenceNode", this ) );
+  app->coreIOManager()->registerIO( new qSlicerNodeWriter( "Sequences", QString( "VolumeSequenceFile" ), QStringList() << "vtkMRMLSequenceNode", true, this ) );
 
 }
 
