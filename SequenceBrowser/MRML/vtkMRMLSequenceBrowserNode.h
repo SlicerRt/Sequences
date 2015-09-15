@@ -109,6 +109,12 @@ public:
   /// Returns all synchronized root nodes (does not include the master root node)
   void GetSynchronizedRootNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
 
+  /// Helper function for performance optimization of volume browsing
+  /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
+  /// this significantly slowing down browsing.
+  /// The method has no effect if there is no output display node or it is not scalar volume display node type.
+  void ScalarVolumeAutoWindowLevelOff();
+
 protected:
   vtkMRMLSequenceBrowserNode();
   ~vtkMRMLSequenceBrowserNode();

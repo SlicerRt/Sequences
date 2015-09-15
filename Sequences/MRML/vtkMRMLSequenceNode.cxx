@@ -17,11 +17,12 @@
 
 // MRMLSequence includes
 #include "vtkMRMLSequenceNode.h"
-#include "vtkMRMLDisplayableNode.h"
-#include "vtkMRMLDisplayNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
 
 // MRML includes
+#include <vtkMRMLDisplayableNode.h>
+#include <vtkMRMLDisplayNode.h>
+#include <vtkMRMLScalarVolumeDisplayNode.h>
 #include <vtkMRMLScene.h>
 
 // VTK includes
@@ -265,6 +266,15 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
     for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
     {
       vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->SequenceScene->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
+
+      // Performance optimization: disable auto WW/WL computation in scalar display nodes, as it computation time is very significant
+      // and it would be performed each time when switching between volumes
+      vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(displayNode);
+      if (scalarVolumeDisplayNode)
+      {
+        scalarVolumeDisplayNode->AutoWindowLevelOff();
+      }
+
       newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
     }
   }

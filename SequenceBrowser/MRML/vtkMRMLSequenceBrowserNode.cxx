@@ -28,6 +28,7 @@
 #include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLHierarchyNode.h>
+#include <vtkMRMLScalarVolumeDisplayNode.h>
 
 // VTK includes
 #include <vtkObjectFactory.h>
@@ -369,7 +370,7 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
     if (displayNode) // Added to check if displayNode is valid
     {
-      this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());    
+      this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());
       if (displayableNode)
       {
         displayableNode->AddAndObserveDisplayNodeID(displayNode->GetID());
@@ -524,5 +525,27 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLSe
       continue;
     }
     synchronizedDataNodes.push_back(synchronizedNode);
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
+{
+  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
+  if (rootNode==NULL)
+  {
+    vtkWarningMacro("vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff failed: root node is invalid");
+    return;
+  }
+  std::vector< vtkMRMLDisplayNode* > displayNodes;
+  this->GetVirtualOutputDisplayNodes(rootNode, displayNodes);
+  for (std::vector< vtkMRMLDisplayNode* >::iterator displayNodePtrIt = displayNodes.begin(); displayNodePtrIt != displayNodes.end(); ++displayNodePtrIt)
+  {
+    vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(*displayNodePtrIt);
+    if (scalarVolumeDisplayNode==NULL)
+    {
+      continue;
+    }
+    scalarVolumeDisplayNode->AutoWindowLevelOff();
   }
 }

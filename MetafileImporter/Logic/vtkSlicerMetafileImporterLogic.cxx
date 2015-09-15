@@ -31,10 +31,10 @@
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
-#include "vtkMRMLVectorVolumeNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkMRMLSelectionNode.h"
 #include "vtkMRMLStorageNode.h"
+#include "vtkMRMLVectorVolumeNode.h"
 
 // VTK includes
 #include <vtkImageData.h>
@@ -558,7 +558,8 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
           appLogic->PropagateVolumeSelection();
           appLogic->FitSliceToAll();
         }
-      } 
+        sequenceBrowserNode->ScalarVolumeAutoWindowLevelOff(); // for performance optimization
+      }
     }
   }
 
@@ -629,6 +630,7 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
         appLogic->PropagateVolumeSelection();
         appLogic->FitSliceToAll();
       }
+      sequenceBrowserNode->ScalarVolumeAutoWindowLevelOff(); // for performance optimization
     } 
   }
 

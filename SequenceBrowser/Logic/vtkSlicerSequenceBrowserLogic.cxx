@@ -24,15 +24,12 @@
 
 // MRML includes
 #include "vtkMRMLCameraNode.h"
+#include "vtkMRMLLabelMapVolumeNode.h"
+#include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
-#include "vtkMRMLLabelMapVolumeNode.h"
-#include "vtkMRMLScalarVolumeDisplayNode.h"
-#include "vtkMRMLMarkupsFiducialNode.h"
-#include "vtkMRMLLinearTransformNode.h"
-#include "vtkMRMLGridTransformNode.h"
-#include "vtkMRMLBSplineTransformNode.h"
 #include "vtkMRMLScene.h"
+#include "vtkMRMLTransformNode.h"
 
 // VTK includes
 #include <vtkMatrix4x4.h>
