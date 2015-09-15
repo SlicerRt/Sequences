@@ -109,7 +109,7 @@ void qSlicerSequencesModule::setup()
   this->Superclass::setup();
   // Register IOs
   qSlicerIOManager* ioManager = qSlicerApplication::application()->ioManager();
-  ioManager->registerIO(new qSlicerNodeWriter("Sequences", QString("SequenceFile"), QStringList() << "vtkMRMLSequenceNode", this));
+  ioManager->registerIO(new qSlicerNodeWriter("Sequences", QString("SequenceFile"), QStringList() << "vtkMRMLSequenceNode", true, this));
 }
 
 //-----------------------------------------------------------------------------

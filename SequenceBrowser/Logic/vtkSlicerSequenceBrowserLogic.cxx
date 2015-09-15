@@ -450,7 +450,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
     targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
     targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
   }
-  if (target->IsA("vtkMRMLLabelMapVolumeNode"))
+  else if (target->IsA("vtkMRMLLabelMapVolumeNode"))
   {
     vtkMRMLLabelMapVolumeNode* targetLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(target);
     vtkMRMLLabelMapVolumeNode* sourceLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(source);
