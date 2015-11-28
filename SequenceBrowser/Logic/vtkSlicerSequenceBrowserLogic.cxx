@@ -171,64 +171,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
       if (selectionIncrement>0)
       {
         this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
-        this->SelectNextItem(browserNode, selectionIncrement);
+        browserNode->SelectNextItem(selectionIncrement);
       }
     }
   }
-}
-
-//---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::SelectNextItem(vtkMRMLSequenceBrowserNode* browserNode, int selectionIncrement/*=1*/)
-{
-  if (browserNode==NULL)
-  {
-    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::SelectNextItem failed: browserNode is invalid");
-    return;
-  }
-  vtkMRMLSequenceNode* rootNode=browserNode->GetRootNode();
-  if (rootNode==NULL || rootNode->GetNumberOfDataNodes()==0)
-  {
-    // nothing to replay
-    return;
-  }
-  int selectedItemNumber=browserNode->GetSelectedItemNumber();
-  int browserNodeModify=browserNode->StartModify(); // invoke modification event once all the modifications has been completed
-  if (selectedItemNumber<0)
-  {
-    selectedItemNumber=0;
-  }
-  else
-  {
-    selectedItemNumber += selectionIncrement;
-    if (selectedItemNumber>=rootNode->GetNumberOfDataNodes())
-    {
-      if (browserNode->GetPlaybackLooped())
-      {
-        // wrap around and keep playback going
-        selectedItemNumber = selectedItemNumber % rootNode->GetNumberOfDataNodes();
-      }
-      else
-      {
-        browserNode->SetPlaybackActive(false);
-        selectedItemNumber=0;
-      }
-    }
-    else if (selectedItemNumber<0)
-    {
-      if (browserNode->GetPlaybackLooped())
-      {
-        // wrap around and keep playback going
-        selectedItemNumber = (selectedItemNumber % rootNode->GetNumberOfDataNodes()) + rootNode->GetNumberOfDataNodes();
-      }
-      else
-      {
-        browserNode->SetPlaybackActive(false);
-        selectedItemNumber=rootNode->GetNumberOfDataNodes()-1;
-      }
-    }
-  }
-  browserNode->SetSelectedItemNumber(selectedItemNumber);
-  browserNode->EndModify(browserNodeModify);
 }
 
 //---------------------------------------------------------------------------

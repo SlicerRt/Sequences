@@ -45,12 +45,6 @@ public:
 
 public slots:
   void setMRMLScene(vtkMRMLScene* scene);
-
-  void setSelectedItemNumber(int itemNumber);
-  void setPlaybackEnabled(bool play);
-  void setPlaybackRateFps(double playbackRateFps);
-  void setPlaybackLoopEnabled(bool loopEnabled);  
-
   void updateChart();
 
 protected slots:
@@ -58,10 +52,7 @@ protected slots:
   void sequenceDataRootNodeChanged(vtkMRMLNode*);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
-  void onVcrFirst();
-  void onVcrPrevious();
-  void onVcrNext();
-  void onVcrLast();
+  
   void synchronizedRootNodeCheckStateChanged(int aState);
 
   /// Respond to the scene events

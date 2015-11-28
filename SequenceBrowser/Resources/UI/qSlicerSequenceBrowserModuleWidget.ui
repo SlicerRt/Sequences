@@ -46,40 +46,18 @@
       <string>Input</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_IndexName">
+      <item row="3" column="0" colspan="2">
+       <widget class="qMRMLSequenceBrowserSeekWidget" name="sequenceBrowserSeekWidget"/>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="qMRMLSequenceBrowserPlayWidget" name="sequenceBrowserPlayWidget"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_SequenceInput">
         <property name="text">
-         <string>Index name</string>
+         <string>Master node</string>
         </property>
        </widget>
-      </item>
-      <item row="1" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QSlider" name="slider_IndexValue">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_IndexValue">
-          <property name="text">
-           <string>-</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="Label_IndexUnit">
-          <property name="text">
-           <string>-</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
       </item>
       <item row="0" column="1">
        <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SequenceRoot">
@@ -101,103 +79,6 @@
          <bool>true</bool>
         </property>
        </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_SequenceInput">
-        <property name="text">
-         <string>Master node</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0" colspan="2">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrFirst">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrFirst24.png</normaloff>:/Icons/pqVcrFirst24.png</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrPrevious">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrBack24.png</normaloff>:/Icons/pqVcrBack24.png</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrPlayPause">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrPlay24.png</normaloff>
-            <normalon>:/Icons/pqVcrPause24.png</normalon>:/Icons/pqVcrPlay24.png</iconset>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrNext">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrForward24.png</normaloff>:/Icons/pqVcrForward24.png</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrLast">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrLast24.png</normaloff>:/Icons/pqVcrLast24.png</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_VcrPlaybackRate">
-          <property name="maximum">
-           <double>1000.000000000000000</double>
-          </property>
-          <property name="singleStep">
-           <double>5.000000000000000</double>
-          </property>
-          <property name="value">
-           <double>100.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_VcrLoop">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../qSlicerSequenceBrowserModule.qrc">
-            <normaloff>:/Icons/pqVcrLoop24.png</normaloff>:/Icons/pqVcrLoop24.png</iconset>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
       </item>
      </layout>
     </widget>
@@ -296,6 +177,12 @@
    <header>qMRMLNodeComboBox.h</header>
   </customwidget>
   <customwidget>
+   <class>qMRMLWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
@@ -310,6 +197,18 @@
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLSequenceBrowserPlayWidget</class>
+   <extends>qMRMLWidget</extends>
+   <header>qMRMLSequenceBrowserPlayWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLSequenceBrowserSeekWidget</class>
+   <extends>qMRMLWidget</extends>
+   <header>qMRMLSequenceBrowserSeekWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

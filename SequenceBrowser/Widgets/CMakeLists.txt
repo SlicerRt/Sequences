@@ -5,26 +5,36 @@ set(KIT ${PROJECT_NAME})
 set(${KIT}_EXPORT_DIRECTIVE "Q_SLICER_MODULE_${MODULE_NAME_UPPER}_WIDGETS_EXPORT")
 
 set(${KIT}_INCLUDE_DIRECTORIES
+  ${vtkSlicer${MODULE_NAME}ModuleLogic_SOURCE_DIR}
+  ${vtkSlicer${MODULE_NAME}ModuleLogic_BINARY_DIR}
   )
 
 set(${KIT}_SRCS
-  qSlicer${MODULE_NAME}FooBarWidget.cxx
-  qSlicer${MODULE_NAME}FooBarWidget.h
+  qMRML${MODULE_NAME}PlayWidget.cxx
+  qMRML${MODULE_NAME}PlayWidget.h
+  qMRML${MODULE_NAME}SeekWidget.cxx
+  qMRML${MODULE_NAME}SeekWidget.h
+  qMRML${MODULE_NAME}ToolBar.cxx
+  qMRML${MODULE_NAME}ToolBar.h
   )
 
 set(${KIT}_MOC_SRCS
-  qSlicer${MODULE_NAME}FooBarWidget.h
+  qMRML${MODULE_NAME}PlayWidget.h
+  qMRML${MODULE_NAME}SeekWidget.h
+  qMRML${MODULE_NAME}ToolBar.h
   )
 
 set(${KIT}_UI_SRCS
-  ../Resources/UI/qSlicer${MODULE_NAME}FooBarWidget.ui
+  Resources/UI/qMRML${MODULE_NAME}PlayWidget.ui
+  Resources/UI/qMRML${MODULE_NAME}SeekWidget.ui
   )
 
 set(${KIT}_RESOURCES
-  ../Resources/UI/qSlicer${MODULE_NAME}FooBarWidget.ui
+  Resources/qSlicer${MODULE_NAME}ModuleWidgets.qrc
   )
 
 set(${KIT}_TARGET_LIBRARIES
+  vtkSlicer${MODULE_NAME}ModuleMRML
   vtkSlicer${MODULE_NAME}ModuleLogic
   )
 
@@ -41,3 +51,10 @@ SlicerMacroBuildModuleWidgets(
   WRAP_PYTHONQT
   )
 
+#-----------------------------------------------------------------------------
+add_subdirectory(DesignerPlugins)
+
+# Testing
+if(BUILD_TESTING)
+  add_subdirectory(Testing)
+endif()

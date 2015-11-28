@@ -549,3 +549,80 @@ void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
     scalarVolumeDisplayNode->AutoWindowLevelOff();
   }
 }
+
+
+//---------------------------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::SelectFirstItem()
+{
+  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
+  int selectedItemNumber = -1;
+  if (rootNode && rootNode->GetNumberOfDataNodes()>0)
+  {
+    selectedItemNumber = 0;
+  }
+  this->SetSelectedItemNumber(selectedItemNumber );
+  return selectedItemNumber;
+}
+
+//---------------------------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::SelectLastItem()
+{
+  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
+  int selectedItemNumber = -1;
+  if (rootNode && rootNode->GetNumberOfDataNodes()>0)
+  {
+    selectedItemNumber = rootNode->GetNumberOfDataNodes()-1;
+  }
+  this->SetSelectedItemNumber(selectedItemNumber );
+  return selectedItemNumber;
+}
+
+//---------------------------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
+{
+  vtkMRMLSequenceNode* rootNode=this->GetRootNode();
+  if (rootNode==NULL || rootNode->GetNumberOfDataNodes()==0)
+  {
+    // nothing to replay
+    return -1;
+  }
+  int selectedItemNumber=this->GetSelectedItemNumber();
+  int browserNodeModify=this->StartModify(); // invoke modification event once all the modifications has been completed
+  if (selectedItemNumber<0)
+  {
+    selectedItemNumber=0;
+  }
+  else
+  {
+    selectedItemNumber += selectionIncrement;
+    if (selectedItemNumber>=rootNode->GetNumberOfDataNodes())
+    {
+      if (this->GetPlaybackLooped())
+      {
+        // wrap around and keep playback going
+        selectedItemNumber = selectedItemNumber % rootNode->GetNumberOfDataNodes();
+      }
+      else
+      {
+        this->SetPlaybackActive(false);
+        selectedItemNumber=0;
+      }
+    }
+    else if (selectedItemNumber<0)
+    {
+      if (this->GetPlaybackLooped())
+      {
+        // wrap around and keep playback going
+        selectedItemNumber = (selectedItemNumber % rootNode->GetNumberOfDataNodes()) + rootNode->GetNumberOfDataNodes();
+      }
+      else
+      {
+        this->SetPlaybackActive(false);
+        selectedItemNumber=rootNode->GetNumberOfDataNodes()-1;
+      }
+    }
+  }
+  this->SetSelectedItemNumber(selectedItemNumber);
+  this->EndModify(browserNodeModify);
+  return selectedItemNumber;
+}

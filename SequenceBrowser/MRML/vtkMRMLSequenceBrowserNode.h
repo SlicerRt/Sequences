@@ -80,6 +80,15 @@ public:
   vtkGetMacro(SelectedItemNumber, int);
   vtkSetMacro(SelectedItemNumber, int);
 
+  /// Selects the next sequence item for display, returns current selected item number
+  int SelectNextItem(int selectionIncrement=1);
+
+  /// Selects first sequence item for display, returns current selected item number
+  int SelectFirstItem();
+
+  /// Selects last sequence item for display, returns current selected item number
+  int SelectLastItem();
+
   void RemoveAllVirtualOutputNodes();
 
   vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* rootNode);

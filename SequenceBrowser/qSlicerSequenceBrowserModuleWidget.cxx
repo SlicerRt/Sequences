@@ -392,14 +392,6 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_SequenceRoot, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceDataRootNodeChanged(vtkMRMLNode*)) );
-  connect( d->slider_IndexValue, SIGNAL(valueChanged(int)), this, SLOT(setSelectedItemNumber(int)) );  
-  connect( d->pushButton_VcrFirst, SIGNAL(clicked()), this, SLOT(onVcrFirst()) );
-  connect( d->pushButton_VcrPrevious, SIGNAL(clicked()), this, SLOT(onVcrPrevious()) );
-  connect( d->pushButton_VcrNext, SIGNAL(clicked()), this, SLOT(onVcrNext()) );
-  connect( d->pushButton_VcrLast, SIGNAL(clicked()), this, SLOT(onVcrLast()) );
-  connect( d->pushButton_VcrPlayPause, SIGNAL(toggled(bool)), this, SLOT(setPlaybackEnabled(bool)) );
-  connect( d->pushButton_VcrLoop, SIGNAL(toggled(bool)), this, SLOT(setPlaybackLoopEnabled(bool)) );
-  connect( d->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), this, SLOT(setPlaybackRateFps(double)) );
 
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
   d->tableWidget_SynchronizedRootNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
@@ -536,82 +528,6 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vt
   this->updateWidgetFromMRML();  
 }
 
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onVcrFirst()
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->slider_IndexValue->setValue(d->slider_IndexValue->minimum());
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onVcrLast()
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->slider_IndexValue->setValue(d->slider_IndexValue->maximum());
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onVcrPrevious()
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->logic()->SelectNextItem(d->activeBrowserNode(), -1);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onVcrNext()
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->logic()->SelectNextItem(d->activeBrowserNode(), 1);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setPlaybackEnabled(bool play)
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  if (d->activeBrowserNode()==NULL)
-  {
-    qCritical() << "onVcrPlayPauseStateChanged failed: no active browser node is selected";
-    updateWidgetFromMRML();
-    return;
-  }
-  if (play!=d->activeBrowserNode()->GetPlaybackActive())
-  {
-    d->activeBrowserNode()->SetPlaybackActive(play);
-  }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setPlaybackLoopEnabled(bool loopEnabled)
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  if (d->activeBrowserNode()==NULL)
-  {
-    qCritical() << "onVcrPlaybackLoopStateChanged failed: no active browser node is selected";
-    this->updateWidgetFromMRML();
-    return;
-  }
-  if (loopEnabled!=d->activeBrowserNode()->GetPlaybackLooped())
-  {
-    d->activeBrowserNode()->SetPlaybackLooped(loopEnabled);
-  }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setPlaybackRateFps(double playbackRateFps)
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  if (d->activeBrowserNode()==NULL)
-  {
-    qCritical() << "setPlaybackRateFps failed: no active browser node is selected";
-    this->updateWidgetFromMRML();
-    return;
-  }
-  if (playbackRateFps!=d->activeBrowserNode()->GetPlaybackRateFps())
-  {
-    d->activeBrowserNode()->SetPlaybackRateFps(playbackRateFps);
-  }
-}
-
 // --------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode)
 {
@@ -626,6 +542,8 @@ void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBro
     d->ActiveBrowserNodeID = (browserNode?browserNode->GetID():"");
   }
   d->MRMLNodeComboBox_ActiveBrowser->setCurrentNode(browserNode);
+  d->sequenceBrowserPlayWidget->setMRMLSequenceBrowserNode(browserNode);
+  d->sequenceBrowserSeekWidget->setMRMLSequenceBrowserNode(browserNode);
 
   this->updateWidgetFromMRML();
 }
@@ -655,32 +573,17 @@ void qSlicerSequenceBrowserModuleWidget::setSequenceRootNode(vtkMRMLSequenceNode
     d->activeBrowserNode()->SetAndObserveRootNodeID(sequenceDataRootNodeId);
 
     // Update d->activeBrowserNode()->SetAndObserveSelectedSequenceNodeID
-    this->setSelectedItemNumber(0);
+    if (sequenceDataRootNode!=NULL && sequenceDataRootNode->GetNumberOfDataNodes()>0)
+    {
+      d->activeBrowserNode()->SetSelectedItemNumber(0);
+    }
+    else
+    {
+      d->activeBrowserNode()->SetSelectedItemNumber(-1);
+    }
 
     d->activeBrowserNode()->EndModify(oldModify);
   }   
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::setSelectedItemNumber(int itemNumber)
-{
-  Q_D(qSlicerSequenceBrowserModuleWidget);
-  if (d->activeBrowserNode()==NULL)
-  {
-    qCritical() << "setSelectedItemNumber failed: no active browser node is selected";
-    this->updateWidgetFromMRML();
-    return;
-  }
-  int selectedItemNumber=-1;
-  vtkMRMLSequenceNode* rootNode=d->activeBrowserNode()->GetRootNode();  
-  if (rootNode!=NULL && itemNumber>=0)
-  {
-    if (itemNumber<rootNode->GetNumberOfDataNodes())
-    {
-      selectedItemNumber=itemNumber;
-    }
-  }
-  d->activeBrowserNode()->SetSelectedItemNumber(selectedItemNumber);
 }
 
 //-----------------------------------------------------------------------------
@@ -688,116 +591,16 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
   
-  QString DEFAULT_INDEX_NAME_STRING=tr("time");  
-  
-  QObjectList vcrControls;
-  vcrControls 
-    << d->pushButton_VcrFirst << d->pushButton_VcrLast << d->pushButton_VcrLoop
-    << d->pushButton_VcrNext << d->pushButton_VcrPlayPause << d->pushButton_VcrPrevious;
-  bool vcrControlsEnabled=false;  
-
   if (d->activeBrowserNode()==NULL)
   {
     d->MRMLNodeComboBox_SequenceRoot->setEnabled(false);
-    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
-    d->Label_IndexUnit->setText("");
-    d->slider_IndexValue->setEnabled(false);
-    d->doubleSpinBox_VcrPlaybackRate->setEnabled(false);
-    foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
     this->refreshSynchronizedRootNodesTable();
     return;
   }
 
-  // A valid active browser node is selected
-  
   vtkMRMLSequenceNode* sequenceDataRootNode = d->activeBrowserNode()->GetRootNode();  
   d->MRMLNodeComboBox_SequenceRoot->setEnabled(true);  
   d->MRMLNodeComboBox_SequenceRoot->setCurrentNode(sequenceDataRootNode);
-  d->doubleSpinBox_VcrPlaybackRate->setEnabled(true);
-
-  // Set up the sequenceensional input section (root node selector and sequence slider)
-
-  if (sequenceDataRootNode==NULL)
-  {
-    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
-    d->Label_IndexUnit->setText("");
-    d->slider_IndexValue->setEnabled(false);
-    foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
-    this->refreshSynchronizedRootNodesTable();
-    return;    
-  }
-
-  // A valid sequenceensional root node is selected
-
-  const char* indexName=sequenceDataRootNode->GetIndexName();
-  if (indexName!=NULL)
-  {
-    d->label_IndexName->setText(indexName);
-  }
-  else
-  {
-    qWarning() << "Index name is not specified in node "<<sequenceDataRootNode->GetID();
-    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
-  }
-
-  const char* indexUnit=sequenceDataRootNode->GetIndexUnit();
-  if (indexUnit!=NULL)
-  {
-    d->Label_IndexUnit->setText(indexUnit);
-  }
-  else
-  {
-    qWarning() << "IndexUnit is not specified in node "<<sequenceDataRootNode->GetID();
-    d->Label_IndexUnit->setText("");
-  }
-  
-  int numberOfDataNodes=sequenceDataRootNode->GetNumberOfDataNodes();
-  if (numberOfDataNodes>0)
-  {
-    d->slider_IndexValue->setEnabled(true);
-    d->slider_IndexValue->setMinimum(0);      
-    d->slider_IndexValue->setMaximum(numberOfDataNodes-1);        
-    vcrControlsEnabled=true;
-    
-    bool pushButton_VcrPlayPauseBlockSignals = d->pushButton_VcrPlayPause->blockSignals(true);
-    d->pushButton_VcrPlayPause->setChecked(d->activeBrowserNode()->GetPlaybackActive());
-    d->pushButton_VcrPlayPause->blockSignals(pushButton_VcrPlayPauseBlockSignals);
-
-    bool pushButton_VcrLoopBlockSignals = d->pushButton_VcrLoop->blockSignals(true);
-    d->pushButton_VcrLoop->setChecked(d->activeBrowserNode()->GetPlaybackLooped());
-    d->pushButton_VcrLoop->blockSignals(pushButton_VcrLoopBlockSignals);
-  }
-  else
-  {
-    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceDataRootNode->GetID();
-    d->slider_IndexValue->setEnabled(false);
-  }   
-
-  int selectedItemNumber=d->activeBrowserNode()->GetSelectedItemNumber();
-  if (selectedItemNumber>=0)
-  {
-    std::string indexValue=sequenceDataRootNode->GetNthIndexValue(selectedItemNumber);
-    if (!indexValue.empty())
-    {
-      d->label_IndexValue->setText(indexValue.c_str());
-      d->slider_IndexValue->setValue(selectedItemNumber);
-    }
-    else
-    {
-      qWarning() << "Item "<<selectedItemNumber<<" has no index value defined";
-      d->label_IndexValue->setText("");
-      d->slider_IndexValue->setValue(0);
-    }  
-  }
-  else
-  {
-    d->label_IndexValue->setText("");
-    d->slider_IndexValue->setValue(0);
-  }  
-
-  d->doubleSpinBox_VcrPlaybackRate->setValue(d->activeBrowserNode()->GetPlaybackRateFps());
-
-  foreach( QObject*w, vcrControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
 
   this->refreshSynchronizedRootNodesTable();
 }
