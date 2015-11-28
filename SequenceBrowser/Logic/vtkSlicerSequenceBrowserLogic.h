@@ -54,7 +54,7 @@ public:
   /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
   void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode);
 
-  void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceDataRootNode);
+  void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode);
 
 protected:
   vtkSlicerSequenceBrowserLogic();

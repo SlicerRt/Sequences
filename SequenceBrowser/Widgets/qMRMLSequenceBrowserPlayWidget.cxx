@@ -102,9 +102,9 @@ void qMRMLSequenceBrowserPlayWidget::updateWidgetFromMRML()
 {
   Q_D(qMRMLSequenceBrowserPlayWidget);
 
-  vtkMRMLSequenceNode* sequenceDataRootNode = d->SequenceBrowserNode.GetPointer() ? d->SequenceBrowserNode->GetRootNode() : NULL;
-  this->setEnabled(sequenceDataRootNode != NULL);
-  if (!sequenceDataRootNode)
+  vtkMRMLSequenceNode* sequenceNode = d->SequenceBrowserNode.GetPointer() ? d->SequenceBrowserNode->GetMasterSequenceNode() : NULL;
+  this->setEnabled(sequenceNode != NULL);
+  if (!sequenceNode)
     {
     return;
     }
@@ -115,7 +115,7 @@ void qMRMLSequenceBrowserPlayWidget::updateWidgetFromMRML()
     << d->pushButton_VcrNext << d->pushButton_VcrPlayPause << d->pushButton_VcrPrevious;
   bool vcrControlsEnabled=false;   
 
-  int numberOfDataNodes=sequenceDataRootNode->GetNumberOfDataNodes();
+  int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
   if (numberOfDataNodes>0)
   {
     vcrControlsEnabled=true;

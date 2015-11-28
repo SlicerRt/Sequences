@@ -122,10 +122,10 @@ void qMRMLSequenceBrowserSeekWidget::setSelectedItemNumber(int itemNumber)
     return;
   }
   int selectedItemNumber=-1;
-  vtkMRMLSequenceNode* rootNode=d->SequenceBrowserNode->GetRootNode();  
-  if (rootNode!=NULL && itemNumber>=0)
+  vtkMRMLSequenceNode* sequenceNode=d->SequenceBrowserNode->GetMasterSequenceNode();  
+  if (sequenceNode!=NULL && itemNumber>=0)
   {
-    if (itemNumber<rootNode->GetNumberOfDataNodes())
+    if (itemNumber<sequenceNode->GetNumberOfDataNodes())
     {
       selectedItemNumber=itemNumber;
     }
@@ -137,9 +137,9 @@ void qMRMLSequenceBrowserSeekWidget::setSelectedItemNumber(int itemNumber)
 void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
 {
   Q_D(qMRMLSequenceBrowserSeekWidget);
-  vtkMRMLSequenceNode* sequenceDataRootNode = d->SequenceBrowserNode.GetPointer() ? d->SequenceBrowserNode->GetRootNode() : NULL;
-  this->setEnabled(sequenceDataRootNode != NULL);
-  if (!sequenceDataRootNode)
+  vtkMRMLSequenceNode* sequenceNode = d->SequenceBrowserNode.GetPointer() ? d->SequenceBrowserNode->GetMasterSequenceNode() : NULL;
+  this->setEnabled(sequenceNode != NULL);
+  if (!sequenceNode)
     {
     d->label_IndexName->setText("");
     d->label_IndexUnit->setText("");
@@ -148,30 +148,30 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     }
 
   QString DEFAULT_INDEX_NAME_STRING=tr("time");
-  const char* indexName=sequenceDataRootNode->GetIndexName();
-  const char* sequenceDataRootNodeId = sequenceDataRootNode->GetID() ? sequenceDataRootNode->GetID() : "(none)";
+  const char* indexName=sequenceNode->GetIndexName();
+  const char* sequenceNodeId = sequenceNode->GetID() ? sequenceNode->GetID() : "(none)";
   if (indexName!=NULL)
   {
     d->label_IndexName->setText(indexName);
   }
   else
   {
-    qWarning() << "Index name is not specified in node" << sequenceDataRootNodeId;
+    qWarning() << "Index name is not specified in node" << sequenceNodeId;
     d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
   }
 
-  const char* indexUnit=sequenceDataRootNode->GetIndexUnit();
+  const char* indexUnit=sequenceNode->GetIndexUnit();
   if (indexUnit!=NULL)
   {
     d->label_IndexUnit->setText(indexUnit);
   }
   else
   {
-    qWarning() << "IndexUnit name is not specified in node" << sequenceDataRootNodeId;
+    qWarning() << "IndexUnit name is not specified in node" << sequenceNodeId;
     d->label_IndexUnit->setText("");
   }
   
-  int numberOfDataNodes=sequenceDataRootNode->GetNumberOfDataNodes();
+  int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
   if (numberOfDataNodes>0)
   {
     d->slider_IndexValue->setEnabled(true);
@@ -180,14 +180,14 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
   }
   else
   {
-    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceDataRootNodeId;
+    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceNodeId;
     d->slider_IndexValue->setEnabled(false);
   }   
 
   int selectedItemNumber=d->SequenceBrowserNode->GetSelectedItemNumber();
   if (selectedItemNumber>=0)
   {
-    std::string indexValue=sequenceDataRootNode->GetNthIndexValue(selectedItemNumber);
+    std::string indexValue=sequenceNode->GetNthIndexValue(selectedItemNumber);
     if (!indexValue.empty())
     {
       d->label_IndexValue->setText(indexValue.c_str());

@@ -55,7 +55,7 @@ int qMRMLSequenceBrowserWidgetsTest1( int argc, char * argv [] )
     
   vtkNew<vtkMRMLSequenceBrowserNode> browserNode;
   scene->AddNode(browserNode.GetPointer());
-  browserNode->SetAndObserveRootNodeID(sequenceNode->GetID());
+  browserNode->SetAndObserveMasterSequenceNodeID(sequenceNode->GetID());
 
   //
   // Create a simple gui with non-tranposed and transposed table view

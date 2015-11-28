@@ -27,6 +27,7 @@ if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
   add_subdirectory(SequenceRegistration)
   add_subdirectory(SequenceLabelStatistics)
   add_subdirectory(SequenceResample)
+  #add_subdirectory(SequenceGaussianBlurImageFilter)
 endif()
 
 #-----------------------------------------------------------------------------

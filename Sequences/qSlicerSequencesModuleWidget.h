@@ -47,7 +47,7 @@ public:
 
 public slots:
 
-  void onRootNodeChanged();
+  void onSequenceNodeChanged();
 
   void onIndexNameEdited();
   void onIndexUnitEdited();
@@ -76,7 +76,7 @@ protected:
 
 protected slots:
 
-  void UpdateRootNode();
+  void UpdateSequenceNode();
   void UpdateCandidateNodes();
 
   void CreateVisItem( QTableWidgetItem*, bool );

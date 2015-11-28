@@ -20,7 +20,7 @@
       <number>0</number>
      </property>
      <item row="0" column="1">
-      <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SequenceRoot">
+      <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
        <property name="nodeTypes">
         <stringlist>
          <string>vtkMRMLSequenceNode</string>
@@ -49,7 +49,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
      <item>
-      <widget class="QGroupBox" name="GroupBox_Root">
+      <widget class="QGroupBox" name="GroupBox_Sequence">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -355,7 +355,7 @@
   <connection>
    <sender>qSlicerSequencesModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_SequenceRoot</receiver>
+   <receiver>MRMLNodeComboBox_Sequence</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">

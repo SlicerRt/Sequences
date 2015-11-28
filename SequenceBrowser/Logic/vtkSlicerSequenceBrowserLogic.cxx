@@ -196,7 +196,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     return;
   }
   
-  if (browserNode->GetRootNode()==NULL)
+  if (browserNode->GetMasterSequenceNode()==NULL)
   {
     browserNode->RemoveAllVirtualOutputNodes();
     return;
@@ -215,24 +215,24 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   std::string indexValue;
   if (selectedItemNumber>=0)
   {
-    indexValue=browserNode->GetRootNode()->GetNthIndexValue(selectedItemNumber);
+    indexValue=browserNode->GetMasterSequenceNode()->GetNthIndexValue(selectedItemNumber);
   }
 
-  std::vector< vtkMRMLSequenceNode* > synchronizedRootNodes;
-  browserNode->GetSynchronizedRootNodes(synchronizedRootNodes, true);
+  std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
+  browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
   
   // Store the previous modified state of nodes to allow calling EndModify when all the nodes are updated (to prevent multiple renderings on partial update)
   std::vector< std::pair<vtkMRMLNode*, int> > nodeModifiedStates;
 
-  for (std::vector< vtkMRMLSequenceNode* >::iterator sourceRootNodeIt=synchronizedRootNodes.begin(); sourceRootNodeIt!=synchronizedRootNodes.end(); ++sourceRootNodeIt)
+  for (std::vector< vtkMRMLSequenceNode* >::iterator sourceSequenceNodeIt=synchronizedSequenceNodes.begin(); sourceSequenceNodeIt!=synchronizedSequenceNodes.end(); ++sourceSequenceNodeIt)
   {
-    vtkMRMLSequenceNode* synchronizedRootNode=(*sourceRootNodeIt);
-    if (synchronizedRootNode==NULL)
+    vtkMRMLSequenceNode* synchronizedSequenceNode=(*sourceSequenceNodeIt);
+    if (synchronizedSequenceNode==NULL)
     {
-      vtkErrorMacro("Synchronized root node is invalid");
+      vtkErrorMacro("Synchronized sequence node is invalid");
       continue;
     }
-    vtkMRMLNode* sourceNode=synchronizedRootNode->GetDataNodeAtValue(indexValue.c_str());
+    vtkMRMLNode* sourceNode=synchronizedSequenceNode->GetDataNodeAtValue(indexValue.c_str());
     if (sourceNode==NULL)
     {
       // no source node is available for the chosen time point
@@ -240,7 +240,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     }
     
     // Get the current target output node
-    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedRootNode);    
+    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedSequenceNode);    
     if (targetOutputNode!=NULL)
     {
       // a virtual output node with the requested role exists already
@@ -256,10 +256,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     {
       // Get the display nodes      
       std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
-      synchronizedRootNode->GetDisplayNodesAtValue(sourceDisplayNodes, indexValue.c_str());
+      synchronizedSequenceNode->GetDisplayNodesAtValue(sourceDisplayNodes, indexValue.c_str());
 
       // Add the new data and display nodes to the virtual outputs      
-      targetOutputNode=browserNode->AddVirtualOutputNodes(sourceNode,sourceDisplayNodes,synchronizedRootNode);
+      targetOutputNode=browserNode->AddVirtualOutputNodes(sourceNode,sourceDisplayNodes,synchronizedSequenceNode);
     }
 
     if (targetOutputNode==NULL)
@@ -294,12 +294,12 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     nodeModifiedStates.push_back(nodeModifiedState);
     this->ShallowCopy(targetOutputNode, sourceNode);
 
-    // Generation of data node name: root node name (IndexName = IndexValue IndexUnit)
-    const char* rootName=synchronizedRootNode->GetName();
-    const char* indexName=synchronizedRootNode->GetIndexName();
-    const char* unit=synchronizedRootNode->GetIndexUnit();
+    // Generation of data node name: sequence node name (IndexName = IndexValue IndexUnit)
+    const char* sequenceName=synchronizedSequenceNode->GetName();
+    const char* indexName=synchronizedSequenceNode->GetIndexName();
+    const char* unit=synchronizedSequenceNode->GetIndexUnit();
     std::string dataNodeName;
-    dataNodeName+=(rootName?rootName:"?");
+    dataNodeName+=(sequenceName?sequenceName:"?");
     dataNodeName+=" [";
     if (indexName)
     {
@@ -450,7 +450,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceDataRootNode)
+void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode)
 {
   if (compatibleNodes==NULL)
   {
@@ -458,9 +458,9 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     return;
   }
   compatibleNodes->RemoveAllItems();
-  if (sequenceDataRootNode==NULL)
+  if (sequenceNode==NULL)
   {
-    // if root node is invalid then there is no compatible node
+    // if sequence node is invalid then there is no compatible node
     return;
   }
   if (this->GetMRMLScene()==NULL)
@@ -468,12 +468,12 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     vtkErrorMacro("Scene is invalid");
     return;
   }
-  if (sequenceDataRootNode->GetIndexName()==NULL)
+  if (sequenceNode->GetIndexName()==NULL)
   {
-    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: root node index name is invalid");
+    vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: sequence node index name is invalid");
     return;
   }
-  std::string masterRootNodeIndexName=sequenceDataRootNode->GetIndexName();
+  std::string masterSequenceNodeIndexName=sequenceNode->GetIndexName();
   vtkSmartPointer<vtkCollection> sequenceNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceNode"));
   vtkObject* nextObject = NULL;
   for (sequenceNodes->InitTraversal(); (nextObject = sequenceNodes->GetNextItemAsObject()); )
@@ -483,17 +483,17 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     {
       continue;
     }
-    if (sequenceNode==sequenceDataRootNode)
+    if (sequenceNode==sequenceNode)
     {
       // do not add the master node itself to the list of compatible nodes
       continue;
     }
     if (sequenceNode->GetIndexName()==NULL)
     {
-      vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible root node index name is invalid");
+      vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: potential compatible sequence node index name is invalid");
       continue;
     }
-    if (masterRootNodeIndexName.compare(sequenceNode->GetIndexName())==0)
+    if (masterSequenceNodeIndexName.compare(sequenceNode->GetIndexName())==0)
     {
       // index name is matching, so we consider it compatible
       compatibleNodes->AddItem(sequenceNode);

@@ -57,11 +57,26 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "SequenceBrowser";};
 
-  /// Set the sequence data node root
-  void SetAndObserveRootNodeID(const char *rootNodeID);
-  /// Get the sequence data node root
-  vtkMRMLSequenceNode* GetRootNode();
+  /// Set the sequence data node
+  void SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID);
+  /// Get the sequence data node
+  vtkMRMLSequenceNode* GetMasterSequenceNode();
   
+  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  std::string AddSynchronizedSequenceNode(const char* synchronizedSequenceNodeId);
+
+  /// Removes a node from synchronized browsing
+  void RemoveSynchronizedSequenceNode(const char* nodeId);
+
+  /// Remove all sequence nodes (including the master sequence node)
+  void RemoveAllSequenceNodes();
+
+  /// Returns all synchronized sequence nodes (does not include the master sequence node)
+  void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
+
+  /// Returns true if the node is selected for synchronized browsing
+  bool IsSynchronizedSequenceNode(const char* nodeId);
+
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);
   vtkSetMacro(PlaybackActive, bool);
@@ -89,34 +104,20 @@ public:
   /// Selects last sequence item for display, returns current selected item number
   int SelectLastItem();
 
-  void RemoveAllVirtualOutputNodes();
-
-  vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* rootNode);
-
-  void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* rootNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
-
   /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
-  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* rootNode);
+  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode);
+
+  vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
+
+  void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
+
+  void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
 
   void RemoveVirtualOutputDataNode(const std::string& postfix);
 
   void RemoveVirtualOutputDisplayNodes(const std::string& postfix);
 
-  void RemoveAllRootNodes();
-
-  void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
-
-  /// Returns true if the node is selected for synchronized browsing
-  bool IsSynchronizedRootNode(const char* nodeId);
-  
-  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
-  std::string AddSynchronizedRootNode(const char* synchronizedRootNodeId);
-
-  /// Removes a node from synchronized browsing
-  void RemoveSynchronizedRootNode(const char* nodeId);
-
-  /// Returns all synchronized root nodes (does not include the master root node)
-  void GetSynchronizedRootNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
+  void RemoveAllVirtualOutputNodes();
 
   /// Helper function for performance optimization of volume browsing
   /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
@@ -131,7 +132,7 @@ protected:
   void operator=(const vtkMRMLSequenceBrowserNode&);
 
   std::string GenerateVirtualNodePostfix();
-  std::string GetVirtualNodePostfixFromRoot(vtkMRMLSequenceNode* rootNode);
+  std::string GetVirtualNodePostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
 
 protected:
   bool PlaybackActive;
@@ -139,8 +140,8 @@ protected:
   bool PlaybackLooped;
   int SelectedItemNumber;
 
-  // Unique postfixes for storing references to root nodes, virtual data nodes, and virtual display nodes
-  // For example, a root node reference role name is ROOT_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix
+  // Unique postfixes for storing references to sequence nodes, virtual data nodes, and virtual display nodes
+  // For example, a sequence node reference role name is SEDQUENCE_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix
   std::vector< std::string > VirtualNodePostfixes;
 
   // Counter that is used for generating the unique (only for this class) virtual node postfix strings

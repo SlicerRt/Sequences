@@ -60,7 +60,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SequenceRoot">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
         <property name="nodeTypes">
          <stringlist>
           <string>vtkMRMLSequenceNode</string>
@@ -93,7 +93,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
       <item row="0" column="0">
-       <widget class="QTableWidget" name="tableWidget_SynchronizedRootNodes">
+       <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
          <number>4</number>
         </property>
@@ -219,7 +219,7 @@
   <connection>
    <sender>qSlicerSequenceBrowserModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_SequenceRoot</receiver>
+   <receiver>MRMLNodeComboBox_Sequence</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">

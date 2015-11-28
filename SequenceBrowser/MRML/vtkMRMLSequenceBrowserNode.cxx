@@ -38,8 +38,8 @@
 #include <sstream>
 #include <algorithm> // for std::find
 
-// First reference is the master root node, subsequent references are the synchronized root nodes
-static const char* ROOT_NODE_REFERENCE_ROLE_BASE = "rootNodeRef";
+// First reference is the master sequence node, subsequent references are the synchronized sequence nodes
+static const char* SEDQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef";
 static const char* DATA_NODE_REFERENCE_ROLE_BASE = "dataNodeRef";
 static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
@@ -195,33 +195,33 @@ std::string vtkMRMLSequenceBrowserNode::GenerateVirtualNodePostfix()
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::SetAndObserveRootNodeID(const char *rootNodeID)
+void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID)
 {
   bool oldModify=this->StartModify();
   std::string rolePostfix;
   if (!this->VirtualNodePostfixes.empty())
   {
-    this->RemoveAllRootNodes();
+    this->RemoveAllSequenceNodes();
   }
-  if (rootNodeID!=NULL)
+  if (sequenceNodeID!=NULL)
   {
     rolePostfix=GenerateVirtualNodePostfix();
     this->VirtualNodePostfixes.push_back(rolePostfix);
-    std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+rolePostfix;
-    this->SetAndObserveNodeReferenceID(rootNodeReferenceRole.c_str(), rootNodeID);
+    std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+    this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), sequenceNodeID);
   }
   this->EndModify(oldModify);
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetRootNode()
+vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetMasterSequenceNode()
 {
   if (this->VirtualNodePostfixes.empty())
   {
     return NULL;
   }  
-  std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+this->VirtualNodePostfixes[0];  
-  vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(rootNodeReferenceRole.c_str()));
+  std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+this->VirtualNodePostfixes[0];  
+  vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
   return node;
 }
 
@@ -239,20 +239,20 @@ void vtkMRMLSequenceBrowserNode::RemoveAllVirtualOutputNodes()
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::RemoveAllRootNodes()
+void vtkMRMLSequenceBrowserNode::RemoveAllSequenceNodes()
 {
   bool oldModify=this->StartModify();
   // need to make a copy as this->VirtualNodePostfixes changes as we remove nodes
   std::vector< std::string > virtualNodePostfixes=this->VirtualNodePostfixes;
-  // start from the end to delete the master root node last
+  // start from the end to delete the master sequence node last
   for (std::vector< std::string >::reverse_iterator rolePostfixIt=virtualNodePostfixes.rbegin();
     rolePostfixIt!=virtualNodePostfixes.rend(); ++rolePostfixIt)
   {
-    std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(rootNodeReferenceRole.c_str()));
+    std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
     if (node==NULL)
     {
-      vtkErrorMacro("Invalid root node");
+      vtkErrorMacro("Invalid sequence node");
       std::vector< std::string >::iterator rolePostfixInOriginalIt=std::find(this->VirtualNodePostfixes.begin(), this->VirtualNodePostfixes.end(), (*rolePostfixIt));
       if (rolePostfixInOriginalIt!=this->VirtualNodePostfixes.end())
       {
@@ -260,25 +260,25 @@ void vtkMRMLSequenceBrowserNode::RemoveAllRootNodes()
       }
       continue;
     }
-    this->RemoveSynchronizedRootNode(node->GetID());
+    this->RemoveSynchronizedSequenceNode(node->GetID());
   }
   this->EndModify(oldModify);
 }
 
 
 //----------------------------------------------------------------------------
-std::string vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromRoot(vtkMRMLSequenceNode* rootNode)
+std::string vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromSequence(vtkMRMLSequenceNode* sequenceNode)
 {
-  if (rootNode==NULL)
+  if (sequenceNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromRoot failed: rootNode is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromSequence failed: sequenceNode is invalid");
     return "";
   }
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    std::string dataNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    if (this->GetNodeReference(dataNodeRef.c_str())==rootNode)
+    std::string dataNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    if (this->GetNodeReference(dataNodeRef.c_str())==sequenceNode)
     {
       return (*rolePostfixIt);
     }
@@ -287,14 +287,14 @@ std::string vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromRoot(vtkMRMLSeq
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceBrowserNode::GetVirtualOutputDataNode(vtkMRMLSequenceNode* rootNode)
+vtkMRMLNode* vtkMRMLSequenceBrowserNode::GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode)
 {
-  if (rootNode==NULL)
+  if (sequenceNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputNode failed: rootNode is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputNode failed: sequenceNode is invalid");
     return NULL;
   }
-  std::string rolePostfix=GetVirtualNodePostfixFromRoot(rootNode);
+  std::string rolePostfix=GetVirtualNodePostfixFromSequence(sequenceNode);
   if (rolePostfix.empty())
   {
     return NULL;
@@ -304,13 +304,13 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::GetVirtualOutputDataNode(vtkMRMLSequenc
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* rootNode, std::vector< vtkMRMLDisplayNode* > &displayNodes)
+void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes)
 {
   displayNodes.clear();
-  vtkMRMLNode* dataNode=GetVirtualOutputDataNode(rootNode);
+  vtkMRMLNode* dataNode=GetVirtualOutputDataNode(sequenceNode);
   if (dataNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes failed: rootNode is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes failed: sequenceNode is invalid");
     return;
   }
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
@@ -330,11 +330,11 @@ void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNod
 
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sourceDataNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* rootNode)
+vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sourceDataNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode)
 {
-  if (rootNode==NULL)
+  if (sequenceNode==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::AddVirtualOutputNode failed: rootNode is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::AddVirtualOutputNode failed: sequenceNode is invalid");
     return NULL;
   }
   if (this->Scene==NULL)
@@ -345,11 +345,11 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
 
   bool oldModify=this->StartModify();
   
-  std::string rolePostfix=GetVirtualNodePostfixFromRoot(rootNode);
+  std::string rolePostfix=GetVirtualNodePostfixFromSequence(sequenceNode);
   if (rolePostfix.empty())
   {
-    // Add reference to the root node
-    rolePostfix=AddSynchronizedRootNode(rootNode->GetID());
+    // Add reference to the sequence node
+    rolePostfix=AddSynchronizedSequenceNode(sequenceNode->GetID());
   }
 
   // Add copy of the data node
@@ -424,11 +424,11 @@ void vtkMRMLSequenceBrowserNode::RemoveVirtualOutputDisplayNodes(const std::stri
 }
 
 //----------------------------------------------------------------------------
-bool vtkMRMLSequenceBrowserNode::IsSynchronizedRootNode(const char* nodeId)
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId)
 {
   if (nodeId==NULL)
   {
-    vtkWarningMacro("vtkMRMLSequenceBrowserNode::IsSynchronizedRootNode nodeId is NULL");
+    vtkWarningMacro("vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode nodeId is NULL");
     return false;
   }
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
@@ -436,11 +436,11 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedRootNode(const char* nodeId)
   {
     if (rolePostfixIt==this->VirtualNodePostfixes.begin())
     {
-      // the first one is the master root node, don't consider as a synchronized root node
+      // the first one is the master sequence node, don't consider as a synchronized sequence node
       continue;
     }
-    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    const char* foundNodeId=this->GetNodeReferenceID(rootNodeRef.c_str());
+    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    const char* foundNodeId=this->GetNodeReferenceID(sequenceNodeRef.c_str());
     if (foundNodeId==NULL)
     {
       continue;
@@ -454,36 +454,36 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedRootNode(const char* nodeId)
 }
 
 //----------------------------------------------------------------------------
-std::string vtkMRMLSequenceBrowserNode::AddSynchronizedRootNode(const char* synchronizedRootNodeId)
+std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(const char* synchronizedSequenceNodeId)
 {
   bool oldModify=this->StartModify();
   std::string rolePostfix=GenerateVirtualNodePostfix();
   this->VirtualNodePostfixes.push_back(rolePostfix);
-  std::string rootNodeReferenceRole=ROOT_NODE_REFERENCE_ROLE_BASE+rolePostfix;
-  this->SetAndObserveNodeReferenceID(rootNodeReferenceRole.c_str(), synchronizedRootNodeId);
+  std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);
   this->EndModify(oldModify);
   return rolePostfix;
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
+void vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode(const char* nodeId)
 {
   if (this->Scene==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode failed: scene is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode failed: scene is invalid");
     return;
   }
   if (nodeId==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode failed: nodeId is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode failed: nodeId is invalid");
     return;
   }
 
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    const char* foundNodeId=this->GetNodeReferenceID(rootNodeRef.c_str());
+    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    const char* foundNodeId=this->GetNodeReferenceID(sequenceNodeRef.c_str());
     if (foundNodeId==NULL)
     {
       continue;
@@ -494,18 +494,18 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode(const char* nodeId)
       std::string rolePostfix=(*rolePostfixIt);
       bool oldModify=this->StartModify();
       this->VirtualNodePostfixes.erase(rolePostfixIt);
-      this->RemoveNodeReferenceIDs(rootNodeRef.c_str());
+      this->RemoveNodeReferenceIDs(sequenceNodeRef.c_str());
       this->RemoveVirtualOutputDataNode(rolePostfix);
       this->RemoveVirtualOutputDisplayNodes(rolePostfix);      
       this->EndModify(oldModify);
       return;
     }
   }
-  vtkWarningMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedRootNode did nothing, the specified node was not synchronized");
+  vtkWarningMacro("vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode did nothing, the specified node was not synchronized");
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode/*=false*/)
+void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode/*=false*/)
 {
   synchronizedDataNodes.clear();
 
@@ -514,11 +514,11 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLSe
   {
     if (!includeMasterNode && rolePostfixIt==this->VirtualNodePostfixes.begin())
     {
-      // the first one is the master root node, don't consider as a synchronized root node
+      // the first one is the master sequence node, don't consider as a synchronized sequence node
       continue;
     }
-    std::string rootNodeRef=ROOT_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    vtkMRMLSequenceNode* synchronizedNode=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(rootNodeRef.c_str()));
+    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    vtkMRMLSequenceNode* synchronizedNode=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeRef.c_str()));
     if (synchronizedNode==NULL)
     {
       // valid case during scene updates
@@ -531,14 +531,14 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedRootNodes(std::vector< vtkMRMLSe
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
 {
-  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
-  if (rootNode==NULL)
+  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
+  if (sequenceNode==NULL)
   {
-    vtkWarningMacro("vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff failed: root node is invalid");
+    vtkWarningMacro("vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff failed: sequence node is invalid");
     return;
   }
   std::vector< vtkMRMLDisplayNode* > displayNodes;
-  this->GetVirtualOutputDisplayNodes(rootNode, displayNodes);
+  this->GetVirtualOutputDisplayNodes(sequenceNode, displayNodes);
   for (std::vector< vtkMRMLDisplayNode* >::iterator displayNodePtrIt = displayNodes.begin(); displayNodePtrIt != displayNodes.end(); ++displayNodePtrIt)
   {
     vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(*displayNodePtrIt);
@@ -554,9 +554,9 @@ void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectFirstItem()
 {
-  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
+  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
   int selectedItemNumber = -1;
-  if (rootNode && rootNode->GetNumberOfDataNodes()>0)
+  if (sequenceNode && sequenceNode->GetNumberOfDataNodes()>0)
   {
     selectedItemNumber = 0;
   }
@@ -567,11 +567,11 @@ int vtkMRMLSequenceBrowserNode::SelectFirstItem()
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectLastItem()
 {
-  vtkMRMLSequenceNode* rootNode = this->GetRootNode();
+  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
   int selectedItemNumber = -1;
-  if (rootNode && rootNode->GetNumberOfDataNodes()>0)
+  if (sequenceNode && sequenceNode->GetNumberOfDataNodes()>0)
   {
-    selectedItemNumber = rootNode->GetNumberOfDataNodes()-1;
+    selectedItemNumber = sequenceNode->GetNumberOfDataNodes()-1;
   }
   this->SetSelectedItemNumber(selectedItemNumber );
   return selectedItemNumber;
@@ -580,8 +580,8 @@ int vtkMRMLSequenceBrowserNode::SelectLastItem()
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
 {
-  vtkMRMLSequenceNode* rootNode=this->GetRootNode();
-  if (rootNode==NULL || rootNode->GetNumberOfDataNodes()==0)
+  vtkMRMLSequenceNode* sequenceNode=this->GetMasterSequenceNode();
+  if (sequenceNode==NULL || sequenceNode->GetNumberOfDataNodes()==0)
   {
     // nothing to replay
     return -1;
@@ -595,12 +595,12 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
   else
   {
     selectedItemNumber += selectionIncrement;
-    if (selectedItemNumber>=rootNode->GetNumberOfDataNodes())
+    if (selectedItemNumber>=sequenceNode->GetNumberOfDataNodes())
     {
       if (this->GetPlaybackLooped())
       {
         // wrap around and keep playback going
-        selectedItemNumber = selectedItemNumber % rootNode->GetNumberOfDataNodes();
+        selectedItemNumber = selectedItemNumber % sequenceNode->GetNumberOfDataNodes();
       }
       else
       {
@@ -613,12 +613,12 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
       if (this->GetPlaybackLooped())
       {
         // wrap around and keep playback going
-        selectedItemNumber = (selectedItemNumber % rootNode->GetNumberOfDataNodes()) + rootNode->GetNumberOfDataNodes();
+        selectedItemNumber = (selectedItemNumber % sequenceNode->GetNumberOfDataNodes()) + sequenceNode->GetNumberOfDataNodes();
       }
       else
       {
         this->SetPlaybackActive(false);
-        selectedItemNumber=rootNode->GetNumberOfDataNodes()-1;
+        selectedItemNumber=sequenceNode->GetNumberOfDataNodes()-1;
       }
     }
   }

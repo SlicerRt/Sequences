@@ -41,7 +41,7 @@ public:
   virtual ~qSlicerSequenceBrowserModuleWidget();
 
   void setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
-  void setSequenceRootNode(vtkMRMLSequenceNode* sequenceDataRootNode);
+  void setMasterSequenceNode(vtkMRMLSequenceNode* sequenceNode);
 
 public slots:
   void setMRMLScene(vtkMRMLScene* scene);
@@ -49,11 +49,11 @@ public slots:
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);
-  void sequenceDataRootNodeChanged(vtkMRMLNode*);
+  void sequenceNodeChanged(vtkMRMLNode*);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   
-  void synchronizedRootNodeCheckStateChanged(int aState);
+  void synchronizedSequenceNodeCheckStateChanged(int aState);
 
   /// Respond to the scene events
   void onNodeAddedEvent(vtkObject* scene, vtkObject* node);
@@ -66,8 +66,8 @@ protected slots:
 protected:
   void updateWidgetFromMRML();
 
-  /// Refresh synchronized root nodes table from MRML
-  void refreshSynchronizedRootNodesTable();
+  /// Refresh synchronized sequence nodes table from MRML
+  void refreshSynchronizedSequenceNodesTable();
 
   QScopedPointer<qSlicerSequenceBrowserModuleWidgetPrivate> d_ptr;
   
