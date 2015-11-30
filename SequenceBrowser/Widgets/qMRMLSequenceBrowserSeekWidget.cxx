@@ -154,6 +154,8 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->label_IndexUnit->setText("");
   }
   
+  // Setting the min/max could trigger an index change (if current index is out of the new range),
+  // therefore we have to block signals.
   bool sliderBlockSignals = d->slider_IndexValue->blockSignals(true);
   int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
   if (numberOfDataNodes>0)
