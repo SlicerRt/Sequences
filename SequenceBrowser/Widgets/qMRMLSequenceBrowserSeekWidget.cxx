@@ -154,6 +154,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->label_IndexUnit->setText("");
   }
   
+  bool sliderBlockSignals = d->slider_IndexValue->blockSignals(true);
   int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
   if (numberOfDataNodes>0)
   {
@@ -165,7 +166,8 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
   {
     qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceNodeId;
     d->slider_IndexValue->setEnabled(false);
-  }   
+  }
+  d->slider_IndexValue->blockSignals(sliderBlockSignals);
 
   int selectedItemNumber=d->SequenceBrowserNode->GetSelectedItemNumber();
   if (selectedItemNumber>=0)

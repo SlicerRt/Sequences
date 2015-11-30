@@ -450,7 +450,7 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode)
+void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* masterSequenceNode)
 {
   if (compatibleNodes==NULL)
   {
@@ -458,7 +458,7 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     return;
   }
   compatibleNodes->RemoveAllItems();
-  if (sequenceNode==NULL)
+  if (masterSequenceNode==NULL)
   {
     // if sequence node is invalid then there is no compatible node
     return;
@@ -468,12 +468,12 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     vtkErrorMacro("Scene is invalid");
     return;
   }
-  if (sequenceNode->GetIndexName()==NULL)
+  if (masterSequenceNode->GetIndexName()==NULL)
   {
     vtkErrorMacro("vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene failed: sequence node index name is invalid");
     return;
   }
-  std::string masterSequenceNodeIndexName=sequenceNode->GetIndexName();
+  std::string masterSequenceNodeIndexName=masterSequenceNode->GetIndexName();
   vtkSmartPointer<vtkCollection> sequenceNodes = vtkSmartPointer<vtkCollection>::Take(this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceNode"));
   vtkObject* nextObject = NULL;
   for (sequenceNodes->InitTraversal(); (nextObject = sequenceNodes->GetNextItemAsObject()); )
@@ -483,7 +483,7 @@ void vtkSlicerSequenceBrowserLogic::GetCompatibleNodesFromScene(vtkCollection* c
     {
       continue;
     }
-    if (sequenceNode==sequenceNode)
+    if (sequenceNode==masterSequenceNode)
     {
       // do not add the master node itself to the list of compatible nodes
       continue;

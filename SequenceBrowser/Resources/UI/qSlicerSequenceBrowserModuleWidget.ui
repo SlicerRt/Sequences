@@ -43,7 +43,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="InputSection">
      <property name="text">
-      <string>Input</string>
+      <string>Browsing</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="3" column="0" colspan="2">
@@ -51,34 +51,6 @@
       </item>
       <item row="2" column="0" colspan="2">
        <widget class="qMRMLSequenceBrowserPlayWidget" name="sequenceBrowserPlayWidget"/>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_SequenceInput">
-        <property name="text">
-         <string>Master node</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLSequenceNode</string>
-         </stringlist>
-        </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>
@@ -91,8 +63,40 @@
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="label_SequenceInput">
+          <property name="text">
+           <string>Master node</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
+          <property name="nodeTypes">
+           <stringlist>
+            <string>vtkMRMLSequenceNode</string>
+           </stringlist>
+          </property>
+          <property name="noneEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="addEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="removeEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="renameEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
          <number>4</number>
