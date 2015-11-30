@@ -490,8 +490,13 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages( const s
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName)
+bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
 {
+  if (createdBrowserNodePtr != NULL)
+    {
+      *createdBrowserNodePtr = NULL;
+    }
+
   // Map the frame numbers to timestamps
   std::map< int, std::string > frameNumberToIndexValueMap;
 
@@ -536,6 +541,10 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   if (masterNode!=NULL)
   { 
     vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
+    if (createdBrowserNodePtr != NULL)
+    {
+      *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
+    }
     sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(baseNodeName).c_str());
     this->GetMRMLScene()->AddNode(sequenceBrowserNode);
     sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(masterNode->GetID());
@@ -567,8 +576,13 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName)
+bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
 {
+  if (createdBrowserNodePtr != NULL)
+    {
+      *createdBrowserNodePtr = NULL;
+    }
+
   int dotFound = fileName.find_last_of( "." );
   int slashFound = fileName.find_last_of( "/" );
   std::string volumeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
@@ -615,6 +629,11 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   sequenceBrowserNode->SetName(scene->GenerateUniqueName(browserNodeName).c_str());
   scene->AddNode(sequenceBrowserNode.GetPointer());
   sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(volumeSequenceNode->GetID());
+
+  if (createdBrowserNodePtr != NULL)
+  {
+    *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
+  }
 
   // Show output volume in the slice viewer
   vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(volumeSequenceNode.GetPointer());

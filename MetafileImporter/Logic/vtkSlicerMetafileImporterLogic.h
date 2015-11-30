@@ -42,6 +42,7 @@
 #include "vtkSlicerSequencesLogic.h"
 
 class vtkMRMLSequenceNode;
+class vtkMRMLSequenceBrowserNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_METAFILEIMPORTER_MODULE_LOGIC_EXPORT vtkSlicerMetafileImporterLogic :
@@ -72,10 +73,10 @@ private:
 public:
 
   /*! Read sequence metafile contents into the object */
-  bool ReadSequenceMetafile(const std::string& fileName);
+  bool ReadSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
 
   /*! Read volume sequence from NRRD file. Returns true on success. */
-  bool ReadVolumeSequence(const std::string& fileName);
+  bool ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
 
 protected:
 

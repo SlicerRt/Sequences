@@ -13,12 +13,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  This file was originally developed by Laurent Chauvin, Brigham and Women's
-  Hospital. The project was supported by grants 5P01CA067165,
-  5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
-  5R42CA137886, 5R42CA137886
-  It was then updated for the Markups module by Nicole Aucoin, BWH.
-
 ==============================================================================*/
 
 // qMRML includes
@@ -35,7 +29,7 @@
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Markups
 class qMRMLSequenceBrowserSeekWidgetPrivate
-  : public Ui_qMRMLSequenceBrowserSeekWidget
+: public Ui_qMRMLSequenceBrowserSeekWidget
 {
   Q_DECLARE_PUBLIC(qMRMLSequenceBrowserSeekWidget);
 protected:
@@ -51,31 +45,17 @@ public:
 // qMRMLSequenceBrowserSeekWidgetPrivate methods
 
 //-----------------------------------------------------------------------------
-qMRMLSequenceBrowserSeekWidgetPrivate
-::qMRMLSequenceBrowserSeekWidgetPrivate(qMRMLSequenceBrowserSeekWidget& object)
-  : q_ptr(&object)
+qMRMLSequenceBrowserSeekWidgetPrivate::qMRMLSequenceBrowserSeekWidgetPrivate(qMRMLSequenceBrowserSeekWidget& object)
+: q_ptr(&object)
 {
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLSequenceBrowserSeekWidgetPrivate
-::init()
+void qMRMLSequenceBrowserSeekWidgetPrivate::init()
 {
   Q_Q(qMRMLSequenceBrowserSeekWidget);
   this->setupUi(q);
   QObject::connect( this->slider_IndexValue, SIGNAL(valueChanged(int)), q, SLOT(setSelectedItemNumber(int)) );  
-  /*
-  QObject::connect(this->point2DProjectionCheckBox, SIGNAL(toggled(bool)),
-                   q, SLOT(setProjectionVisibility(bool)));
-  QObject::connect(this->pointProjectionColorPickerButton, SIGNAL(colorChanged(QColor)),
-                   q, SLOT(setProjectionColor(QColor)));
-  QObject::connect(this->pointUseFiducialColorCheckBox, SIGNAL(toggled(bool)),
-                   q, SLOT(setUseFiducialColor(bool)));
-  QObject::connect(this->pointOutlinedBehindSlicePlaneCheckBox, SIGNAL(toggled(bool)),
-                   q, SLOT(setOutlinedBehindSlicePlane(bool)));
-  QObject::connect(this->projectionOpacitySliderWidget, SIGNAL(valueChanged(double)),
-                   q, SLOT(setProjectionOpacity(double)));
-                   */
   q->updateWidgetFromMRML();
 }
 
@@ -83,24 +63,27 @@ void qMRMLSequenceBrowserSeekWidgetPrivate
 // qMRMLSequenceBrowserSeekWidget methods
 
 //-----------------------------------------------------------------------------
-qMRMLSequenceBrowserSeekWidget
-::qMRMLSequenceBrowserSeekWidget(QWidget *newParent) :
-    Superclass(newParent)
-  , d_ptr(new qMRMLSequenceBrowserSeekWidgetPrivate(*this))
+qMRMLSequenceBrowserSeekWidget::qMRMLSequenceBrowserSeekWidget(QWidget *newParent)
+: Superclass(newParent)
+, d_ptr(new qMRMLSequenceBrowserSeekWidgetPrivate(*this))
 {
   Q_D(qMRMLSequenceBrowserSeekWidget);
   d->init();
 }
 
 //-----------------------------------------------------------------------------
-qMRMLSequenceBrowserSeekWidget
-::~qMRMLSequenceBrowserSeekWidget()
+qMRMLSequenceBrowserSeekWidget::~qMRMLSequenceBrowserSeekWidget()
 {
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLSequenceBrowserSeekWidget
-::setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode)
+void qMRMLSequenceBrowserSeekWidget::setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode)
+{
+  setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode::SafeDownCast(browserNode));
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLSequenceBrowserSeekWidget::setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode)
 {
   Q_D(qMRMLSequenceBrowserSeekWidget);
 

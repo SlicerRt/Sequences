@@ -34,12 +34,12 @@
 #include "qSlicerSequenceBrowserModuleWidgetsExport.h"
 
 class qMRMLSequenceBrowserPlayWidgetPrivate;
+class vtkMRMLNode;
 class vtkMRMLSequenceBrowserNode;
 
 /// \ingroup Slicer_QtModules_Markups
-class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_EXPORT
-qMRMLSequenceBrowserPlayWidget
-  : public qMRMLWidget
+class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_EXPORT qMRMLSequenceBrowserPlayWidget
+: public qMRMLWidget
 {
   Q_OBJECT
   QVTK_OBJECT
@@ -51,6 +51,7 @@ public:
 
 public slots:
   void setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
+  void setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode);
   void setPlaybackEnabled(bool play);
   void setPlaybackRateFps(double playbackRateFps);
   void setPlaybackLoopEnabled(bool loopEnabled);

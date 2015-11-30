@@ -45,14 +45,14 @@ public:
 
 public slots:
   void setMRMLScene(vtkMRMLScene* scene);
-  void updateChart();
 
 protected slots:
   void activeBrowserNodeChanged(vtkMRMLNode* node);
   void sequenceNodeChanged(vtkMRMLNode*);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
-  
+  void updateChart();
+
   void synchronizedSequenceNodeCheckStateChanged(int aState);
 
   /// Respond to the scene events

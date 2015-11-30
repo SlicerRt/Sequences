@@ -19,6 +19,7 @@
 #include <QDebug>
 
 // SlicerQt includes
+#include "qSlicerMetafileImporterModule.h"
 #include "qSlicerVolumeSequenceImporterIO.h"
 
 // Logic includes
@@ -90,6 +91,12 @@ bool qSlicerVolumeSequenceImporterIO::load(const IOProperties& properties)
     qCritical() << "qSlicerVolumeSequenceImporterIO::load did not receive fileName property";
   }
   QString fileName = properties["fileName"].toString();
-  
-  return d->MetafileImporterLogic->ReadVolumeSequence( fileName.toStdString() );
+
+  vtkMRMLSequenceBrowserNode* browserNode = NULL;
+  bool success = d->MetafileImporterLogic->ReadVolumeSequence( fileName.toStdString(), &browserNode );
+  if (success && browserNode != NULL)
+  {
+    qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
+  }
+  return success;
 }

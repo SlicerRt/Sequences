@@ -28,12 +28,12 @@
 #include "qSlicerSequenceBrowserModuleWidgetsExport.h"
 
 class qMRMLSequenceBrowserSeekWidgetPrivate;
+class vtkMRMLNode;
 class vtkMRMLSequenceBrowserNode;
 
 /// \ingroup Slicer_QtModules_Markups
-class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_EXPORT
-qMRMLSequenceBrowserSeekWidget
-  : public qMRMLWidget
+class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_EXPORT qMRMLSequenceBrowserSeekWidget
+: public qMRMLWidget
 {
   Q_OBJECT
   QVTK_OBJECT
@@ -44,6 +44,7 @@ public:
   virtual ~qMRMLSequenceBrowserSeekWidget();
 
 public slots:
+  void setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode);
   void setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
   void setSelectedItemNumber(int itemNumber);
 

@@ -27,7 +27,9 @@
 #include "qSlicerSequenceBrowserModuleExport.h"
 
 class qSlicerSequenceBrowserModulePrivate;
+class qMRMLSequenceBrowserToolBar;
 class vtkMRMLScene;
+class vtkMRMLSequenceBrowserNode;
 class vtkObject;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -38,6 +40,11 @@ qSlicerSequenceBrowserModule
   Q_OBJECT;
   QVTK_OBJECT;
   Q_INTERFACES(qSlicerLoadableModule);
+
+  /// Visibility of the sequence browser toolbar
+  Q_PROPERTY(bool toolBarVisible READ isToolBarVisible WRITE setToolBarVisible)
+  /// Sequence browser toolbar instance
+  Q_PROPERTY(qMRMLSequenceBrowserToolBar* toolBar READ toolBar)
 
 public:
 
@@ -56,6 +63,10 @@ public:
   virtual QStringList categories()const;
   virtual QStringList dependencies() const;
 
+  bool isToolBarVisible();
+  qMRMLSequenceBrowserToolBar* toolBar();
+  void setToolBarActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
+
 protected:
 
   /// Initialize the module. Register the volumes reader/writer
@@ -69,6 +80,7 @@ protected:
 
 public slots:
   virtual void setMRMLScene(vtkMRMLScene*);
+  void setToolBarVisible(bool visible);
   void onNodeAddedEvent(vtkObject*, vtkObject*);
   void onNodeRemovedEvent(vtkObject*, vtkObject*);
   void updateAllVirtualOutputNodes();

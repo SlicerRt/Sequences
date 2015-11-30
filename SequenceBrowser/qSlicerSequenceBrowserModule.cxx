@@ -16,9 +16,12 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QMainWindow>
+#include <QMenu>
 #include <QTimer>
 #include <QtPlugin>
 
+#include "qSlicerApplication.h"
 #include "qSlicerCoreApplication.h"
 
 #include "vtkMRMLScene.h"
@@ -27,6 +30,7 @@
 #include <vtkSlicerSequenceBrowserLogic.h>
 
 // SequenceBrowser includes
+#include "qMRMLSequenceBrowserToolBar.h"
 #include "qSlicerSequenceBrowserModule.h"
 #include "qSlicerSequenceBrowserModuleWidget.h"
 
@@ -42,27 +46,53 @@ Q_EXPORT_PLUGIN2(qSlicerSequenceBrowserModule, qSlicerSequenceBrowserModule);
 class qSlicerSequenceBrowserModulePrivate
 {
 public:
+  /// Adds sequence browser toolbar to the application GUI (toolbar and menu)
+  virtual void addToolBar();
+
   qSlicerSequenceBrowserModulePrivate();
   QTimer UpdateAllVirtualOutputNodesTimer;
+  qMRMLSequenceBrowserToolBar* ToolBar;
 };
 
 //-----------------------------------------------------------------------------
 // qSlicerSequenceBrowserModulePrivate methods
 
 //-----------------------------------------------------------------------------
-qSlicerSequenceBrowserModulePrivate
-::qSlicerSequenceBrowserModulePrivate()
+qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
 {
+  this->ToolBar = new qMRMLSequenceBrowserToolBar;
+  this->ToolBar->setVisible(false);
 }
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModulePrivate::addToolBar()
+{
+  QMainWindow* mainWindow = qSlicerApplication::application()->mainWindow();
+  if (mainWindow)
+  {
+    this->ToolBar->setWindowTitle("Sequence browser");
+    mainWindow->addToolBar(this->ToolBar);
+    foreach (QMenu* toolBarMenu,mainWindow->findChildren<QMenu*>())
+    {
+      if(toolBarMenu->objectName()==QString("WindowToolBarsMenu"))
+      {
+        QList<QAction*> toolBarMenuActions= toolBarMenu->actions();
+        int insertPosition = toolBarMenuActions.size()-2; // last is reset to default, before that there is a separator
+        toolBarMenu->insertAction(toolBarMenuActions.at(insertPosition>=0 ? insertPosition : 0), this->ToolBar->toggleViewAction());
+        break;
+      }
+    }
+  }
+}
+
 
 //-----------------------------------------------------------------------------
 // qSlicerSequenceBrowserModule methods
 
 //-----------------------------------------------------------------------------
-qSlicerSequenceBrowserModule
-::qSlicerSequenceBrowserModule(QObject* _parent)
-  : Superclass(_parent)
-  , d_ptr(new qSlicerSequenceBrowserModulePrivate)
+qSlicerSequenceBrowserModule::qSlicerSequenceBrowserModule(QObject* _parent)
+: Superclass(_parent)
+, d_ptr(new qSlicerSequenceBrowserModulePrivate)
 {
   Q_D(qSlicerSequenceBrowserModule);
   connect(&d->UpdateAllVirtualOutputNodesTimer, SIGNAL(timeout()), this, SLOT(updateAllVirtualOutputNodes()));
@@ -121,12 +151,16 @@ QStringList qSlicerSequenceBrowserModule::dependencies() const
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModule::setup()
 {
+  Q_D(qSlicerSequenceBrowserModule);
   this->Superclass::setup();
+  d->addToolBar();
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModule::setMRMLScene(vtkMRMLScene* scene)
 {
+  Q_D(qSlicerSequenceBrowserModule);
+
   vtkMRMLScene* oldScene = this->mrmlScene();
   this->Superclass::setMRMLScene(scene);
 
@@ -138,6 +172,8 @@ void qSlicerSequenceBrowserModule::setMRMLScene(vtkMRMLScene* scene)
   // Need to listen for any new sequence browser nodes being added to start/stop timer
   this->qvtkReconnect(oldScene, scene, vtkMRMLScene::NodeAddedEvent, this, SLOT(onNodeAddedEvent(vtkObject*,vtkObject*)));
   this->qvtkReconnect(oldScene, scene, vtkMRMLScene::NodeRemovedEvent, this, SLOT(onNodeRemovedEvent(vtkObject*,vtkObject*)));
+
+  d->ToolBar->setMRMLScene(scene);
 }
 
 //-----------------------------------------------------------------------------
@@ -168,7 +204,6 @@ void qSlicerSequenceBrowserModule::onNodeAddedEvent(vtkObject*, vtkObject* node)
       }
     }
 }
-
 
 // --------------------------------------------------------------------------
 void qSlicerSequenceBrowserModule::onNodeRemovedEvent(vtkObject*, vtkObject* node)
@@ -206,4 +241,33 @@ void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
     {
     sequenceBrowserLogic->UpdateAllVirtualOutputNodes();
     }
+}
+
+//-----------------------------------------------------------------------------
+qMRMLSequenceBrowserToolBar* qSlicerSequenceBrowserModule::toolBar()
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  return d->ToolBar;
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::setToolBarVisible(bool visible)
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  d->ToolBar->setVisible(visible);
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerSequenceBrowserModule::isToolBarVisible()
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  return d->ToolBar->isVisible();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::setToolBarActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode)
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  return d->ToolBar->setActiveBrowserNode(browserNode);
 }

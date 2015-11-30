@@ -20,11 +20,10 @@
 #include <QDebug>
 
 // SlicerQt includes
+#include "qMRMLSequenceBrowserToolBar.h"
 #include "qSlicerSequenceBrowserModuleWidget.h"
+#include "qSlicerSequenceBrowserModule.h"
 #include "ui_qSlicerSequenceBrowserModuleWidget.h"
-
-// QSlicer includes
-//#include "qSlicerApplication.h"
 
 // MRML includes
 #include "vtkMRMLCrosshairNode.h"
@@ -76,6 +75,8 @@ public:
   void resetInteractiveCharting();
   void updateInteractiveCharting();
   void setAndObserveCrosshairNode();
+
+  qMRMLSequenceBrowserToolBar* toolBar();
 
   /// Using this flag prevents overriding the parameter set node contents when the
   ///   QMRMLCombobox selects the first instance of the specified node type when initializing
@@ -182,6 +183,19 @@ qSlicerSequenceBrowserModuleWidgetPrivate::logic() const
   }
   return logic;
 } 
+
+//-----------------------------------------------------------------------------
+qMRMLSequenceBrowserToolBar* qSlicerSequenceBrowserModuleWidgetPrivate::toolBar()
+{
+  Q_Q(const qSlicerSequenceBrowserModuleWidget);
+  qSlicerSequenceBrowserModule* module = dynamic_cast<qSlicerSequenceBrowserModule*>(q->module());
+  if (!module)
+  {
+    qWarning("qSlicerSequenceBrowserModuleWidget::toolBar failed: module is not set");
+    return NULL;
+  }
+  return module->toolBar();
+}
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidgetPrivate::init()
@@ -392,6 +406,12 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_Sequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
+  
+  qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
+  if (toolBar)
+  {
+    connect( toolBar, SIGNAL(activeBrowserNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
+  }
 
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
@@ -532,7 +552,10 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vt
 void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode)
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-
+  if (d->activeBrowserNode()==browserNode)
+  {
+    return; // no change
+  }
   if (d->activeBrowserNode()!=browserNode // simple change
     || (browserNode==NULL && !d->ActiveBrowserNodeID.empty()) ) // when the scene is closing activeBrowserNode() would return NULL and therefore ignore browserNode setting to 0
   { 
@@ -544,6 +567,11 @@ void qSlicerSequenceBrowserModuleWidget::setActiveBrowserNode(vtkMRMLSequenceBro
   d->MRMLNodeComboBox_ActiveBrowser->setCurrentNode(browserNode);
   d->sequenceBrowserPlayWidget->setMRMLSequenceBrowserNode(browserNode);
   d->sequenceBrowserSeekWidget->setMRMLSequenceBrowserNode(browserNode);
+  qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
+  if (toolBar)
+  {
+    toolBar->setActiveBrowserNode(browserNode);
+  }
 
   this->updateWidgetFromMRML();
 }

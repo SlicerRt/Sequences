@@ -23,6 +23,7 @@
 
 // SlicerQt includes
 #include "qSlicerMetafileImporterIO.h"
+#include "qSlicerMetafileImporterModule.h"
 
 // Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
@@ -94,7 +95,12 @@ bool qSlicerMetafileImporterIO::load(const IOProperties& properties)
   }
   QString fileName = properties["fileName"].toString();
   
-  d->MetafileImporterLogic->ReadSequenceMetafile( fileName.toStdString() );
+  vtkMRMLSequenceBrowserNode* browserNode = NULL;
+  bool success = d->MetafileImporterLogic->ReadSequenceMetafile( fileName.toStdString(), &browserNode );
+  if (success && browserNode!=NULL)
+  {
+    qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
+  }
 
-  return true; // TODO: Check to see read was successful first
+  return success;
 }

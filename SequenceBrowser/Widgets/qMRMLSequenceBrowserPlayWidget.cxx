@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Markups
 class qMRMLSequenceBrowserPlayWidgetPrivate
-  : public Ui_qMRMLSequenceBrowserPlayWidget
+: public Ui_qMRMLSequenceBrowserPlayWidget
 {
   Q_DECLARE_PUBLIC(qMRMLSequenceBrowserPlayWidget);
 protected:
@@ -46,7 +46,7 @@ public:
 
 //-----------------------------------------------------------------------------
 qMRMLSequenceBrowserPlayWidgetPrivate::qMRMLSequenceBrowserPlayWidgetPrivate(qMRMLSequenceBrowserPlayWidget& object)
-  : q_ptr(&object)
+: q_ptr(&object)
 {
   this->SequenceBrowserNode = NULL;
 }
@@ -72,9 +72,9 @@ void qMRMLSequenceBrowserPlayWidgetPrivate::init()
 // qMRMLSequenceBrowserPlayWidget methods
 
 //-----------------------------------------------------------------------------
-qMRMLSequenceBrowserPlayWidget::qMRMLSequenceBrowserPlayWidget(QWidget *newParent) :
-    Superclass(newParent)
-  , d_ptr(new qMRMLSequenceBrowserPlayWidgetPrivate(*this))
+qMRMLSequenceBrowserPlayWidget::qMRMLSequenceBrowserPlayWidget(QWidget *newParent)
+: Superclass(newParent)
+, d_ptr(new qMRMLSequenceBrowserPlayWidgetPrivate(*this))
 {
   Q_D(qMRMLSequenceBrowserPlayWidget);
   d->init();
@@ -83,6 +83,12 @@ qMRMLSequenceBrowserPlayWidget::qMRMLSequenceBrowserPlayWidget(QWidget *newParen
 //-----------------------------------------------------------------------------
 qMRMLSequenceBrowserPlayWidget::~qMRMLSequenceBrowserPlayWidget()
 {
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLSequenceBrowserPlayWidget::setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode)
+{
+  setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode::SafeDownCast(browserNode));
 }
 
 //-----------------------------------------------------------------------------

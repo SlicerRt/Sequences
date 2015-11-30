@@ -29,8 +29,12 @@
 #include "qSlicerVolumeSequenceImporterIO.h"
 
 // Slicer includes
-#include "qSlicerNodeWriter.h"
+#include "qSlicerAbstractCoreModule.h"
+#include "qSlicerCoreApplication.h"
 #include "qSlicerCoreIOManager.h"
+#include "qSlicerNodeWriter.h"
+#include "qSlicerSequenceBrowserModule.h"
+#include "qSlicerSequenceBrowserModuleWidget.h"
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerMetafileImporterModule, qSlicerMetafileImporterModule);
@@ -103,7 +107,7 @@ QStringList qSlicerMetafileImporterModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterModule::dependencies() const
 {
-  return QStringList() << "Sequences";
+  return QStringList() << "Sequences" << "SequenceBrowser";
 }
 
 //-----------------------------------------------------------------------------
@@ -115,7 +119,6 @@ void qSlicerMetafileImporterModule::setup()
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
   qSlicerAbstractCoreModule* sequenceModule = app->moduleManager()->module( "Sequences" );
-
   if ( sequenceModule )
   {
     metafileImporterLogic->SetSequencesLogic(vtkSlicerSequencesLogic::SafeDownCast( sequenceModule->logic() ));
@@ -141,4 +144,21 @@ qSlicerAbstractModuleRepresentation * qSlicerMetafileImporterModule
 vtkMRMLAbstractLogic* qSlicerMetafileImporterModule::createLogic()
 {
   return vtkSlicerMetafileImporterLogic::New();
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerMetafileImporterModule::showSequenceBrowser(vtkMRMLSequenceBrowserNode* browserNode)
+{
+  qSlicerCoreApplication* app = qSlicerCoreApplication::application();
+  if (!app
+    || !app->moduleManager()
+    || !dynamic_cast<qSlicerSequenceBrowserModule*>(app->moduleManager()->module("SequenceBrowser")) )
+  {
+    qCritical("SequenceBrowser module is not available");
+    return false;
+  }
+  qSlicerSequenceBrowserModule* sequenceBrowserModule = dynamic_cast<qSlicerSequenceBrowserModule*>(app->moduleManager()->module("SequenceBrowser"));
+  sequenceBrowserModule->setToolBarActiveBrowserNode(browserNode);
+  sequenceBrowserModule->setToolBarVisible(true);
+  return true;
 }

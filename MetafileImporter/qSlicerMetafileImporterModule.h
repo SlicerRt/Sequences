@@ -26,6 +26,7 @@
 #include "qSlicerMetafileImporterModuleExport.h"
 
 class qSlicerMetafileImporterModulePrivate;
+class vtkMRMLSequenceBrowserNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_METAFILEIMPORTER_EXPORT
@@ -53,7 +54,10 @@ public:
   virtual QStringList dependencies() const;
 
   /// Make this module hidden
-  virtual bool isHidden()const { return true; }; 
+  virtual bool isHidden()const { return true; };
+
+  /// Utility function for showing the browserNode in the application user interface (toolbar)
+  static bool showSequenceBrowser(vtkMRMLSequenceBrowserNode* browserNode);
 
 protected:
 
