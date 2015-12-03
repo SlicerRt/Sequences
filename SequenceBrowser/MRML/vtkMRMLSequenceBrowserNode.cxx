@@ -31,6 +31,7 @@
 #include <vtkMRMLScalarVolumeDisplayNode.h>
 
 // VTK includes
+#include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 
@@ -323,11 +324,30 @@ void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNod
   for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
   {
     vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
-    // Do we need to check if displayNode is NULL?
+    if (displayNode==NULL)
+    {
+      continue;
+    }
     displayNodes.push_back(displayNode);
   }
 }
 
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes)
+{
+  if (displayNodes==NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes failed: displayNodes is invalid");
+    return;
+  }
+  std::vector< vtkMRMLDisplayNode* > displayNodesVector;
+  this->GetVirtualOutputDisplayNodes(sequenceNode, displayNodesVector);
+  displayNodes->RemoveAllItems();
+  for (std::vector< vtkMRMLDisplayNode* >::iterator it = displayNodesVector.begin(); it != displayNodesVector.end(); ++it)
+  {
+    displayNodes->AddItem(*it);
+  }
+}
 
 //----------------------------------------------------------------------------
 vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sourceDataNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode)
@@ -390,8 +410,46 @@ void vtkMRMLSequenceBrowserNode::GetAllVirtualOutputDataNodes(std::vector< vtkMR
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
     std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    nodes.push_back(this->GetNodeReference(dataNodeRef.c_str()));
+    vtkMRMLNode* node = this->GetNodeReference(dataNodeRef.c_str());
+    if (node==NULL)
+    {
+      continue;
+    }
+    nodes.push_back(node);
   }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::GetAllVirtualOutputDataNodes(vtkCollection* nodes)
+{
+  if (nodes==NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetAllVirtualOutputDataNodes failed: nodes is invalid");
+    return;
+  }
+  std::vector< vtkMRMLSequenceNode* > nodesVector;
+  this->GetSynchronizedSequenceNodes(nodesVector);
+  nodes->RemoveAllItems();
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = nodesVector.begin(); it != nodesVector.end(); ++it)
+  {
+    nodes->AddItem(*it);
+  }
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsVirtualOutputDataNode(const char* nodeId)
+{
+  std::vector< vtkMRMLNode* > nodesVector;
+  this->GetAllVirtualOutputDataNodes(nodesVector);
+  for (std::vector< vtkMRMLNode* >::iterator it = nodesVector.begin(); it != nodesVector.end(); ++it)
+  {
+    if (strcmp((*it)->GetID(), nodeId)==0)
+    {
+      // found node
+      return true;
+    }
+  }
+  return false;
 }
 
 //----------------------------------------------------------------------------
@@ -525,6 +583,23 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMR
       continue;
     }
     synchronizedDataNodes.push_back(synchronizedNode);
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode /* =false */)
+{
+  if (synchronizedDataNodes==NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes failed: synchronizedDataNodes is invalid");
+    return;
+  }
+  std::vector< vtkMRMLSequenceNode* > synchronizedDataNodesVector;
+  this->GetSynchronizedSequenceNodes(synchronizedDataNodesVector, includeMasterNode);
+  synchronizedDataNodes->RemoveAllItems();
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedDataNodesVector.begin(); it != synchronizedDataNodesVector.end(); ++it)
+  {
+    synchronizedDataNodes->AddItem(*it);
   }
 }
 
