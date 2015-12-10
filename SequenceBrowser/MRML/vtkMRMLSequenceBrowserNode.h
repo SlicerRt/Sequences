@@ -131,6 +131,10 @@ protected:
   vtkMRMLSequenceBrowserNode(const vtkMRMLSequenceBrowserNode&);
   void operator=(const vtkMRMLSequenceBrowserNode&);
 
+  /// Earlier (before November 2015) sequenceNodeRef role name was rootNodeRef.
+  /// Change the role name to the new one for compatibility with old data.
+  void FixSequenceNodeReferenceRoleName();
+
   std::string GenerateVirtualNodePostfix();
   std::string GetVirtualNodePostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
 

@@ -39,7 +39,7 @@
 #include <algorithm> // for std::find
 
 // First reference is the master sequence node, subsequent references are the synchronized sequence nodes
-static const char* SEDQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef";
+static const char* SEQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef"; // Old: rootNodeRef
 static const char* DATA_NODE_REFERENCE_ROLE_BASE = "dataNodeRef";
 static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
@@ -154,7 +154,7 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       }
     }
   }
-
+  this->FixSequenceNodeReferenceRoleName();
 }
 
 //----------------------------------------------------------------------------
@@ -207,7 +207,7 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
   {
     rolePostfix=GenerateVirtualNodePostfix();
     this->VirtualNodePostfixes.push_back(rolePostfix);
-    std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+    std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
     this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), sequenceNodeID);
   }
   this->EndModify(oldModify);
@@ -220,7 +220,7 @@ vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetMasterSequenceNode()
   {
     return NULL;
   }  
-  std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+this->VirtualNodePostfixes[0];  
+  std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+this->VirtualNodePostfixes[0];  
   vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
   return node;
 }
@@ -248,7 +248,7 @@ void vtkMRMLSequenceBrowserNode::RemoveAllSequenceNodes()
   for (std::vector< std::string >::reverse_iterator rolePostfixIt=virtualNodePostfixes.rbegin();
     rolePostfixIt!=virtualNodePostfixes.rend(); ++rolePostfixIt)
   {
-    std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
     if (node==NULL)
     {
@@ -277,7 +277,7 @@ std::string vtkMRMLSequenceBrowserNode::GetVirtualNodePostfixFromSequence(vtkMRM
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    std::string dataNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    std::string dataNodeRef=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     if (this->GetNodeReference(dataNodeRef.c_str())==sequenceNode)
     {
       return (*rolePostfixIt);
@@ -439,7 +439,7 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId)
       // the first one is the master sequence node, don't consider as a synchronized sequence node
       continue;
     }
-    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    std::string sequenceNodeRef=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     const char* foundNodeId=this->GetNodeReferenceID(sequenceNodeRef.c_str());
     if (foundNodeId==NULL)
     {
@@ -459,7 +459,7 @@ std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(const char* 
   bool oldModify=this->StartModify();
   std::string rolePostfix=GenerateVirtualNodePostfix();
   this->VirtualNodePostfixes.push_back(rolePostfix);
-  std::string sequenceNodeReferenceRole=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
   this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);
   this->EndModify(oldModify);
   return rolePostfix;
@@ -482,7 +482,7 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode(const char* node
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    std::string sequenceNodeRef=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     const char* foundNodeId=this->GetNodeReferenceID(sequenceNodeRef.c_str());
     if (foundNodeId==NULL)
     {
@@ -517,7 +517,7 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMR
       // the first one is the master sequence node, don't consider as a synchronized sequence node
       continue;
     }
-    std::string sequenceNodeRef=SEDQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    std::string sequenceNodeRef=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     vtkMRMLSequenceNode* synchronizedNode=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeRef.c_str()));
     if (synchronizedNode==NULL)
     {
@@ -625,4 +625,20 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
   this->SetSelectedItemNumber(selectedItemNumber);
   this->EndModify(browserNodeModify);
   return selectedItemNumber;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::FixSequenceNodeReferenceRoleName()
+{
+  bool oldModify=this->StartModify();
+  for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
+    rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    std::string obsoleteSequenceNodeReferenceRole=std::string("rootNodeRef")+(*rolePostfixIt);
+    std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
+    const char* seqNodeId = this->GetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str());
+    this->SetNodeReferenceID(sequenceNodeReferenceRole.c_str(), seqNodeId);
+    this->SetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str(), NULL);
+  }
+  this->EndModify(oldModify);
 }
