@@ -18,6 +18,7 @@
 // Qt includes
 #include <QMainWindow>
 #include <QMenu>
+#include <QSettings>
 #include <QTimer>
 #include <QtPlugin>
 
@@ -68,22 +69,37 @@ qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
 void qSlicerSequenceBrowserModulePrivate::addToolBar()
 {
   QMainWindow* mainWindow = qSlicerApplication::application()->mainWindow();
-  if (mainWindow)
+  if (mainWindow==NULL)
   {
-    this->ToolBar->setWindowTitle("Sequence browser");
-    this->ToolBar->setObjectName("SequenceBrowserToolBar");
-    mainWindow->addToolBar(this->ToolBar);
-    foreach (QMenu* toolBarMenu,mainWindow->findChildren<QMenu*>())
+    qDebug("qSlicerSequenceBrowserModulePrivate::addToolBar: no main window is available, toolbar is not added");
+    return;
+  }
+
+  this->ToolBar->setWindowTitle("Sequence browser");
+  this->ToolBar->setObjectName("SequenceBrowserToolBar");
+  mainWindow->addToolBar(this->ToolBar);
+  foreach (QMenu* toolBarMenu,mainWindow->findChildren<QMenu*>())
+  {
+    if(toolBarMenu->objectName()==QString("WindowToolBarsMenu"))
     {
-      if(toolBarMenu->objectName()==QString("WindowToolBarsMenu"))
-      {
-        QList<QAction*> toolBarMenuActions= toolBarMenu->actions();
-        int insertPosition = toolBarMenuActions.size()-2; // last is reset to default, before that there is a separator
-        toolBarMenu->insertAction(toolBarMenuActions.at(insertPosition>=0 ? insertPosition : 0), this->ToolBar->toggleViewAction());
-        break;
-      }
+      QList<QAction*> toolBarMenuActions= toolBarMenu->actions();
+      int insertPosition = toolBarMenuActions.size()-2; // last is reset to default, before that there is a separator
+      toolBarMenu->insertAction(toolBarMenuActions.at(insertPosition>=0 ? insertPosition : 0), this->ToolBar->toggleViewAction());
+      break;
     }
   }
+
+  // Main window takes care of saving and restoring toolbar geometry and state.
+  // However, when state is restored the sequence browser toolbar was not created yet.
+  // We need to restore the main window state again, now, that the Sequences toolbar is available.
+  QSettings settings;
+  settings.beginGroup("MainWindow");
+  bool restore = settings.value("RestoreGeometry", false).toBool();
+  if (restore)
+  {
+    mainWindow->restoreState(settings.value("windowState").toByteArray());
+  }
+  settings.endGroup();
 }
 
 
