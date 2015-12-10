@@ -71,6 +71,7 @@ void qSlicerSequenceBrowserModulePrivate::addToolBar()
   if (mainWindow)
   {
     this->ToolBar->setWindowTitle("Sequence browser");
+    this->ToolBar->setObjectName("SequenceBrowserToolBar");
     mainWindow->addToolBar(this->ToolBar);
     foreach (QMenu* toolBarMenu,mainWindow->findChildren<QMenu*>())
     {
