@@ -252,3 +252,9 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 
   return writeFlag;
 }
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLVolumeSequenceStorageNode::GetDefaultWriteFileExtension()
+{
+  return "nrrd";
+}
