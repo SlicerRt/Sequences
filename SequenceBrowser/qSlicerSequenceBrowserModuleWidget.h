@@ -40,8 +40,8 @@ public:
   qSlicerSequenceBrowserModuleWidget(QWidget *parent=0);
   virtual ~qSlicerSequenceBrowserModuleWidget();
 
-  void setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
-  void setMasterSequenceNode(vtkMRMLSequenceNode* sequenceNode);
+  Q_INVOKABLE void setActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
+  Q_INVOKABLE void setMasterSequenceNode(vtkMRMLSequenceNode* sequenceNode);
 
 public slots:
   void setMRMLScene(vtkMRMLScene* scene);

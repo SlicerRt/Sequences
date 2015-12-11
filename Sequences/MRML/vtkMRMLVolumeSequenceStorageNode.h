@@ -36,6 +36,10 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode :
   virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
   virtual int WriteDataInternal(vtkMRMLNode *refNode);
 
+  ///
+  /// Return a default file extension for writting
+  virtual const char* GetDefaultWriteFileExtension();
+
 protected:
   vtkMRMLVolumeSequenceStorageNode();
   ~vtkMRMLVolumeSequenceStorageNode();

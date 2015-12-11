@@ -62,6 +62,8 @@ public:
 qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
 {
   this->ToolBar = new qMRMLSequenceBrowserToolBar;
+  this->ToolBar->setWindowTitle(QObject::tr("Sequence browser"));
+  this->ToolBar->setObjectName("SequenceBrowser");
   this->ToolBar->setVisible(false);
 }
 

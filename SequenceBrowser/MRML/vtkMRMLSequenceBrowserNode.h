@@ -32,6 +32,7 @@
 
 #include "vtkSlicerSequenceBrowserModuleMRMLExport.h"
 
+class vtkCollection;
 class vtkMRMLSequenceNode;
 class vtkMRMLDisplayNode;
 
@@ -73,6 +74,7 @@ public:
 
   /// Returns all synchronized sequence nodes (does not include the master sequence node)
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
+  void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode=false);
 
   /// Returns true if the node is selected for synchronized browsing
   bool IsSynchronizedSequenceNode(const char* nodeId);
@@ -110,8 +112,12 @@ public:
   vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
 
   void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
+  void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes);
 
   void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
+  void GetAllVirtualOutputDataNodes(vtkCollection* nodes);
+
+  bool IsVirtualOutputDataNode(const char* nodeId);
 
   void RemoveVirtualOutputDataNode(const std::string& postfix);
 
