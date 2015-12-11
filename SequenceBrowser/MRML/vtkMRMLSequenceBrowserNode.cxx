@@ -716,7 +716,7 @@ void vtkMRMLSequenceBrowserNode::FixSequenceNodeReferenceRoleName()
     if (seqNodeId==NULL && obsoleteSeqNodeId!=NULL)
     {
       // we've found an obsolete reference, move it into the new reference
-      this->SetNodeReferenceID(sequenceNodeReferenceRole.c_str(), seqNodeId);
+      this->SetNodeReferenceID(sequenceNodeReferenceRole.c_str(), obsoleteSeqNodeId);
       this->SetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str(), NULL);
     }
   }
