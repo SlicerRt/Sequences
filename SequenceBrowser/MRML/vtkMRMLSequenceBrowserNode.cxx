@@ -711,9 +711,14 @@ void vtkMRMLSequenceBrowserNode::FixSequenceNodeReferenceRoleName()
   {
     std::string obsoleteSequenceNodeReferenceRole=std::string("rootNodeRef")+(*rolePostfixIt);
     std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
-    const char* seqNodeId = this->GetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str());
-    this->SetNodeReferenceID(sequenceNodeReferenceRole.c_str(), seqNodeId);
-    this->SetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str(), NULL);
+    const char* obsoleteSeqNodeId = this->GetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str());
+    const char* seqNodeId = this->GetNodeReferenceID(sequenceNodeReferenceRole.c_str());
+    if (seqNodeId==NULL && obsoleteSeqNodeId!=NULL)
+    {
+      // we've found an obsolete reference, move it into the new reference
+      this->SetNodeReferenceID(sequenceNodeReferenceRole.c_str(), seqNodeId);
+      this->SetNodeReferenceID(obsoleteSequenceNodeReferenceRole.c_str(), NULL);
+    }
   }
   this->EndModify(oldModify);
 }
