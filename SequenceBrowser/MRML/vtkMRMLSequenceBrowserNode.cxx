@@ -51,11 +51,12 @@ vtkMRMLNodeNewMacro(vtkMRMLSequenceBrowserNode);
 vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 {
   this->SetHideFromEditors(false);
-  this->PlaybackActive=false;
-  this->PlaybackRateFps=10.0;
-  this->PlaybackLooped=true;
-  this->SelectedItemNumber=0;
-  this->LastPostfixIndex=0;
+  this->PlaybackActive = false;
+  this->PlaybackRateFps = 10.0;
+  this->PlaybackItemSkippingEnabled = true;
+  this->PlaybackLooped = true;
+  this->SelectedItemNumber = 0;
+  this->LastPostfixIndex = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -72,6 +73,7 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
 
   of << indent << " playbackActive=\"" << (this->PlaybackActive ? "true" : "false") << "\"";
   of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\""; 
+  of << indent << " playbackItemSkippingEnabled=\"" << (this->PlaybackItemSkippingEnabled ? "true" : "false") << "\"";
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
   of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
 
@@ -120,6 +122,17 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       double playbackRateFps=10;
       ss >> playbackRateFps;
       this->SetPlaybackRateFps(playbackRateFps);
+    }
+    else if (!strcmp(attName, "playbackItemSkippingEnabled"))
+    {
+      if (!strcmp(attValue, "true"))
+      {
+        this->SetPlaybackItemSkippingEnabled(1);
+      }
+      else
+      {
+        this->SetPlaybackItemSkippingEnabled(0);
+      }
     }
     else if (!strcmp(attName, "playbackLooped")) 
     {
@@ -176,7 +189,13 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkMRMLNode::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
+
+  os << indent << " Playback active: " << (this->PlaybackActive ? "true" : "false") << '\n';
+  os << indent << " Playback rate (fps): " << this->PlaybackRateFps << '\n';
+  os << indent << " Playback item skipping enabled: " << (this->PlaybackItemSkippingEnabled ? "true" : "false") << '\n';
+  os << indent << " Playback looped: " << (this->PlaybackLooped ? "true" : "false") << '\n';
+  os << indent << " Selected item number: " << this->SelectedItemNumber << '\n';
 }
 
 //----------------------------------------------------------------------------

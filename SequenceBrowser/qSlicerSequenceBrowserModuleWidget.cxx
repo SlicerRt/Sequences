@@ -406,6 +406,8 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_Sequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
+  connect(d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)));
+
   
   qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
   if (toolBar)
@@ -520,7 +522,6 @@ void qSlicerSequenceBrowserModuleWidget::exit()
   // this->qvtkDisconnectAll();
 } 
 
-
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* node)
 {
@@ -528,12 +529,22 @@ void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* n
   this->setActiveBrowserNode(browserNode);
 }
 
-
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::sequenceNodeChanged(vtkMRMLNode* inputNode)
 {
   vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);  
   this->setMasterSequenceNode(sequenceNode);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::playbackItemSkippingEnabledChanged(bool enabled)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->activeBrowserNode() == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->activeBrowserNode()->SetPlaybackItemSkippingEnabled(enabled);
 }
 
 //-----------------------------------------------------------------------------
@@ -627,8 +638,10 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   }
 
   vtkMRMLSequenceNode* sequenceNode = d->activeBrowserNode()->GetMasterSequenceNode();  
-  d->MRMLNodeComboBox_Sequence->setEnabled(true);  
+  d->MRMLNodeComboBox_Sequence->setEnabled(true);
   d->MRMLNodeComboBox_Sequence->setCurrentNode(sequenceNode);
+  
+  d->checkBox_PlaybackItemSkippingEnabled->setChecked(d->activeBrowserNode()->GetPlaybackItemSkippingEnabled());
 
   this->refreshSynchronizedSequenceNodesTable();
 }

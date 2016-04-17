@@ -88,6 +88,11 @@ public:
   vtkGetMacro(PlaybackRateFps, double);
   vtkSetMacro(PlaybackRateFps, double);
 
+  /// Skipping items if necessary to reach requested playback rate. Enabled by default.
+  vtkGetMacro(PlaybackItemSkippingEnabled, bool);
+  vtkSetMacro(PlaybackItemSkippingEnabled, bool);
+  vtkBooleanMacro(PlaybackItemSkippingEnabled, bool);
+
   /// Get/Set playback looping (restart from the first sequence node when reached the last one)
   vtkGetMacro(PlaybackLooped, bool);
   vtkSetMacro(PlaybackLooped, bool);
@@ -147,6 +152,7 @@ protected:
 protected:
   bool PlaybackActive;
   double PlaybackRateFps;
+  bool PlaybackItemSkippingEnabled;
   bool PlaybackLooped;
   int SelectedItemNumber;
 

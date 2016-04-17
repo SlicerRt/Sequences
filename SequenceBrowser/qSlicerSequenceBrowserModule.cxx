@@ -37,7 +37,7 @@
 
 #include "vtkMRMLSequenceBrowserNode.h"
 
-static const double UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC = 0.033; // refresh output with a maximum of 30FPS
+static const double UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC = 0.020; // refresh output with a maximum of 50FPS
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerSequenceBrowserModule, qSlicerSequenceBrowserModule);

@@ -139,8 +139,6 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
     vtkErrorMacro("vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes failed: scene is invalid");
     return;
   }
-  // remove the procedural color nodes (after the fs proc nodes as
-  // getting them by class)
   std::vector< vtkMRMLNode* > browserNodes;
   int numBrowserNodes = this->GetMRMLScene()->GetNodesByClass("vtkMRMLSequenceBrowserNode", browserNodes);
   for (int i = 0; i < numBrowserNodes; i++)
@@ -160,19 +158,21 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
     {
       // we just started to play now, no need to update output nodes yet
       this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
+      continue;
     }
-    else
+    // play is already in progress
+    double elapsedTimeSec = updateStartTimeSec - this->LastSequenceBrowserUpdateTimeSec[browserNode];
+    // compute how many items we need to jump; if not enough time passed to jump at least to the next item
+    // then we don't do anything (let the elapsed time cumulate)
+    int selectionIncrement = floor(elapsedTimeSec * browserNode->GetPlaybackRateFps()+0.5); // floor with +0.5 is rounding
+    if (selectionIncrement>0)
     {
-      // play is already in progress
-      double elapsedTimeSec = updateStartTimeSec - this->LastSequenceBrowserUpdateTimeSec[browserNode];
-      // compute how many items we need to jump; if not enough time passed to jump at least to the next item
-      // then we don't do anything (let the elapsed time cumulate)
-      int selectionIncrement = floor(elapsedTimeSec * browserNode->GetPlaybackRateFps());
-      if (selectionIncrement>0)
+      this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
+      if (!browserNode->GetPlaybackItemSkippingEnabled())
       {
-        this->LastSequenceBrowserUpdateTimeSec[browserNode] = updateStartTimeSec;
-        browserNode->SelectNextItem(selectionIncrement);
+        selectionIncrement = 1;
       }
+      browserNode->SelectNextItem(selectionIncrement);
     }
   }
 }
