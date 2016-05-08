@@ -43,8 +43,6 @@ qSlicerSequenceBrowserModule
 
   /// Visibility of the sequence browser toolbar
   Q_PROPERTY(bool toolBarVisible READ isToolBarVisible WRITE setToolBarVisible)
-  /// Sequence browser toolbar instance
-  Q_PROPERTY(qMRMLSequenceBrowserToolBar* toolBar READ toolBar)
 
 public:
 
@@ -63,9 +61,8 @@ public:
   virtual QStringList categories()const;
   virtual QStringList dependencies() const;
 
-  bool isToolBarVisible();
-  qMRMLSequenceBrowserToolBar* toolBar();
-  void setToolBarActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
+  Q_INVOKABLE bool isToolBarVisible();
+  Q_INVOKABLE qMRMLSequenceBrowserToolBar* toolBar();
 
 protected:
 
@@ -84,6 +81,8 @@ public slots:
   void onNodeAddedEvent(vtkObject*, vtkObject*);
   void onNodeRemovedEvent(vtkObject*, vtkObject*);
   void updateAllVirtualOutputNodes();
+
+  void setToolBarActiveBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
 
 protected:
   QScopedPointer<qSlicerSequenceBrowserModulePrivate> d_ptr;
