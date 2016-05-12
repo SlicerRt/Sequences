@@ -23,11 +23,14 @@
 #include <vtkMRMLDisplayableNode.h>
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLScene.h>
 
 // VTK includes
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
+#include <vtkImageData.h>
+#include <vtkTimerLog.h>
 
 // STD includes
 #include <sstream>
@@ -256,7 +259,19 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
     return;
   }
 
+  std::string newNodeName = this->SequenceScene->GetUniqueNameByString( node->GetName() ? node->GetName() : "Sequence" );
   vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
+  newNode->SetName( newNodeName.c_str() ); // Make sure all the node names in the sequence's scene are unique for saving purposes
+  
+  // Hack to enforce deep copying of volumes (otherwise, a separate image data is not stored for each frame)
+  // TODO: Is there a better way to architecture this?
+  vtkMRMLVolumeNode* volNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
+  if (volNode!=NULL)
+  {
+    vtkImageData* imageDataCopy = vtkImageData::New();
+    imageDataCopy->DeepCopy(volNode->GetImageData());
+    volNode->SetAndObserveImageData(imageDataCopy);
+  }
 
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(node);
   if (displayableNode!=NULL)
@@ -278,7 +293,7 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
       newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
     }
   }
-  
+
   int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {

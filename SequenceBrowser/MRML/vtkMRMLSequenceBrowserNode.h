@@ -25,6 +25,7 @@
 // MRML includes
 #include <vtkMRML.h>
 #include <vtkMRMLNode.h>
+#include <vtkNew.h>
 
 // STD includes
 #include <set>
@@ -35,6 +36,7 @@
 class vtkCollection;
 class vtkMRMLSequenceNode;
 class vtkMRMLDisplayNode;
+class vtkIntArray;
 
 class VTK_SLICER_SEQUENCEBROWSER_MODULE_MRML_EXPORT vtkMRMLSequenceBrowserNode : public vtkMRMLNode
 {
@@ -42,6 +44,15 @@ public:
   static vtkMRMLSequenceBrowserNode *New();
   vtkTypeMacro(vtkMRMLSequenceBrowserNode,vtkMRMLNode);
   void PrintSelf(ostream& os, vtkIndent indent);
+
+  /// The type of synchronization. Whether synchronized for playback, recording, etc.
+  enum SynchronizationTypes
+  {
+    Placeholder = 0, // This is ignored, but necessary so Playback is not 0
+    Playback,
+    Recording,
+    NumberOfSynchronizationTypes // this line must be the last one
+  };
 
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
@@ -82,12 +93,24 @@ public:
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode=false);
 
+  /// Returns all synchonized sequences node that have a particular type (does not include the master sequence node by default)
+  void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
+  void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
+
   /// Deprecated. Use IsSynchronizedSequenceNodeID instead.
-  bool IsSynchronizedSequenceNode(const char* sequenceNodeId);
+  bool IsSynchronizedSequenceNode(const char* sequenceNodeId, bool includeMasterNode = false);
 
   /// Returns true if the node is selected for synchronized browsing
-  bool IsSynchronizedSequenceNodeID(const char* sequenceNodeId);
-  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode);
+  bool IsSynchronizedSequenceNodeID(const char* sequenceNodeId, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, bool includeMasterNode = false);
+
+  /// Returns true if the node has a particular type of synchronization
+  bool IsSynchronizedSequenceNodeID(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, SynchronizationTypes syncType, bool includeMasterNode = false);
+
+  /// Set whether or not a node has a particular type of synchronization
+  void SequenceNodeSynchronizationTypeOn(const char* nodeId, SynchronizationTypes syncType);
+  void SequenceNodeSynchronizationTypeOff(const char* nodeId, SynchronizationTypes syncType);
 
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);
@@ -112,6 +135,16 @@ public:
   vtkGetMacro(SelectedItemNumber, int);
   vtkSetMacro(SelectedItemNumber, int);
 
+  /// Get/set recording of virtual output nodes
+  vtkGetMacro(RecordingActive, bool);
+  void SetRecordingActive(bool recording);
+  vtkBooleanMacro(RecordingActive, bool);
+
+  /// Get/set whether to only record when the master node is modified (or emits an observed event)
+  vtkGetMacro(RecordMasterOnly, bool);
+  vtkSetMacro(RecordMasterOnly, bool);
+  vtkBooleanMacro(RecordMasterOnly, bool);
+
   /// Selects the next sequence item for display, returns current selected item number
   int SelectNextItem(int selectionIncrement=1);
 
@@ -122,7 +155,7 @@ public:
   int SelectLastItem();
 
   /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
-  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode);
+  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
   /// Get virtual output node corresponding to a sequence node.
   vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
@@ -154,6 +187,9 @@ public:
   /// The method has no effect if there is no output display node or it is not scalar volume display node type.
   void ScalarVolumeAutoWindowLevelOff();
 
+  /// Process MRML node events for recording of the virtual output nodes
+  void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData );
+
 protected:
   vtkMRMLSequenceBrowserNode();
   ~vtkMRMLSequenceBrowserNode();
@@ -173,6 +209,12 @@ protected:
   bool PlaybackItemSkippingEnabled;
   bool PlaybackLooped;
   int SelectedItemNumber;
+  
+  bool RecordingActive;
+  double InitialTime;
+  bool RecordMasterOnly;
+
+  vtkNew< vtkIntArray > RecordingEvents;
 
   // Unique postfixes for storing references to sequence nodes, virtual data nodes, and virtual display nodes
   // For example, a sequence node reference role name is SEDQUENCE_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix

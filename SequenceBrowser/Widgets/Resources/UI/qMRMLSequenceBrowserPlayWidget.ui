@@ -58,6 +58,20 @@
     </widget>
    </item>
    <item>
+    <widget class="QPushButton" name="pushButton_VcrRecord">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerSequenceBrowserModuleWidgets.qrc">
+       <normaloff>:/Icons/VcrRecord16.png</normaloff>:/Icons/VcrRecord16.png</iconset>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="pushButton_VcrNext">
      <property name="text">
       <string/>

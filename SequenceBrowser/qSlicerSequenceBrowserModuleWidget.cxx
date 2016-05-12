@@ -55,6 +55,8 @@ enum
   SYNCH_NODES_NAME_COLUMN,
   SYNCH_NODES_TYPE_COLUMN,
   SYNCH_NODES_STATUS_COLUMN,
+  SYNCH_NODES_PLAYBACK_COLUMN,
+  SYNCH_NODES_RECORDING_COLUMN,
   SYNCH_NODES_NUMBER_OF_COLUMNS // this must be the last line in this enum
 };
 
@@ -406,7 +408,10 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_Sequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
-  connect(d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)));
+  connect( d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)) );
+  connect( d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)) );
+  connect( d->pushButton_AddSynchronizedNode, SIGNAL(clicked()), this, SLOT(onAddSynchronizedNodeButtonClicked()) );
+  d->pushButton_AddSynchronizedNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowUp ) );
 
   
   qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
@@ -418,6 +423,10 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_TYPE_COLUMN, 100);
+  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_PLAYBACK_COLUMN, 50);
+  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_RECORDING_COLUMN, 50);
+
+  d->ExpandButton_SynchronizeNodes->setChecked(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -548,6 +557,17 @@ void qSlicerSequenceBrowserModuleWidget::playbackItemSkippingEnabledChanged(bool
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::recordMasterOnlyChanged(bool enabled)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->activeBrowserNode() == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->activeBrowserNode()->SetRecordMasterOnly(enabled);
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
   this->updateWidgetFromMRML();
@@ -625,6 +645,13 @@ void qSlicerSequenceBrowserModuleWidget::setMasterSequenceNode(vtkMRMLSequenceNo
   }   
 }
 
+// --------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onAddSynchronizedNodeButtonClicked()
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  d->logic()->AddSynchronizedNode(d->MRMLNodeComboBox_SynchronizeSequenceNode->currentNode(), d->MRMLNodeComboBox_SynchronizeVirtualNode->currentNode(), d->MRMLNodeComboBox_ActiveBrowser->currentNode());
+}
+
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
 {
@@ -642,6 +669,7 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   d->MRMLNodeComboBox_Sequence->setCurrentNode(sequenceNode);
   
   d->checkBox_PlaybackItemSkippingEnabled->setChecked(d->activeBrowserNode()->GetPlaybackItemSkippingEnabled());
+  d->checkBox_RecordMasterOnly->setChecked(d->activeBrowserNode()->GetRecordMasterOnly());
 
   this->refreshSynchronizedSequenceNodesTable();
 }
@@ -654,8 +682,10 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
   // Clear the table
   for (int row=0; row<d->tableWidget_SynchronizedSequenceNodes->rowCount(); row++)
   {
-    QCheckBox* checkbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedSequenceNodes->cellWidget(row,SYNCH_NODES_SELECTION_COLUMN));
-    disconnect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedSequenceNodeCheckStateChanged(int) ) );
+    QCheckBox* playbackCheckbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedSequenceNodes->cellWidget(row, SYNCH_NODES_PLAYBACK_COLUMN));
+    disconnect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
+    QCheckBox* recordingCheckbox = dynamic_cast<QCheckBox*>(d->tableWidget_SynchronizedSequenceNodes->cellWidget(row, SYNCH_NODES_RECORDING_COLUMN));
+    disconnect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
   }
 
   if (d->activeBrowserNode()==NULL)
@@ -671,9 +701,9 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     return;
   }
 
-  vtkSmartPointer<vtkCollection> compatibleNodes=vtkSmartPointer<vtkCollection>::New();
-  d->logic()->GetCompatibleNodesFromScene(compatibleNodes, sequenceNode);  
-  d->tableWidget_SynchronizedSequenceNodes->setRowCount(compatibleNodes->GetNumberOfItems()+1); // +1 because we add the master as well
+  vtkSmartPointer<vtkCollection> syncedNodes=vtkSmartPointer<vtkCollection>::New();
+  d->activeBrowserNode()->GetSynchronizedSequenceNodes(syncedNodes, false);
+  d->tableWidget_SynchronizedSequenceNodes->setRowCount(syncedNodes->GetNumberOfItems()+1); // +1 because we add the master as well
 
   // Create a line for the master node
 
@@ -698,7 +728,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
   statusItem->setFlags(statusItem->flags() ^ Qt::ItemIsEditable);
   d->tableWidget_SynchronizedSequenceNodes->setItem(0, SYNCH_NODES_STATUS_COLUMN, statusItem);
 
-  if (compatibleNodes->GetNumberOfItems() < 1)
+  if (syncedNodes->GetNumberOfItems() < 1)
   {
     // no nodes, so we are done
     return;
@@ -706,33 +736,43 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
 
   // Create line for the compatible nodes
 
-  for (int i=0; i<compatibleNodes->GetNumberOfItems(); ++i)
+  for (int i=0; i<syncedNodes->GetNumberOfItems(); ++i)
   {
-    vtkMRMLSequenceNode* compatibleNode = vtkMRMLSequenceNode::SafeDownCast( compatibleNodes->GetItemAsObject(i) );
-    if (!compatibleNode)
+    vtkMRMLSequenceNode* syncedNode = vtkMRMLSequenceNode::SafeDownCast( syncedNodes->GetItemAsObject(i) );
+    if (!syncedNode)
     {
       continue;
     }
 
-    // Create checkbox
-    QCheckBox* checkbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
-    checkbox->setToolTip(tr("Include this node in synchronized browsing"));
-    std::string statusString;
-    checkbox->setProperty("MRMLNodeID",QString(compatibleNode->GetID()));
+    // Create checkboxes
+    QCheckBox* playbackCheckbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
+    playbackCheckbox->setToolTip(tr("Include this node in synchronized playback"));
+    playbackCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
+    playbackCheckbox->setProperty("SyncType", QVariant(vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback));
+
+    QCheckBox* recordingCheckbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
+    recordingCheckbox->setToolTip(tr("Include this node in synchronized recording"));
+    recordingCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
+    recordingCheckbox->setProperty("SyncType", QVariant(vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording));
 
     // Set previous checked state of the checkbox
-    bool checked = d->activeBrowserNode()->IsSynchronizedSequenceNode(compatibleNode->GetID());
-    checkbox->setChecked(checked);
+    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNode(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback);
+    playbackCheckbox->setChecked(playbackChecked);
 
-    connect( checkbox, SIGNAL( stateChanged(int) ), this, SLOT( synchronizedSequenceNodeCheckStateChanged(int) ) );
+    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNode(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording);
+    recordingCheckbox->setChecked(recordingChecked);
 
-    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i+1, SYNCH_NODES_SELECTION_COLUMN, checkbox);
+    connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
+    connect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
+
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_PLAYBACK_COLUMN, playbackCheckbox);
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_RECORDING_COLUMN, recordingCheckbox);
     
-    QTableWidgetItem* nameItem = new QTableWidgetItem( QString(compatibleNode->GetName()) );
+    QTableWidgetItem* nameItem = new QTableWidgetItem( QString(syncedNode->GetName()) );
     nameItem->setFlags(nameItem->flags() ^ Qt::ItemIsEditable);
     d->tableWidget_SynchronizedSequenceNodes->setItem(i+1, SYNCH_NODES_NAME_COLUMN, nameItem);
 
-    QTableWidgetItem* typeItem = new QTableWidgetItem( QString(compatibleNode->GetDataNodeTagName().c_str()) );
+    QTableWidgetItem* typeItem = new QTableWidgetItem( QString(syncedNode->GetDataNodeTagName().c_str()) );
     typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
     d->tableWidget_SynchronizedSequenceNodes->setItem(i+1, SYNCH_NODES_TYPE_COLUMN, typeItem);
   }
@@ -758,15 +798,17 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeCheckStateChang
   }
 
   std::string synchronizedNodeId = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
+  int intSyncType = senderCheckbox->property("SyncType").toInt();
+  vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType = static_cast<vtkMRMLSequenceBrowserNode::SynchronizationTypes>(intSyncType);
 
   // Add or delete node to/from the list
   if (aState)
   {
-    d->activeBrowserNode()->AddSynchronizedSequenceNode(synchronizedNodeId.c_str());
+    d->activeBrowserNode()->SequenceNodeSynchronizationTypeOn(synchronizedNodeId.c_str(), syncType);
   }
   else
   {
-    d->activeBrowserNode()->RemoveSynchronizedSequenceNode(synchronizedNodeId.c_str());
+    d->activeBrowserNode()->SequenceNodeSynchronizationTypeOff(synchronizedNodeId.c_str(), syncType);
   }
 }
 
