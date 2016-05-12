@@ -43,6 +43,14 @@ public:
   vtkTypeMacro(vtkMRMLSequenceBrowserNode,vtkMRMLNode);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  /// The type of synchronization. Whether synchronized for playback, recording, etc.
+  enum SynchronizationTypes
+  {
+    Playback = 0,
+    Recording,
+    NumberOfSynchronizationTypes // this line must be the last one
+  };
+
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
 
@@ -76,8 +84,19 @@ public:
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode=false);
 
+  /// Returns all synchonized sequences node that have a particular type (does not include the master sequence node by default)
+  void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
+  void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
+
   /// Returns true if the node is selected for synchronized browsing
   bool IsSynchronizedSequenceNode(const char* nodeId);
+
+  /// Returns true if the node has a particular type of synchronization
+  bool IsSynchronizedSequenceNode(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
+
+  /// Set whether or not a node has a particular type of synchronization
+  void SequenceNodeSynchronizationTypeOn(const char* nodeId, SynchronizationTypes syncType);
+  void SequenceNodeSynchronizationTypeOff(const char* nodeId, SynchronizationTypes syncType);
 
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);

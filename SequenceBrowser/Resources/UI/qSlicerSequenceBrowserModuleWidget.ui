@@ -98,7 +98,7 @@
       <item row="1" column="0" colspan="2">
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
-         <number>4</number>
+         <number>6</number>
         </property>
         <attribute name="horizontalHeaderVisible">
          <bool>true</bool>
@@ -127,6 +127,16 @@
         <column>
          <property name="text">
           <string>Status</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Playback</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Recording</string>
          </property>
         </column>
        </widget>
