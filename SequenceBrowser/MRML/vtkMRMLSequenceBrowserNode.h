@@ -89,7 +89,7 @@ public:
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
 
   /// Returns true if the node is selected for synchronized browsing
-  bool IsSynchronizedSequenceNode(const char* nodeId);
+  bool IsSynchronizedSequenceNode(const char* nodeId, bool includeMasterNode = false);
 
   /// Returns true if the node has a particular type of synchronization
   bool IsSynchronizedSequenceNode(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
@@ -131,7 +131,7 @@ public:
   int SelectLastItem();
 
   /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
-  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode);
+  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
   vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
 

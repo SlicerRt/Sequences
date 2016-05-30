@@ -373,7 +373,7 @@ void vtkMRMLSequenceBrowserNode::GetVirtualOutputDisplayNodes(vtkMRMLSequenceNod
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sourceDataNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode)
+vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sourceDataNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy)
 {
   if (sequenceNode==NULL)
   {
@@ -398,9 +398,13 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
   // Add copy of the data node
   std::string dataNodeRef=DATA_NODE_REFERENCE_ROLE_BASE+rolePostfix;
   // Create a new one from scratch in the new scene to make sure only the needed parts are copied
-  vtkMRMLNode* dataNode=sourceDataNode->CreateNodeInstance();
-  this->Scene->AddNode(dataNode);
-  dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
+  vtkMRMLNode* dataNode = sourceDataNode;
+  if ( copy )
+  {
+    dataNode = sourceDataNode->CreateNodeInstance();
+    this->Scene->AddNode(dataNode);
+    dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
+  }
   this->SetNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID());
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
   
@@ -410,7 +414,11 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
   for (std::vector< vtkMRMLDisplayNode* >::iterator sourceDisplayNodeIt=sourceDisplayNodes.begin(); sourceDisplayNodeIt!=sourceDisplayNodes.end(); ++sourceDisplayNodeIt)
   {
     vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
-    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
+    vtkMRMLDisplayNode* displayNode = sourceDisplayNode;
+    if (copy)
+    {
+      displayNode = vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
+    }
     if (displayNode) // Added to check if displayNode is valid
     {
       this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());
@@ -505,7 +513,7 @@ void vtkMRMLSequenceBrowserNode::RemoveVirtualOutputDisplayNodes(const std::stri
 }
 
 //----------------------------------------------------------------------------
-bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId)
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId, bool includeMasterNode/*=false*/)
 {
   if (nodeId==NULL)
   {
@@ -515,7 +523,7 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId)
   for (std::vector< std::string >::iterator rolePostfixIt=this->VirtualNodePostfixes.begin();
     rolePostfixIt!=this->VirtualNodePostfixes.end(); ++rolePostfixIt)
   {
-    if (rolePostfixIt==this->VirtualNodePostfixes.begin())
+    if (!includeMasterNode && rolePostfixIt==this->VirtualNodePostfixes.begin())
     {
       // the first one is the master sequence node, don't consider as a synchronized sequence node
       continue;

@@ -54,6 +54,9 @@ public:
   /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
   void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode);
 
+  /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
+  void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* virtualNode, vtkMRMLNode* bNode);
+
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode);
 
 protected:
