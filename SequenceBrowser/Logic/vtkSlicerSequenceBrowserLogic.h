@@ -33,9 +33,9 @@
 #include <cstdlib>
 
 #include "vtkSlicerSequenceBrowserModuleLogicExport.h"
+#include "vtkMRMLSequenceBrowserNode.h" // Forward class declaration does not work with enum
 
 class vtkMRMLNode;
-class vtkMRMLSequenceBrowserNode;
 class vtkMRMLSequenceNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -52,7 +52,7 @@ public:
   void UpdateAllVirtualOutputNodes();
 
   /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
-  void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode);
+  void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType=vtkMRMLSequenceBrowserNode::Placeholder);
 
   /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
   void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* virtualNode, vtkMRMLNode* bNode);

@@ -46,7 +46,8 @@ public:
   /// The type of synchronization. Whether synchronized for playback, recording, etc.
   enum SynchronizationTypes
   {
-    Playback = 0,
+    Placeholder = 0, // This is ignored, but necessary so Playback is not 0
+    Playback,
     Recording,
     NumberOfSynchronizationTypes // this line must be the last one
   };

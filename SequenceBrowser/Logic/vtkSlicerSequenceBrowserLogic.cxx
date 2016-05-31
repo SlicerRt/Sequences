@@ -178,7 +178,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
+void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType/*=NULL*/)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
@@ -219,7 +219,14 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   }
 
   std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
-  browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  if (syncType==NULL)
+  {
+    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  else
+  {
+    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, syncType, true);
+  }
   
   // Store the previous modified state of nodes to allow calling EndModify when all the nodes are updated (to prevent multiple renderings on partial update)
   std::vector< std::pair<vtkMRMLNode*, int> > nodeModifiedStates;
@@ -431,7 +438,7 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
     return;
   }
 
-  this->UpdateVirtualOutputNodes(browserNode);
+  this->UpdateVirtualOutputNodes(browserNode, vtkMRMLSequenceBrowserNode::Playback);
 }
 
 //---------------------------------------------------------------------------
