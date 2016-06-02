@@ -905,30 +905,19 @@ void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned 
     return;
   }
 
-  // OK. Find the associated sequence node
+  // To maintain syncing, we need to record for all sequences at every given timestamp
+  std::stringstream currTime;
+  currTime << ( vtkTimerLog::GetUniversalTime() - this->InitialTime );
+
+  // Record into each sequence
   std::vector< vtkMRMLSequenceNode* > sequenceNodes;
   this->GetSynchronizedSequenceNodes( sequenceNodes, SynchronizationTypes::Recording, true );
   vtkMRMLSequenceNode* sequenceNode = NULL;
   for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++ )
   {
-    vtkMRMLNode* currVirtualNode = this->GetVirtualOutputDataNode( *it );
-    if ( strcmp( currVirtualNode->GetID(), modifiedNode->GetID() ) == 0 )
-    {
-      sequenceNode = *it;
-    }
+    vtkMRMLSequenceNode* currSequenceNode = (*it);
+    currSequenceNode->SetDataNodeAtValue(this->GetVirtualOutputDataNode(currSequenceNode), currTime.str().c_str());
   }
-
-  // If there is no associated sequence no with type recording then exit
-  if (sequenceNode==NULL)
-  {
-    return;
-  }
-
-  // Ok, now record into the found sequence
-  std::stringstream currTime;
-  currTime << ( vtkTimerLog::GetUniversalTime() - this->InitialTime );
-
-  sequenceNode->SetDataNodeAtValue( modifiedNode, currTime.str().c_str() );
 }
 
 //---------------------------------------------------------------------------
