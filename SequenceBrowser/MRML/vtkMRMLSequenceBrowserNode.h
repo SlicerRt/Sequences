@@ -122,6 +122,11 @@ public:
   vtkGetMacro(SelectedItemNumber, int);
   vtkSetMacro(SelectedItemNumber, int);
 
+  /// Get/set recording of virtual output nodes
+  vtkGetMacro(RecordingActive, bool);
+  void SetRecordingActive(bool recording);
+  vtkBooleanMacro(RecordingActive, bool);
+
   /// Selects the next sequence item for display, returns current selected item number
   int SelectNextItem(int selectionIncrement=1);
 
@@ -156,6 +161,9 @@ public:
   /// The method has no effect if there is no output display node or it is not scalar volume display node type.
   void ScalarVolumeAutoWindowLevelOff();
 
+  /// Process MRML node events for recording of the virtual output nodes
+  void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData );
+
 protected:
   vtkMRMLSequenceBrowserNode();
   ~vtkMRMLSequenceBrowserNode();
@@ -175,6 +183,9 @@ protected:
   bool PlaybackItemSkippingEnabled;
   bool PlaybackLooped;
   int SelectedItemNumber;
+  
+  bool RecordingActive;
+  double InitialTime;
 
   // Unique postfixes for storing references to sequence nodes, virtual data nodes, and virtual display nodes
   // For example, a sequence node reference role name is SEDQUENCE_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix

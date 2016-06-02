@@ -158,7 +158,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
   // therefore we have to block signals.
   bool sliderBlockSignals = d->slider_IndexValue->blockSignals(true);
   int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
-  if (numberOfDataNodes>0)
+  if (numberOfDataNodes>0 && !d->SequenceBrowserNode->GetRecordingActive())
   {
     d->slider_IndexValue->setEnabled(true);
     d->slider_IndexValue->setMinimum(0);

@@ -31,9 +31,13 @@
 #include <vtkMRMLScalarVolumeDisplayNode.h>
 
 // VTK includes
+#include <vtkNew.h>
+#include <vtkIntArray.h>
+#include <vtkCommand.h>
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
+#include <vtkTimerLog.h>
 
 // STD includes
 #include <sstream>
@@ -57,6 +61,8 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
   this->PlaybackItemSkippingEnabled = true;
   this->PlaybackLooped = true;
   this->SelectedItemNumber = 0;
+  this->RecordingActive = false;
+  this->InitialTime = vtkTimerLog::GetUniversalTime();
   this->LastPostfixIndex = 0;
 }
 
@@ -77,6 +83,7 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   of << indent << " playbackItemSkippingEnabled=\"" << (this->PlaybackItemSkippingEnabled ? "true" : "false") << "\"";
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
   of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
+  of << indent << " recordingActive=\"" << (this->RecordingActive ? "true" : "false") << "\"";
 
   of << indent << " virtualNodePostfixes=\"";
   for(std::vector< std::string >::iterator roleNameIt=this->VirtualNodePostfixes.begin();
@@ -154,6 +161,17 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       ss >> selectedItemNumber;
       this->SetSelectedItemNumber(selectedItemNumber);
     }
+    else if (!strcmp(attName, "recordingActive")) 
+    {
+      if (!strcmp(attValue,"true")) 
+      {
+        this->SetRecordingActive(1);
+      }
+      else
+      {
+        this->SetRecordingActive(0);
+      }
+    }
     else if (!strcmp(attName, "virtualNodePostfixes"))
     {
       this->VirtualNodePostfixes.clear();
@@ -197,6 +215,7 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Playback item skipping enabled: " << (this->PlaybackItemSkippingEnabled ? "true" : "false") << '\n';
   os << indent << " Playback looped: " << (this->PlaybackLooped ? "true" : "false") << '\n';
   os << indent << " Selected item number: " << this->SelectedItemNumber << '\n';
+  os << indent << " Recording active: " << (this->RecordingActive ? "true" : "false") << '\n';
 }
 
 //----------------------------------------------------------------------------
@@ -405,7 +424,10 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
     this->Scene->AddNode(dataNode);
     dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   }
-  this->SetNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID());
+  this->AddNodeReferenceRole(dataNodeRef.c_str());
+  vtkNew< vtkIntArray > events;
+  events->InsertNextValue(vtkCommand::AnyEvent);
+  this->SetAndObserveNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID(), events.GetPointer());
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
   
   // Add copy of the display node(s)
@@ -769,6 +791,26 @@ void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
   }
 }
 
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
+{
+  // Before activating the recording, set the initial timestamp to be correct
+  this->InitialTime = vtkTimerLog::GetUniversalTime();
+  if (this->GetMasterSequenceNode()!=NULL 
+    && this->GetMasterSequenceNode()->GetNumberOfDataNodes()>0
+    && this->GetMasterSequenceNode()->GetIndexType()==vtkMRMLSequenceNode::NumericIndex)
+  {
+    std::stringstream timeString;
+    timeString << this->GetMasterSequenceNode()->GetNthIndexValue( this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1 );
+    double timeValue; timeString >> timeValue;
+    this->InitialTime = this->InitialTime - timeValue;
+  }
+  if (this->RecordingActive!=recording)
+  {
+    this->RecordingActive = recording;
+    this->Modified();
+  }
+}
 
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectFirstItem()
@@ -844,6 +886,49 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
   this->SetSelectedItemNumber(selectedItemNumber);
   this->EndModify(browserNodeModify);
   return selectedItemNumber;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData )
+{
+  this->vtkMRMLNode::ProcessMRMLEvents( caller, event, callData );
+  
+  // Do nothing if the node is not recording
+  if (!this->GetRecordingActive())
+  {
+    return;
+  }
+  // Make sure it was a virtual output data node
+  vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(caller);
+  if (modifiedNode==NULL || !this->IsVirtualOutputDataNode(modifiedNode->GetID()))
+  {
+    return;
+  }
+
+  // OK. Find the associated sequence node
+  std::vector< vtkMRMLSequenceNode* > sequenceNodes;
+  this->GetSynchronizedSequenceNodes( sequenceNodes, SynchronizationTypes::Recording, true );
+  vtkMRMLSequenceNode* sequenceNode = NULL;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++ )
+  {
+    vtkMRMLNode* currVirtualNode = this->GetVirtualOutputDataNode( *it );
+    if ( strcmp( currVirtualNode->GetID(), modifiedNode->GetID() ) == 0 )
+    {
+      sequenceNode = *it;
+    }
+  }
+
+  // If there is no associated sequence no with type recording then exit
+  if (sequenceNode==NULL)
+  {
+    return;
+  }
+
+  // Ok, now record into the found sequence
+  std::stringstream currTime;
+  currTime << ( vtkTimerLog::GetUniversalTime() - this->InitialTime );
+
+  sequenceNode->SetDataNodeAtValue( modifiedNode, currTime.str().c_str() );
 }
 
 //---------------------------------------------------------------------------
