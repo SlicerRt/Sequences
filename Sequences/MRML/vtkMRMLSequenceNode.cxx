@@ -23,11 +23,13 @@
 #include <vtkMRMLDisplayableNode.h>
 #include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLScene.h>
 
 // VTK includes
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
+#include <vtkImageData.h>
 
 // STD includes
 #include <sstream>
@@ -257,6 +259,16 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
   }
 
   vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
+  
+  // Hack to enforce deep copying of volumes (otherwise, a separate image data is not stored for each frame)
+  // TODO: Is there a better way to architecture this?
+  vtkMRMLVolumeNode* volNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
+  if (volNode!=NULL)
+  {
+    vtkImageData* imageDataCopy = vtkImageData::New();
+    imageDataCopy->DeepCopy(volNode->GetImageData());
+    volNode->SetAndObserveImageData(imageDataCopy);
+  }
 
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(node);
   if (displayableNode!=NULL)
