@@ -25,6 +25,7 @@
 // MRML includes
 #include <vtkMRML.h>
 #include <vtkMRMLNode.h>
+#include <vtkNew.h>
 
 // STD includes
 #include <set>
@@ -35,6 +36,7 @@
 class vtkCollection;
 class vtkMRMLSequenceNode;
 class vtkMRMLDisplayNode;
+class vtkIntArray;
 
 class VTK_SLICER_SEQUENCEBROWSER_MODULE_MRML_EXPORT vtkMRMLSequenceBrowserNode : public vtkMRMLNode
 {
@@ -127,6 +129,11 @@ public:
   void SetRecordingActive(bool recording);
   vtkBooleanMacro(RecordingActive, bool);
 
+  /// Get/set whether to only record when the master node is modified (or emits an observed event)
+  vtkGetMacro(RecordMasterOnly, bool);
+  vtkSetMacro(RecordMasterOnly, bool);
+  vtkBooleanMacro(RecordMasterOnly, bool);
+
   /// Selects the next sequence item for display, returns current selected item number
   int SelectNextItem(int selectionIncrement=1);
 
@@ -186,6 +193,9 @@ protected:
   
   bool RecordingActive;
   double InitialTime;
+  bool RecordMasterOnly;
+
+  vtkNew< vtkIntArray > RecordingEvents;
 
   // Unique postfixes for storing references to sequence nodes, virtual data nodes, and virtual display nodes
   // For example, a sequence node reference role name is SEDQUENCE_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix

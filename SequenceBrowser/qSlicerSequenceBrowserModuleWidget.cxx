@@ -409,6 +409,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   connect( d->MRMLNodeComboBox_Sequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
   connect( d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)) );
+  connect( d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)) );
   connect( d->pushButton_AddSynchronizedNode, SIGNAL(clicked()), this, SLOT(onAddSynchronizedNodeButtonClicked()) );
   d->pushButton_AddSynchronizedNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowUp ) );
 
@@ -556,6 +557,17 @@ void qSlicerSequenceBrowserModuleWidget::playbackItemSkippingEnabledChanged(bool
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::recordMasterOnlyChanged(bool enabled)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->activeBrowserNode() == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->activeBrowserNode()->SetRecordMasterOnly(enabled);
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
   this->updateWidgetFromMRML();
@@ -657,6 +669,7 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   d->MRMLNodeComboBox_Sequence->setCurrentNode(sequenceNode);
   
   d->checkBox_PlaybackItemSkippingEnabled->setChecked(d->activeBrowserNode()->GetPlaybackItemSkippingEnabled());
+  d->checkBox_RecordMasterOnly->setChecked(d->activeBrowserNode()->GetRecordMasterOnly());
 
   this->refreshSynchronizedSequenceNodesTable();
 }

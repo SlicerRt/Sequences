@@ -61,9 +61,18 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
   this->PlaybackItemSkippingEnabled = true;
   this->PlaybackLooped = true;
   this->SelectedItemNumber = 0;
+
+  this->RecordMasterOnly = false;
   this->RecordingActive = false;
   this->InitialTime = vtkTimerLog::GetUniversalTime();
+
   this->LastPostfixIndex = 0;
+
+  // TODO: Is this list of events complete. Is there a less arbitrary way to come up with the list of events
+  // vtkCommand::AnyEvent grabs all of the events, but is very slow
+  //this->RecordingEvents->InsertNextValue( vtkCommand::ModifiedEvent );
+  this->RecordingEvents->InsertNextValue( vtkMRMLTransformableNode::TransformModifiedEvent );
+  this->RecordingEvents->InsertNextValue( vtkMRMLVolumeNode::ImageDataModifiedEvent );
 }
 
 //----------------------------------------------------------------------------
@@ -424,10 +433,9 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
     this->Scene->AddNode(dataNode);
     dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   }
+
   this->AddNodeReferenceRole(dataNodeRef.c_str());
-  vtkNew< vtkIntArray > events;
-  events->InsertNextValue(vtkCommand::AnyEvent);
-  this->SetAndObserveNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID(), events.GetPointer());
+  this->SetAndObserveNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID(), this->RecordingEvents.GetPointer());
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
   
   // Add copy of the display node(s)
@@ -901,6 +909,13 @@ void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned 
   // Make sure it was a virtual output data node
   vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(caller);
   if (modifiedNode==NULL || !this->IsVirtualOutputDataNode(modifiedNode->GetID()))
+  {
+    return;
+  }
+
+  // If we only record when the master node is modified, then skip if it was not the master node that was modified
+  const char* masterVirtualOutputNodeID = this->GetVirtualOutputDataNode(this->GetMasterSequenceNode())->GetID();
+  if (this->GetRecordMasterOnly() && strcmp(modifiedNode->GetID(), masterVirtualOutputNodeID)!=0)
   {
     return;
   }

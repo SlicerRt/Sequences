@@ -276,6 +276,9 @@
      <property name="checked">
       <bool>false</bool>
      </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -295,6 +298,20 @@
         <property name="toolTip">
          <string>If checked, items may be skipped during playback to reach the requested frame rate. If not checked then each item is displayed during playback but the playback speed may be lower than requested.</string>
         </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_RecordMasterOnly">
+        <property name="text">
+         <string>Record on master node only:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="checkBox_RecordMasterOnly">
         <property name="text">
          <string/>
         </property>
