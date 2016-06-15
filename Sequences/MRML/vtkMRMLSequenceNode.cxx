@@ -259,8 +259,9 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
     return;
   }
 
+  std::string newNodeName = this->SequenceScene->GetUniqueNameByString( node->GetName() );
   vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
-  newNode->SetName( this->SequenceScene->GetUniqueNameByString( newNode->GetName() ) ); // Make sure all the node names in the sequence's scene are unique for saving purposes
+  newNode->SetName( newNodeName.c_str() ); // Make sure all the node names in the sequence's scene are unique for saving purposes
   
   // Hack to enforce deep copying of volumes (otherwise, a separate image data is not stored for each frame)
   // TODO: Is there a better way to architecture this?
