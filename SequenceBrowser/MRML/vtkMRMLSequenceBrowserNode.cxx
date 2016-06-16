@@ -420,7 +420,7 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
   if (rolePostfix.empty())
   {
     // Add reference to the sequence node
-    rolePostfix=AddSynchronizedSequenceNode(sequenceNode->GetID());
+    rolePostfix=AddSynchronizedSequenceNodeID(sequenceNode->GetID());
   }
 
   // Add copy of the data node
@@ -500,6 +500,12 @@ void vtkMRMLSequenceBrowserNode::GetAllVirtualOutputDataNodes(vtkCollection* nod
 //----------------------------------------------------------------------------
 bool vtkMRMLSequenceBrowserNode::IsVirtualOutputDataNode(const char* nodeId)
 {
+  return this->IsVirtualOutputDataNodeID(nodeId);
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsVirtualOutputDataNodeID(const char* nodeId)
+{
   std::vector< vtkMRMLNode* > nodesVector;
   this->GetAllVirtualOutputDataNodes(nodesVector);
   for (std::vector< vtkMRMLNode* >::iterator it = nodesVector.begin(); it != nodesVector.end(); ++it)
@@ -545,6 +551,23 @@ void vtkMRMLSequenceBrowserNode::RemoveVirtualOutputDisplayNodes(const std::stri
 //----------------------------------------------------------------------------
 bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId, bool includeMasterNode/*=false*/)
 {
+  return this->IsSynchronizedSequenceNodeID(nodeId, includeMasterNode);
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, bool includeMasterNode/*=false*/)
+{
+  if (sequenceNode == NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode failed: sequenceNode is invalid");
+    return false;
+  }
+  return this->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), includeMasterNode);
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNodeID(const char* nodeId, bool includeMasterNode/*=false*/)
+{
   if (nodeId==NULL)
   {
     vtkWarningMacro("vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode nodeId is NULL");
@@ -573,7 +596,18 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId, 
 }
 
 //----------------------------------------------------------------------------
-bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode/*=false*/)
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, SynchronizationTypes syncType, bool includeMasterNode/*=false*/)
+{
+  if (sequenceNode == NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNode failed: sequenceNode is invalid");
+    return false;
+  }
+  return this->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), syncType, includeMasterNode);
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNodeID(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode/*=false*/)
 {
   if (nodeId == NULL)
   {
@@ -636,15 +670,31 @@ void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOff(const char* 
       this->RemoveNthNodeReferenceID(syncedNodeRef.str().c_str(), syncedNodeIt-syncedNodes.begin());
     }
   }
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode)
+{
+  if (sequenceNode == NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode failed: sequenceNode is invalid");
+    return "";
+  }
+  return this->AddSynchronizedSequenceNodeID(sequenceNode->GetID());
 }
 
 //----------------------------------------------------------------------------
 std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(const char* synchronizedSequenceNodeId)
 {
-  bool oldModify=this->StartModify();
-  std::string rolePostfix=GenerateVirtualNodePostfix();
+  return this->AddSynchronizedSequenceNodeID(synchronizedSequenceNodeId);
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNodeID(const char* synchronizedSequenceNodeId)
+{
+  bool oldModify = this->StartModify();
+  std::string rolePostfix = GenerateVirtualNodePostfix();
   this->VirtualNodePostfixes.push_back(rolePostfix);
-  std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
+  std::string sequenceNodeReferenceRole = SEQUENCE_NODE_REFERENCE_ROLE_BASE + rolePostfix;
   this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);
   this->EndModify(oldModify);
   // Probably if the sequence node is being synced, we want to playback and record it
@@ -954,4 +1004,27 @@ void vtkMRMLSequenceBrowserNode::FixSequenceNodeReferenceRoleName()
     }
   }
   this->EndModify(oldModify);
+}
+
+//---------------------------------------------------------------------------
+vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetSequenceNode(vtkMRMLNode* virtualOutputDataNode)
+{
+  if (virtualOutputDataNode == NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetSequenceNode failed: virtualOutputDataNode is invalid");
+    return NULL;
+  }
+  for (std::vector< std::string >::iterator rolePostfixIt = this->VirtualNodePostfixes.begin();
+    rolePostfixIt != this->VirtualNodePostfixes.end(); ++rolePostfixIt)
+  {
+    std::string dataNodeRef = DATA_NODE_REFERENCE_ROLE_BASE + (*rolePostfixIt);
+    vtkMRMLNode* foundDataNode = this->GetNodeReference(dataNodeRef.c_str());
+    if (foundDataNode == virtualOutputDataNode)
+    {
+      std::string sequenceNodeReferenceRole = SEQUENCE_NODE_REFERENCE_ROLE_BASE + (*rolePostfixIt);
+      vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
+      return sequenceNode;
+    }
+  }
+  return NULL;
 }

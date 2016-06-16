@@ -74,8 +74,14 @@ public:
   /// Get the sequence data node
   vtkMRMLSequenceNode* GetMasterSequenceNode();
   
-  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  /// Deprecated. Use AddSynchronizedSequenceNodeID instead.
   std::string AddSynchronizedSequenceNode(const char* synchronizedSequenceNodeId);
+
+  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  std::string AddSynchronizedSequenceNodeID(const char* synchronizedSequenceNodeId);
+
+  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  std::string AddSynchronizedSequenceNode(vtkMRMLSequenceNode* synchronizedSequenceNode);
 
   /// Removes a node from synchronized browsing
   void RemoveSynchronizedSequenceNode(const char* nodeId);
@@ -91,11 +97,16 @@ public:
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
 
+  /// Deprecated. Use IsSynchronizedSequenceNodeID instead.
+  bool IsSynchronizedSequenceNode(const char* sequenceNodeId, bool includeMasterNode = false);
+
   /// Returns true if the node is selected for synchronized browsing
-  bool IsSynchronizedSequenceNode(const char* nodeId, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNodeID(const char* sequenceNodeId, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, bool includeMasterNode = false);
 
   /// Returns true if the node has a particular type of synchronization
-  bool IsSynchronizedSequenceNode(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNodeID(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
+  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, SynchronizationTypes syncType, bool includeMasterNode = false);
 
   /// Set whether or not a node has a particular type of synchronization
   void SequenceNodeSynchronizationTypeOn(const char* nodeId, SynchronizationTypes syncType);
@@ -146,7 +157,11 @@ public:
   /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
   vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
+  /// Get virtual output node corresponding to a sequence node.
   vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
+
+  /// Get sequence node corresponding to a virtual output data node.
+  vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* virtualOutputDataNode);
 
   void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
   void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes);
@@ -154,7 +169,11 @@ public:
   void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
   void GetAllVirtualOutputDataNodes(vtkCollection* nodes);
 
+  /// Deprecated. Use IsVirtualOutputDataNodeID instead.
   bool IsVirtualOutputDataNode(const char* nodeId);
+  
+  /// Returns true if the nodeId belongs to a virtual output data node managed by this browser node.
+  bool IsVirtualOutputDataNodeID(const char* nodeId);
 
   void RemoveVirtualOutputDataNode(const std::string& postfix);
 
