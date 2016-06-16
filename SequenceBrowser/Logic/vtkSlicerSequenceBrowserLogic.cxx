@@ -178,7 +178,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
+void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType/*=NULL*/)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
@@ -219,7 +219,14 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   }
 
   std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
-  browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  if (syncType==NULL)
+  {
+    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  else
+  {
+    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, syncType, true);
+  }
   
   // Store the previous modified state of nodes to allow calling EndModify when all the nodes are updated (to prevent multiple renderings on partial update)
   std::vector< std::pair<vtkMRMLNode*, int> > nodeModifiedStates;
@@ -369,6 +376,59 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 }
 
 //---------------------------------------------------------------------------
+void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* virtualNode, vtkMRMLNode* bNode)
+{
+  vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(sNode);
+  vtkMRMLSequenceBrowserNode* browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(bNode);
+
+  if (browserNode==NULL)
+  {
+    vtkWarningMacro("vtkSlicerSequenceBrowserLogic::AddSynchronizedNode failed: browser node is invalid");
+    return;
+  }
+
+  // Create an empty sequence node if the sequence node is NULL
+  if (sequenceNode==NULL)
+  {
+    sequenceNode = vtkMRMLSequenceNode::SafeDownCast( this->GetMRMLScene()->CreateNodeByClass("vtkMRMLSequenceNode") );
+    this->GetMRMLScene()->AddNode( sequenceNode );
+    sequenceNode->Delete(); // Can release the pointer - owwnership has been transferred to the scene // TODO: Cleaner way to do this?
+    if (virtualNode!=NULL)
+    {
+      std::stringstream sequenceNodeName;
+      sequenceNodeName << virtualNode->GetName() << "-Sequence";
+      sequenceNode->SetName(sequenceNodeName.str().c_str());
+    }
+  }
+
+
+  // Check if the sequence node to add is compatible with the master
+  if (browserNode->GetMasterSequenceNode()!=NULL && strcmp(browserNode->GetMasterSequenceNode()->GetIndexName(), sequenceNode->GetIndexName())!=0)
+  {
+    return; // Not compatible - exit
+  }
+
+  if (!browserNode->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), true))
+  {
+    std::string virtualRolePostfix = browserNode->AddSynchronizedSequenceNode(sequenceNode->GetID());
+  }
+  if (virtualNode!=NULL)
+  {
+    std::vector< vtkMRMLDisplayNode* > displayNodes;
+    vtkMRMLDisplayableNode* virtualDisplayableNode = vtkMRMLDisplayableNode::SafeDownCast(virtualNode);
+    if (virtualDisplayableNode != NULL)
+    {
+      for (int i=0; i<virtualDisplayableNode->GetNumberOfDisplayNodes(); i++)
+      {
+        displayNodes.push_back(virtualDisplayableNode->GetNthDisplayNode(i));
+      }
+    }
+    browserNode->AddVirtualOutputNodes(virtualNode, displayNodes, sequenceNode, false);  
+  }
+
+}
+
+//---------------------------------------------------------------------------
 void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *vtkNotUsed(callData))
 {
   vtkMRMLSequenceBrowserNode *browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(caller);
@@ -378,7 +438,7 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
     return;
   }
 
-  this->UpdateVirtualOutputNodes(browserNode);
+  this->UpdateVirtualOutputNodes(browserNode, vtkMRMLSequenceBrowserNode::Playback);
 }
 
 //---------------------------------------------------------------------------

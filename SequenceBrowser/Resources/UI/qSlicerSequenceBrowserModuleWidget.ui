@@ -63,42 +63,46 @@
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
-     <layout class="QFormLayout" name="formLayout">
-      <property name="fieldGrowthPolicy">
-       <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-      </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_SequenceInput">
-        <property name="text">
-         <string>Master node</string>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="topMargin">
+         <number>0</number>
         </property>
-       </widget>
+        <item>
+         <widget class="QLabel" name="label_SequenceInput">
+          <property name="text">
+           <string>Master node</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
+          <property name="nodeTypes">
+           <stringlist>
+            <string>vtkMRMLSequenceNode</string>
+           </stringlist>
+          </property>
+          <property name="noneEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="addEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="removeEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="renameEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLSequenceNode</string>
-         </stringlist>
-        </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0" colspan="2">
+      <item>
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
-         <number>4</number>
+         <number>6</number>
         </property>
         <attribute name="horizontalHeaderVisible">
          <bool>true</bool>
@@ -129,6 +133,99 @@
           <string>Status</string>
          </property>
         </column>
+        <column>
+         <property name="text">
+          <string>Playback</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Recording</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item>
+       <widget class="ctkExpandButton" name="ExpandButton_SynchronizeNodes">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="mirrorOnExpand">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="GroupBox_SynchronizeNodes">
+        <property name="title">
+         <string>Synchronize Nodes</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeSequenceNode">
+               <property name="nodeTypes">
+                <stringlist>
+                 <string>vtkMRMLSequenceNode</string>
+                </stringlist>
+               </property>
+               <property name="noneEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="addEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="removeEnabled">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeVirtualNode">
+               <property name="noneEnabled">
+                <bool>true</bool>
+               </property>
+               <property name="addEnabled">
+                <bool>false</bool>
+               </property>
+               <property name="removeEnabled">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_AddSynchronizedNode">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>
@@ -179,6 +276,9 @@
      <property name="checked">
       <bool>false</bool>
      </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -198,6 +298,20 @@
         <property name="toolTip">
          <string>If checked, items may be skipped during playback to reach the requested frame rate. If not checked then each item is displayed during playback but the playback speed may be lower than requested.</string>
         </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_RecordMasterOnly">
+        <property name="text">
+         <string>Record on master node only:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="checkBox_RecordMasterOnly">
         <property name="text">
          <string/>
         </property>
@@ -236,6 +350,11 @@
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkExpandButton</class>
+   <extends>QToolButton</extends>
+   <header>ctkExpandButton.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLSequenceBrowserPlayWidget</class>
@@ -283,6 +402,54 @@
     <hint type="destinationlabel">
      <x>394</x>
      <y>19</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerSequenceBrowserModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_SynchronizeSequenceNode</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>213</x>
+     <y>404</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>194</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerSequenceBrowserModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_SynchronizeVirtualNode</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>213</x>
+     <y>404</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>194</x>
+     <y>409</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ExpandButton_SynchronizeNodes</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GroupBox_SynchronizeNodes</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>213</x>
+     <y>373</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>213</x>
+     <y>427</y>
     </hint>
    </hints>
   </connection>

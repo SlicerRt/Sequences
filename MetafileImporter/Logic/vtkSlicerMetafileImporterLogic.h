@@ -31,6 +31,7 @@
 // VTK includes
 #include "vtkMatrix4x4.h"
 #include "vtkMetaImageReader.h"
+#include "vtkMetaImageWriter.h"
 
 // ITK includes
 
@@ -75,8 +76,13 @@ public:
   /*! Read sequence metafile contents into the object */
   bool ReadSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
 
+  /*! Write sequence metafile contents to the file */
+  bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
+  bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* createdBrowserNodePtr = NULL); // TESTING: Allow saving from Python interactor
+
   /*! Read volume sequence from NRRD file. Returns true on success. */
   bool ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
+
 
 protected:
 
@@ -86,6 +92,12 @@ protected:
 
   /*! Read pixel data from the metaimage. Returns the pointer to the created image sequence. */
   vtkMRMLNode* ReadSequenceMetafileImages(const std::string& fileName, const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap );
+
+  /*! Write pixel data to the metaimage. Returns the pointer to the created image sequence. */
+  void WriteSequenceMetafileImages(const std::string& fileName, vtkMRMLNode* imageNode, vtkMRMLNode* masterNode);
+
+  /*! Write the transform fields to the metaimage header. */
+  void WriteSequenceMetafileTransforms(const std::string& fileName, std::deque< vtkMRMLNode* > &transformNodes, vtkMRMLNode* masterNode, vtkMRMLNode* imageNode);
 
   /*! Generate a node name that contains the hierarchy name and index value */
   std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& indexValue);

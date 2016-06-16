@@ -53,6 +53,7 @@ public slots:
   void setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
   void setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode);
   void setPlaybackEnabled(bool play);
+  void setRecordingEnabled(bool play);
   void setPlaybackRateFps(double playbackRateFps);
   void setPlaybackLoopEnabled(bool loopEnabled);
   void onVcrFirst();
