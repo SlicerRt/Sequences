@@ -408,7 +408,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
     return; // Not compatible - exit
   }
 
-  if (!browserNode->IsSynchronizedSequenceNode(sequenceNode->GetID(), true))
+  if (!browserNode->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), true))
   {
     std::string virtualRolePostfix = browserNode->AddSynchronizedSequenceNode(sequenceNode->GetID());
   }

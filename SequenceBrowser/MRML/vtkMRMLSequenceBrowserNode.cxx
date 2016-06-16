@@ -644,7 +644,7 @@ void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOn(const char* n
   }
   std::stringstream syncedNodeRef;
   syncedNodeRef << SYNCHRONIZED_SEQUENCE_NODE_REFERENCE_ROLE_BASE << syncType;
-  if (!this->IsSynchronizedSequenceNode(nodeId, syncType, true))
+  if (!this->IsSynchronizedSequenceNodeID(nodeId, syncType, true))
   {
     this->AddAndObserveNodeReferenceID(syncedNodeRef.str().c_str(), nodeId);
   }
@@ -670,6 +670,7 @@ void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOff(const char* 
       this->RemoveNthNodeReferenceID(syncedNodeRef.str().c_str(), syncedNodeIt-syncedNodes.begin());
     }
   }
+}
 
 //----------------------------------------------------------------------------
 std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode)
