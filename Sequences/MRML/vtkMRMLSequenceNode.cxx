@@ -27,6 +27,7 @@
 #include <vtkMRMLScene.h>
 
 // VTK includes
+#include <vtkNew.h>
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
 #include <vtkImageData.h>
@@ -246,6 +247,58 @@ void vtkMRMLSequenceNode::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+vtkMRMLNode* vtkMRMLSequenceNode::CopyNode(vtkMRMLNode* n)
+{
+  if (n==NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceNode::CopyNode failed, invalid node"); 
+    return NULL;
+  }
+  std::string newNodeName=this->SequenceScene->GetUniqueNameByString(n->GetName());
+  vtkMRMLNode* newNode=this->SequenceScene->CopyNode(n);
+  newNode->SetName(newNodeName.c_str()); // Make sure all the node names in the sequence's scene are unique for saving purposes
+
+  int disabledModify = newNode->StartModify();
+
+  // Need to deep copy the image data if it is a volume node
+  vtkMRMLVolumeNode* volumeNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
+  if (volumeNode!=NULL)
+  {
+    // Need to get a observe a copy of the image data (this is OK even if it is NULL)
+    vtkNew<vtkImageData> imageDataCopy;
+    imageDataCopy->DeepCopy(volumeNode->GetImageData());
+    volumeNode->SetAndObserveImageData(imageDataCopy.GetPointer());
+  }
+
+  // Copy display nodes if relevant displayable node
+  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(n);
+  if (displayableNode!=NULL)
+  {
+    vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
+    int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
+    for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+    {
+      vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
+
+      // Performance optimization: disable auto WW/WL computation in scalar display nodes, as it computation time is very significant
+      // and it would be performed each time when switching between volumes
+      vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(displayNode);
+      if (scalarVolumeDisplayNode)
+      {
+        scalarVolumeDisplayNode->AutoWindowLevelOff();
+      }
+
+      newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
+    }
+  }
+
+  // Add more here if particular node types need special treatment
+
+  newNode->EndModify(disabledModify);
+  return newNode;
+}
+
+//----------------------------------------------------------------------------
 void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue)
 {
   if (node==NULL)
@@ -259,40 +312,8 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* inde
     return;
   }
 
-  std::string newNodeName = this->SequenceScene->GetUniqueNameByString( node->GetName() ? node->GetName() : "Sequence" );
-  vtkMRMLNode* newNode=this->SequenceScene->CopyNode(node);
-  newNode->SetName( newNodeName.c_str() ); // Make sure all the node names in the sequence's scene are unique for saving purposes
-  
-  // Hack to enforce deep copying of volumes (otherwise, a separate image data is not stored for each frame)
-  // TODO: Is there a better way to architecture this?
-  vtkMRMLVolumeNode* volNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
-  if (volNode!=NULL)
-  {
-    vtkImageData* imageDataCopy = vtkImageData::New();
-    imageDataCopy->DeepCopy(volNode->GetImageData());
-    volNode->SetAndObserveImageData(imageDataCopy);
-  }
-
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(node);
-  if (displayableNode!=NULL)
-  {
-    vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
-    int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-    for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-    {
-      vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->SequenceScene->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
-
-      // Performance optimization: disable auto WW/WL computation in scalar display nodes, as it computation time is very significant
-      // and it would be performed each time when switching between volumes
-      vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(displayNode);
-      if (scalarVolumeDisplayNode)
-      {
-        scalarVolumeDisplayNode->AutoWindowLevelOff();
-      }
-
-      newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
-    }
-  }
+  // Add a copy of the node to the sequence's scene
+  vtkMRMLNode* newNode=this->CopyNode(node);
 
   int seqItemIndex=GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)

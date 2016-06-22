@@ -66,6 +66,9 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "Sequence";};
 
+  /// Create a copy of an input node, ensuring the necessary data is copied for storing in the sequence
+  vtkMRMLNode* CopyNode(vtkMRMLNode* n);
+
   /// Set index name (example: time)
   vtkSetStringMacro(IndexName);
   /// Get index name (example: time)
