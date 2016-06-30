@@ -371,7 +371,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
-  vtkWarningMacro("UpdateVirtualOutputNodes: " << timer->GetElapsedTime() << "sec\n");
+  vtkInfoMacro("UpdateVirtualOutputNodes: " << timer->GetElapsedTime() << "sec\n");
 #endif 
 }
 

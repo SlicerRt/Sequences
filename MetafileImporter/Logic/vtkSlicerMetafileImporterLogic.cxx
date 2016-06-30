@@ -433,7 +433,7 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages( const s
   imageReader->Update();
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
-  vtkWarningMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
+  vtkInfoMacro("Image reading: " << timer->GetElapsedTime() << "sec\n");
 #endif  
 
   // check for loading error
@@ -672,7 +672,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
     }
 
     unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, frameNumber);
-    memcpy(startPtr, sliceImageData->GetScalarPointer(), sliceSize);
+    memcpy(startPtr, sliceImageData->GetScalarPointer(), sliceImageData->GetScalarSize() * sliceSize);
   }
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -686,7 +686,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
   imageWriter->Write();
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
-  vtkWarningMacro("Image writing: " << timer->GetElapsedTime() << "sec\n");
+  vtkInfoMacro("Image writing: " << timer->GetElapsedTime() << "sec\n");
 #endif  
 }
 
@@ -718,13 +718,13 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   }
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
-  vtkWarningMacro("ReadTransforms time: " << timer->GetElapsedTime() << "sec\n");
+  vtkInfoMacro("ReadTransforms time: " << timer->GetElapsedTime() << "sec\n");
   timer->StartTimer();
 #endif
   vtkMRMLNode* createdImageNode=this->ReadSequenceMetafileImages(fileName, baseNodeName, frameNumberToIndexValueMap);
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
-  vtkWarningMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
+  vtkInfoMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
 #endif
 
   // For the user's convenience, create a browser node that contains the image as master node
