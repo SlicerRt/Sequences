@@ -497,13 +497,7 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages( const s
     vtkSmartPointer<vtkImageData> sliceImageData=vtkSmartPointer<vtkImageData>::New();
     sliceImageData->DeepCopy(emptySliceImageData);
 
-#if (VTK_MAJOR_VERSION <= 5)
-    sliceImageData->SetScalarType(imageData->GetScalarType());
-    sliceImageData->SetNumberOfScalarComponents(imageData->GetNumberOfScalarComponents());
-    sliceImageData->AllocateScalars();
-#else
     sliceImageData->AllocateScalars(imageData->GetScalarType(), imageData->GetNumberOfScalarComponents());
-#endif
 
     unsigned char* startPtr=(unsigned char*)imageData->GetScalarPointer(0, 0, frameNumber);
     memcpy(sliceImageData->GetScalarPointer(), startPtr, sliceSize);
@@ -645,13 +639,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
   imageData->SetSpacing( sliceSpacing[ 0 ], sliceSpacing[ 1 ], sliceSpacing[ 2 ] );
   imageData->SetOrigin( 0, 0, 0 );
 
-#if (VTK_MAJOR_VERSION <= 5)
-  imageData->SetScalarType(sliceImageData->GetScalarType());
-  imageData->SetNumberOfScalarComponents(sliceImageData->GetNumberOfScalarComponents());
-  imageData->AllocateScalars();
-#else
   imageData->AllocateScalars(sliceImageData->GetScalarType(), sliceImageData->GetNumberOfScalarComponents());
-#endif
 
   int sliceSize=sliceImageData->GetIncrements()[2];
   for ( int frameNumber = 0; frameNumber < imageSequenceNode->GetNumberOfDataNodes(); frameNumber++ ) // Iterate including the first frame

@@ -115,11 +115,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   }
   int numberOfFrames = imageData->GetNumberOfScalarComponents();
   vtkNew<vtkImageExtractComponents> extractComponents;
-#if (VTK_MAJOR_VERSION <= 5)
-  extractComponents->SetInput (reader->GetOutput());
-#else
   extractComponents->SetInputConnection(reader->GetOutputPort());
-#endif  
   for (int frameIndex = 0; frameIndex<numberOfFrames; frameIndex++)
   {    
     extractComponents->SetComponents(frameIndex);
@@ -221,11 +217,7 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   vtkNew<vtkNRRDWriter> writer;
   writer->SetFileName(fullName.c_str());
   appender->Update();
-#if (VTK_MAJOR_VERSION <= 5)
-  writer->SetInput(appender->GetImageData() );
-#else
   writer->SetInputConnection(appender->GetOutputPort());
-#endif
   writer->SetUseCompression(this->GetUseCompression());
 
   // set volume attributes

@@ -317,11 +317,7 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
       for (int c = 0; c<numOfScalarComponents; c++)
       {
         vtkPlot* line = this->ChartXY->AddPlot(vtkChart::LINE);
-#if (VTK_MAJOR_VERSION <= 5)
-        line->SetInput(this->ChartTable, 0, c+1);
-#else
         line->SetInputData(this->ChartTable, 0, c+1);
-#endif
         //line->SetColor(255,0,0,255);
       }
     }
@@ -352,15 +348,11 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
     vtkPlot* lineX = this->ChartXY->AddPlot(vtkChart::LINE);
     vtkPlot* lineY = this->ChartXY->AddPlot(vtkChart::LINE);
     vtkPlot* lineZ = this->ChartXY->AddPlot(vtkChart::LINE);
-#if (VTK_MAJOR_VERSION <= 5)
-    lineX->SetInput(this->ChartTable, 0, 1);
-    lineY->SetInput(this->ChartTable, 0, 2);
-    lineZ->SetInput(this->ChartTable, 0, 3);
-#else
+
     lineX->SetInputData(this->ChartTable, 0, 1);
     lineY->SetInputData(this->ChartTable, 0, 2);
     lineZ->SetInputData(this->ChartTable, 0, 3);
-#endif
+
     lineX->SetColor(255,0,0,255);
     lineY->SetColor(0,255,0,255);
     lineZ->SetColor(0,0,255,255);
