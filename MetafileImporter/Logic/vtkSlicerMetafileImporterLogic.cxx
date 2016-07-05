@@ -425,10 +425,10 @@ vtkMRMLNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages( const s
   const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();
+  vtkNew<vtkTimerLog> timer;
   timer->StartTimer();  
 #endif
-  vtkSmartPointer< vtkMetaImageReader > imageReader = vtkSmartPointer< vtkMetaImageReader >::New();
+  vtkNew< vtkMetaImageReader > imageReader;
   imageReader->SetFileName( fileName.c_str() );
   imageReader->Update();
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -632,7 +632,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
   }
 
   // Allocate the output image data from the first slice
-  vtkSmartPointer< vtkImageData > imageData = vtkSmartPointer< vtkImageData >::New();
+  vtkNew< vtkImageData > imageData;
   int* sliceDimensions = sliceImageData->GetDimensions();
   double* sliceSpacing = sliceImageData->GetSpacing();
   imageData->SetDimensions( sliceDimensions[ 0 ], sliceDimensions[ 1 ], imageSequenceNode->GetNumberOfDataNodes() );
@@ -664,11 +664,11 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
   }
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();
+  vtkNew<vtkTimerLog> timer;
   timer->StartTimer();  
 #endif
-  vtkSmartPointer< vtkMetaImageWriter > imageWriter = vtkSmartPointer< vtkMetaImageWriter >::New();
-  imageWriter->SetInputData( imageData );
+  vtkNew< vtkMetaImageWriter > imageWriter;
+  imageWriter->SetInputData( imageData.GetPointer() );
   imageWriter->SetFileName( fileName.c_str() ); // This automatically takes care of the file extensions. Note: Saving to .mhd is way faster than saving to .mha
   imageWriter->SetCompression( false );
   imageWriter->Write();
@@ -695,7 +695,7 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   std::string baseNodeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  vtkNew<vtkTimerLog> timer;
   timer->StartTimer();
 #endif
   std::deque< vtkMRMLNode* > createdTransformNodes;
@@ -787,8 +787,8 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
     return false;
   }
 
-  vtkSmartPointer< vtkCollection > sequenceNodes = vtkSmartPointer< vtkCollection >::New();
-  (*createdBrowserNodePtr)->GetSynchronizedSequenceNodes(sequenceNodes, true); // Include the master node (since it is probably the image sequence)
+  vtkNew< vtkCollection > sequenceNodes;
+  (*createdBrowserNodePtr)->GetSynchronizedSequenceNodes(sequenceNodes.GetPointer(), true); // Include the master node (since it is probably the image sequence)
 
   // Find the image sequence node
   vtkMRMLNode* imageNode = NULL;

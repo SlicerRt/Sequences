@@ -181,7 +181,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
 void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType/*=NULL*/)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
-  vtkSmartPointer<vtkTimerLog> timer=vtkSmartPointer<vtkTimerLog>::New();      
+  vtkNew<vtkTimerLog> timer;
   timer->StartTimer();  
 #endif 
 

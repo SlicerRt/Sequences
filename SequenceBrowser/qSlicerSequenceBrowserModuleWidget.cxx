@@ -693,8 +693,8 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     return;
   }
 
-  vtkSmartPointer<vtkCollection> syncedNodes=vtkSmartPointer<vtkCollection>::New();
-  d->activeBrowserNode()->GetSynchronizedSequenceNodes(syncedNodes, false);
+  vtkNew<vtkCollection> syncedNodes;
+  d->activeBrowserNode()->GetSynchronizedSequenceNodes(syncedNodes.GetPointer(), false);
   d->tableWidget_SynchronizedSequenceNodes->setRowCount(syncedNodes->GetNumberOfItems()+1); // +1 because we add the master as well
 
   // Create a line for the master node

@@ -26,6 +26,7 @@
 #include "qSlicerLayoutManager.h"
 
 // VTK includes
+#include <vtkNew.h>
 #include "vtkMRMLHierarchyNode.h"
 
 // MRML includes
@@ -405,8 +406,8 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
   }
 
   // Get the selected node
-  vtkSmartPointer<vtkCollection> candidateNodes = vtkSmartPointer<vtkCollection>::New();
-  d->GetDataNodeCandidates( candidateNodes, currentSequence );
+  vtkNew<vtkCollection> candidateNodes;
+  d->GetDataNodeCandidates( candidateNodes.GetPointer(), currentSequence );
 
   int row = d->ListWidget_CandidateDataNodes->currentRow();
   vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( row ) );
@@ -434,7 +435,7 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
   {
     selectionOffset=1;
   }
-  d->GetDataNodeCandidates( candidateNodes, currentSequence );
+  d->GetDataNodeCandidates( candidateNodes.GetPointer(), currentSequence );
   for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* selectedCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
@@ -631,8 +632,8 @@ void qSlicerSequencesModuleWidget::UpdateCandidateNodes()
   }  
 
   // Display the candidate data nodes
-  vtkSmartPointer<vtkCollection> candidateNodes = vtkSmartPointer<vtkCollection>::New();
-  d->GetDataNodeCandidates( candidateNodes, currentSequence );
+  vtkNew<vtkCollection> candidateNodes;
+  d->GetDataNodeCandidates( candidateNodes.GetPointer(), currentSequence );
   
   d->ListWidget_CandidateDataNodes->clear();
 
