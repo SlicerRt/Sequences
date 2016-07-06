@@ -37,6 +37,7 @@
 #include "vtkMRMLVectorVolumeNode.h"
 
 // VTK includes
+#include <vtkAddonMathUtilities.h>
 #include <vtkImageData.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
@@ -152,76 +153,6 @@ void StringToInt(const char* strPtr, T &result)
 }
 
 
-void UpdateTransformNodeFromString(vtkMRMLLinearTransformNode* transformNode, const std::string& str )
-{
-  std::stringstream ss( str );
-  
-  double e00; ss >> e00; double e01; ss >> e01; double e02; ss >> e02; double e03; ss >> e03;
-  double e10; ss >> e10; double e11; ss >> e11; double e12; ss >> e12; double e13; ss >> e13;
-  double e20; ss >> e20; double e21; ss >> e21; double e22; ss >> e22; double e23; ss >> e23;
-  double e30; ss >> e30; double e31; ss >> e31; double e32; ss >> e32; double e33; ss >> e33;
-
-  vtkSmartPointer<vtkMatrix4x4> matrix = vtkSmartPointer<vtkMatrix4x4>::New();
-
-  matrix->SetElement( 0, 0, e00 );
-  matrix->SetElement( 0, 1, e01 );
-  matrix->SetElement( 0, 2, e02 );
-  matrix->SetElement( 0, 3, e03 );
-
-  matrix->SetElement( 1, 0, e10 );
-  matrix->SetElement( 1, 1, e11 );
-  matrix->SetElement( 1, 2, e12 );
-  matrix->SetElement( 1, 3, e13 );
-
-  matrix->SetElement( 2, 0, e20 );
-  matrix->SetElement( 2, 1, e21 );
-  matrix->SetElement( 2, 2, e22 );
-  matrix->SetElement( 2, 3, e23 );
-
-  matrix->SetElement( 3, 0, e30 );
-  matrix->SetElement( 3, 1, e31 );
-  matrix->SetElement( 3, 2, e32 );
-  matrix->SetElement( 3, 3, e33 );
-
-  transformNode->SetMatrixTransformToParent( matrix );
-}
-
-
-void UpdateStringFromTransformNode(std::string& str, vtkMRMLLinearTransformNode* transformNode)
-{
-  if ( transformNode == NULL )
-  {
-    return;
-  }
-  vtkSmartPointer<vtkMatrix4x4> matrix = vtkSmartPointer<vtkMatrix4x4>::New();
-  transformNode->GetMatrixTransformToParent( matrix );
-
-  std::stringstream ss;
-
-  ss << matrix->GetElement( 0, 0 ) << " ";
-  ss << matrix->GetElement( 0, 1 ) << " ";
-  ss << matrix->GetElement( 0, 2 ) << " ";
-  ss << matrix->GetElement( 0, 3 ) << " ";
-
-  ss << matrix->GetElement( 1, 0 ) << " ";
-  ss << matrix->GetElement( 1, 1 ) << " ";
-  ss << matrix->GetElement( 1, 2 ) << " ";
-  ss << matrix->GetElement( 1, 3 ) << " ";
-
-  ss << matrix->GetElement( 2, 0 ) << " ";
-  ss << matrix->GetElement( 2, 1 ) << " ";
-  ss << matrix->GetElement( 2, 2 ) << " ";
-  ss << matrix->GetElement( 2, 3 ) << " ";
-
-  ss << matrix->GetElement( 3, 0 ) << " ";
-  ss << matrix->GetElement( 3, 1 ) << " ";
-  ss << matrix->GetElement( 3, 2 ) << " ";
-  ss << matrix->GetElement( 3, 3 ) << " ";
-
-  str.assign( ss.str() );
-}
-
-
 // Constants for reading transforms
 static const int MAX_LINE_LENGTH = 1000;
 
@@ -313,8 +244,14 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::s
     // Convert the string to transform and add transform to hierarchy
     if ( frameFieldName.find( "Transform" ) != std::string::npos && frameFieldName.find( "Status" ) == std::string::npos )
     {
+      vtkNew<vtkMatrix4x4> matrix;
+      bool success = vtkAddonMathUtilities::FromString(matrix.GetPointer(), value);
+      if (!success)
+      {
+        continue;
+      }
       vtkMRMLLinearTransformNode* currentTransform = vtkMRMLLinearTransformNode::New(); // will be deleted when added to the scene
-      UpdateTransformNodeFromString(currentTransform, value);  
+      currentTransform->SetMatrixTransformToParent(matrix.GetPointer());  
       // Generating a unique name is important because that will be used to generate the filename by default
       currentTransform->SetName( frameFieldName.c_str() );
       importedTransformNodes[frameNumber].push_back(currentTransform);
@@ -572,7 +509,9 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::
       vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::SafeDownCast( currSequenceNode->GetDataNodeAtValue( indexValue.c_str() ) );
       if (transformNode!=NULL)
       {
-        UpdateStringFromTransformNode( transformValue, transformNode );
+        vtkNew<vtkMatrix4x4> matrix;
+        transformNode->GetMatrixTransformToParent(matrix.GetPointer());
+        transformValue = vtkAddonMathUtilities::ToString(matrix.GetPointer());
         transformStatus = "OK";
       }
 
