@@ -432,7 +432,6 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddVirtualOutputNodes(vtkMRMLNode* sour
     dataNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   }
 
-  this->AddNodeReferenceRole(dataNodeRef.c_str());
   this->SetAndObserveNodeReferenceID(dataNodeRef.c_str(), dataNode->GetID(), this->RecordingEvents.GetPointer());
   vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(dataNode);
   
