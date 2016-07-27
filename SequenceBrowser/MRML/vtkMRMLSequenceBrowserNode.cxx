@@ -68,11 +68,9 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 
   this->LastPostfixIndex = 0;
 
-  // TODO: Is this list of events complete. Is there a less arbitrary way to come up with the list of events
   // vtkCommand::AnyEvent grabs all of the events, but is very slow
-  //this->RecordingEvents->InsertNextValue( vtkCommand::ModifiedEvent );
-  this->RecordingEvents->InsertNextValue( vtkMRMLTransformableNode::TransformModifiedEvent );
-  this->RecordingEvents->InsertNextValue( vtkMRMLVolumeNode::ImageDataModifiedEvent );
+  this->RecordingEvents->InsertNextValue( vtkCommand::ModifiedEvent );
+  // Other events
 }
 
 //----------------------------------------------------------------------------
