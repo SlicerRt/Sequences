@@ -109,8 +109,7 @@ public:
   bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, SynchronizationTypes syncType, bool includeMasterNode = false);
 
   /// Set whether or not a node has a particular type of synchronization
-  void SequenceNodeSynchronizationTypeOn(const char* nodeId, SynchronizationTypes syncType);
-  void SequenceNodeSynchronizationTypeOff(const char* nodeId, SynchronizationTypes syncType);
+  void SetSequenceNodeSynchronizationType(const char* nodeId, SynchronizationTypes syncType, bool sync);
 
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);

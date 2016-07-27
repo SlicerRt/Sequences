@@ -257,8 +257,8 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
     std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+rolePostfix;
     this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), sequenceNodeID);
     // The master node is necessarily recorded and played back
-    this->SequenceNodeSynchronizationTypeOn(sequenceNodeID, SynchronizationTypes::Playback);
-    this->SequenceNodeSynchronizationTypeOn(sequenceNodeID, SynchronizationTypes::Recording);
+    this->SetSequenceNodeSynchronizationType(sequenceNodeID, SynchronizationTypes::Playback, true);
+    this->SetSequenceNodeSynchronizationType(sequenceNodeID, SynchronizationTypes::Recording, true);
   }
   this->EndModify(oldModify);
 }
@@ -632,7 +632,7 @@ bool vtkMRMLSequenceBrowserNode::IsSynchronizedSequenceNodeID(const char* nodeId
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOn(const char* nodeId, SynchronizationTypes syncType)
+void vtkMRMLSequenceBrowserNode::SetSequenceNodeSynchronizationType(const char* nodeId, SynchronizationTypes syncType, bool sync)
 {
   if (nodeId == NULL)
   {
@@ -641,32 +641,27 @@ void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOn(const char* n
   }
   std::stringstream syncedNodeRef;
   syncedNodeRef << SYNCHRONIZED_SEQUENCE_NODE_REFERENCE_ROLE_BASE << syncType;
-  if (!this->IsSynchronizedSequenceNodeID(nodeId, syncType, true))
-  {
-    this->AddAndObserveNodeReferenceID(syncedNodeRef.str().c_str(), nodeId);
-  }
-}
 
-//----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::SequenceNodeSynchronizationTypeOff(const char* nodeId, SynchronizationTypes syncType)
-{
-  if (nodeId == NULL)
+  if ( sync )
   {
-    vtkWarningMacro("vtkMRMLSequenceBrowserNode::SetSequenceNodeSynchronizationType nodeId is NULL");
-    return;
-  }
-  std::vector< vtkMRMLNode* > syncedNodes;
-  std::stringstream syncedNodeRef;
-  syncedNodeRef << SYNCHRONIZED_SEQUENCE_NODE_REFERENCE_ROLE_BASE << syncType;
-  this->GetNodeReferences(syncedNodeRef.str().c_str(), syncedNodes);
-  for (std::vector< vtkMRMLNode* >::iterator syncedNodeIt = syncedNodes.begin();
-    syncedNodeIt != syncedNodes.end(); ++syncedNodeIt)
-  {
-    if (strcmp((*syncedNodeIt)->GetID(), nodeId) == 0)
+    if (!this->IsSynchronizedSequenceNodeID(nodeId, syncType, true))
     {
-      this->RemoveNthNodeReferenceID(syncedNodeRef.str().c_str(), syncedNodeIt-syncedNodes.begin());
+      this->AddAndObserveNodeReferenceID(syncedNodeRef.str().c_str(), nodeId);
     }
   }
+  else
+  {
+    std::vector< vtkMRMLNode* > syncedNodes;
+    this->GetNodeReferences(syncedNodeRef.str().c_str(), syncedNodes);
+    for (std::vector< vtkMRMLNode* >::iterator syncedNodeIt = syncedNodes.begin(); syncedNodeIt != syncedNodes.end(); ++syncedNodeIt)
+    {
+      if (strcmp((*syncedNodeIt)->GetID(), nodeId) == 0)
+      {
+        this->RemoveNthNodeReferenceID(syncedNodeRef.str().c_str(), syncedNodeIt-syncedNodes.begin());
+      }
+    }
+  }
+
 }
 
 //----------------------------------------------------------------------------
@@ -696,8 +691,8 @@ std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNodeID(const char
   this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);
   this->EndModify(oldModify);
   // Probably if the sequence node is being synced, we want to playback and record it
-  this->SequenceNodeSynchronizationTypeOn(synchronizedSequenceNodeId, SynchronizationTypes::Playback);
-  this->SequenceNodeSynchronizationTypeOn(synchronizedSequenceNodeId, SynchronizationTypes::Recording);
+  this->SetSequenceNodeSynchronizationType(synchronizedSequenceNodeId, SynchronizationTypes::Playback, true);
+  this->SetSequenceNodeSynchronizationType(synchronizedSequenceNodeId, SynchronizationTypes::Recording, true);
   return rolePostfix;
 }
 

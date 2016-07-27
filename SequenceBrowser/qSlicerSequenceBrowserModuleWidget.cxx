@@ -748,10 +748,10 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     recordingCheckbox->setProperty("SyncType", QVariant(vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording));
 
     // Set previous checked state of the checkbox
-    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNode(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback);
+    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback);
     playbackCheckbox->setChecked(playbackChecked);
 
-    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNode(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording);
+    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording);
     recordingCheckbox->setChecked(recordingChecked);
 
     connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
@@ -794,14 +794,7 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeCheckStateChang
   vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType = static_cast<vtkMRMLSequenceBrowserNode::SynchronizationTypes>(intSyncType);
 
   // Add or delete node to/from the list
-  if (aState)
-  {
-    d->activeBrowserNode()->SequenceNodeSynchronizationTypeOn(synchronizedNodeId.c_str(), syncType);
-  }
-  else
-  {
-    d->activeBrowserNode()->SequenceNodeSynchronizationTypeOff(synchronizedNodeId.c_str(), syncType);
-  }
+  d->activeBrowserNode()->SetSequenceNodeSynchronizationType(synchronizedNodeId.c_str(), syncType, aState);
 }
 
 //------------------------------------------------------------------------------
