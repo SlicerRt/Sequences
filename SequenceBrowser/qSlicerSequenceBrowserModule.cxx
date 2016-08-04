@@ -84,9 +84,7 @@ void qSlicerSequenceBrowserModulePrivate::addToolBar()
   {
     if(toolBarMenu->objectName()==QString("WindowToolBarsMenu"))
     {
-      QList<QAction*> toolBarMenuActions= toolBarMenu->actions();
-      int insertPosition = toolBarMenuActions.size()-2; // last is reset to default, before that there is a separator
-      toolBarMenu->insertAction(toolBarMenuActions.at(insertPosition>=0 ? insertPosition : 0), this->ToolBar->toggleViewAction());
+      toolBarMenu->addAction(this->ToolBar->toggleViewAction());
       break;
     }
   }
