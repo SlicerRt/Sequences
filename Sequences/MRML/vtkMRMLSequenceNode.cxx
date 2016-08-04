@@ -254,7 +254,7 @@ vtkMRMLNode* vtkMRMLSequenceNode::CopyNode(vtkMRMLNode* n)
     vtkErrorMacro("vtkMRMLSequenceNode::CopyNode failed, invalid node"); 
     return NULL;
   }
-  std::string newNodeName=this->SequenceScene->GetUniqueNameByString(n->GetName());
+  std::string newNodeName = this->SequenceScene->GetUniqueNameByString(n->GetName() ? n->GetName() : "Sequence");
   vtkMRMLNode* newNode=this->SequenceScene->CopyNode(n);
   newNode->SetName(newNodeName.c_str()); // Make sure all the node names in the sequence's scene are unique for saving purposes
 
