@@ -683,14 +683,14 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
       sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
     }
     // Show output volume in the slice viewer
-    vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(vtkMRMLSequenceNode::SafeDownCast(masterNode));
-    if (masterOutputNode->IsA("vtkMRMLVolumeNode"))
+    vtkMRMLNode* masterProxyNode=sequenceBrowserNode->GetProxyNode(vtkMRMLSequenceNode::SafeDownCast(masterNode));
+    if (masterProxyNode->IsA("vtkMRMLVolumeNode"))
     {
       vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
       vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
       if (selectionNode)
       {
-        selectionNode->SetReferenceActiveVolumeID(masterOutputNode->GetID());
+        selectionNode->SetReferenceActiveVolumeID(masterProxyNode->GetID());
         if (appLogic)
         {
           appLogic->PropagateVolumeSelection();
@@ -833,14 +833,14 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   }
 
   // Show output volume in the slice viewer
-  vtkMRMLNode* masterOutputNode=sequenceBrowserNode->GetVirtualOutputDataNode(volumeSequenceNode.GetPointer());
-  if (masterOutputNode->IsA("vtkMRMLVolumeNode"))
+  vtkMRMLNode* masterProxyNode=sequenceBrowserNode->GetProxyNode(volumeSequenceNode.GetPointer());
+  if (masterProxyNode->IsA("vtkMRMLVolumeNode"))
   {
     vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
     vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
     if (selectionNode)
     {
-      selectionNode->SetReferenceActiveVolumeID(masterOutputNode->GetID());
+      selectionNode->SetReferenceActiveVolumeID(masterProxyNode->GetID());
       if (appLogic)
       {
         appLogic->PropagateVolumeSelection();

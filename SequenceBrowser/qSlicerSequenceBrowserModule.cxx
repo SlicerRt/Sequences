@@ -256,7 +256,7 @@ void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
   vtkSlicerSequenceBrowserLogic * sequenceBrowserLogic = vtkSlicerSequenceBrowserLogic::SafeDownCast(l);
   if (sequenceBrowserLogic)
     {
-    sequenceBrowserLogic->UpdateAllVirtualOutputNodes();
+    sequenceBrowserLogic->UpdateAllProxyNodes();
     }
 }
 

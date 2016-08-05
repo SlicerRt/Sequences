@@ -49,13 +49,13 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   /// Refreshes the output of all the active browser nodes. Called regularly by a timer.
-  void UpdateAllVirtualOutputNodes();
+  void UpdateAllProxyNodes();
 
-  /// Updates the contents of all the virtual output nodes (all the nodes copied from the master and synchronized sequences to the scene)
-  void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType=vtkMRMLSequenceBrowserNode::Placeholder);
+  /// Updates the contents of all the proxy nodes (all the nodes copied from the master and synchronized sequences to the scene)
+  void UpdateProxyNodes(vtkMRMLSequenceBrowserNode* browserNode);
 
   /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
-  void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* virtualNode, vtkMRMLNode* bNode);
+  void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode);
 
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode);
 
@@ -80,7 +80,7 @@ protected:
 
 private:
 
-  bool UpdateVirtualOutputNodesInProgress;
+  bool UpdateProxyNodesInProgress;
 
   vtkSlicerSequenceBrowserLogic(const vtkSlicerSequenceBrowserLogic&); // Not implemented
   void operator=(const vtkSlicerSequenceBrowserLogic&);               // Not implemented

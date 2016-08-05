@@ -252,8 +252,8 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
     resetInteractiveCharting();
     return;
   }
-  vtkMRMLNode* virtualOutputNode = this->activeBrowserNode()->GetVirtualOutputDataNode(sequenceNode);
-  vtkMRMLTransformableNode* transformableVirtualOutputNode = vtkMRMLTransformableNode::SafeDownCast(virtualOutputNode);
+  vtkMRMLNode* proxyNode = this->activeBrowserNode()->GetProxyNode(sequenceNode);
+  vtkMRMLTransformableNode* transformableProxyNode = vtkMRMLTransformableNode::SafeDownCast(proxyNode);
 
   int numberOfDataNodes = sequenceNode->GetNumberOfDataNodes();
   this->ChartTable->SetNumberOfRows(numberOfDataNodes);
@@ -269,7 +269,7 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
     }
     vtkNew<vtkGeneralTransform> worldTransform;
     worldTransform->Identity();
-    vtkMRMLTransformNode *transformNode = transformableVirtualOutputNode ? transformableVirtualOutputNode->GetParentTransformNode() : NULL;
+    vtkMRMLTransformNode *transformNode = transformableProxyNode ? transformableProxyNode->GetParentTransformNode() : NULL;
     if ( transformNode )
     {
       transformNode->GetTransformFromWorld(worldTransform.GetPointer());
@@ -740,22 +740,20 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     QCheckBox* playbackCheckbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
     playbackCheckbox->setToolTip(tr("Include this node in synchronized playback"));
     playbackCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
-    playbackCheckbox->setProperty("SyncType", QVariant(vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback));
 
     QCheckBox* recordingCheckbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
     recordingCheckbox->setToolTip(tr("Include this node in synchronized recording"));
     recordingCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
-    recordingCheckbox->setProperty("SyncType", QVariant(vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording));
 
     // Set previous checked state of the checkbox
-    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Playback);
+    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID());
     playbackCheckbox->setChecked(playbackChecked);
 
-    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID(), vtkMRMLSequenceBrowserNode::SynchronizationTypes::Recording);
+    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID());
     recordingCheckbox->setChecked(recordingChecked);
 
-    connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
-    connect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeCheckStateChanged(int)));
+    connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodePlaybackStateChanged(int)));
+    connect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeRecordingStateChanged(int)));
 
     d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_PLAYBACK_COLUMN, playbackCheckbox);
     d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_RECORDING_COLUMN, recordingCheckbox);
@@ -772,29 +770,47 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeCheckStateChanged(int aState)
+void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateChanged(int aState)
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
 
   if (d->activeBrowserNode()==NULL)
   {
-    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeCheckStateChanged: Invalid activeBrowserNode";
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateChanged: Invalid activeBrowserNode";
     return;
   }
   
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
-    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeCheckStateChanged: Invalid sender checkbox";
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateChanged: Invalid sender checkbox";
     return;
   }
 
-  std::string synchronizedNodeId = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
-  int intSyncType = senderCheckbox->property("SyncType").toInt();
-  vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType = static_cast<vtkMRMLSequenceBrowserNode::SynchronizationTypes>(intSyncType);
+  std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
+  // TODO: Change the playback state
+}
 
-  // Add or delete node to/from the list
-  d->activeBrowserNode()->SetSequenceNodeSynchronizationType(synchronizedNodeId.c_str(), syncType, aState);
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateChanged(int aState)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+
+  if (d->activeBrowserNode()==NULL)
+  {
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateChanged: Invalid activeBrowserNode";
+    return;
+  }
+  
+  QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
+  if (!senderCheckbox)
+  {
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateChanged: Invalid sender checkbox";
+    return;
+  }
+
+  std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
+  // TODO: Change the recording state
 }
 
 //------------------------------------------------------------------------------
