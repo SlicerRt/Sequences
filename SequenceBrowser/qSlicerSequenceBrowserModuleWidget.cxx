@@ -746,10 +746,10 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     recordingCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
 
     // Set previous checked state of the checkbox
-    bool playbackChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID());
+    bool playbackChecked = d->activeBrowserNode()->GetPlayback(syncedNode);
     playbackCheckbox->setChecked(playbackChecked);
 
-    bool recordingChecked = d->activeBrowserNode()->IsSynchronizedSequenceNodeID(syncedNode->GetID());
+    bool recordingChecked = d->activeBrowserNode()->GetRecording(syncedNode);
     recordingCheckbox->setChecked(recordingChecked);
 
     connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodePlaybackStateChanged(int)));
@@ -788,7 +788,8 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateCh
   }
 
   std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
-  // TODO: Change the playback state
+  vtkMRMLSequenceNode* synchronizedNode = vtkMRMLSequenceNode::SafeDownCast( this->mrmlScene()->GetNodeByID(synchronizedNodeID) );
+  d->activeBrowserNode()->SetPlayback(synchronizedNode, aState);
 }
 
 //-----------------------------------------------------------------------------
@@ -810,7 +811,8 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateC
   }
 
   std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
-  // TODO: Change the recording state
+  vtkMRMLSequenceNode* synchronizedNode = vtkMRMLSequenceNode::SafeDownCast( this->mrmlScene()->GetNodeByID(synchronizedNodeID) );
+  d->activeBrowserNode()->SetRecording(synchronizedNode, aState);
 }
 
 //------------------------------------------------------------------------------

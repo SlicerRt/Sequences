@@ -162,6 +162,16 @@ public:
 
   void RemoveAllProxyNodes();
 
+  /// Get the synchrnization properties for the given sequence/proxy/displays tuple
+  bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
+  bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
+  bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);
+
+  /// Set the synchrnization properties for the given sequence/proxy/displays tuple
+  void SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording);
+  void SetPlayback(vtkMRMLSequenceNode* sequenceNode, bool playback);
+  void SetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode, bool overwrite);
+
   /// Helper function for performance optimization of volume browsing
   /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
   /// this significantly slowing down browsing.
@@ -181,7 +191,6 @@ protected:
   /// Change the role name to the new one for compatibility with old data.
   void FixSequenceNodeReferenceRoleName();
 
-  // TODO: Is this really proxy node postfix, or is this the general postfix for the particular sequence/proxy/proxydisplay/proerties?
   std::string GenerateSynchronizationPostfix();
   std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
 
@@ -199,11 +208,15 @@ protected:
   vtkNew< vtkIntArray > RecordingEvents;
 
   // Unique postfixes for storing references to sequence nodes, proxy nodes, proxy display nodes, and properties
-  // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+proxyNodePostfix
+  // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix
   std::vector< std::string > SynchronizationPostfixes;
 
   // Counter that is used for generating the unique (only for this class) proxy node postfix strings
   int LastPostfixIndex;
+
+private:
+  struct SynchronizationProperties;
+  std::map< std::string, SynchronizationProperties* > SynchronizationPropertiesMap;
 };
 
 #endif

@@ -232,6 +232,11 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
       vtkErrorMacro("Synchronized sequence node is invalid");
       continue;
     }
+    if(!browserNode->GetPlayback(synchronizedSequenceNode))
+    {
+      continue;
+    }
+
     vtkMRMLNode* sourceDataNode=synchronizedSequenceNode->GetDataNodeAtValue(indexValue.c_str());
     if (sourceDataNode==NULL)
     {
