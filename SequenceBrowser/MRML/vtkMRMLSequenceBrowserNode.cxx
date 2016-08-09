@@ -49,14 +49,57 @@ static const char* SEQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef"; // Old
 static const char* PROXY_NODE_REFERENCE_ROLE_BASE = "dataNodeRef"; // TODO: Change this to "proxyNodeRef", but need to maintain backwards-compatibility with "dataNodeRef"
 static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
+
+
 // Declare the Synchronization Properties struct
 struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
 {
   SynchronizationProperties(): Playback(true), Recording(true), OverwriteProxyName(true) {}
+  void FromString( std::string str );
+  std::string ToString();
+
   bool Playback;
   bool Recording;
   bool OverwriteProxyName;
 };
+
+void vtkMRMLSequenceBrowserNode::SynchronizationProperties::FromString( std::string str )
+{
+  std::stringstream ss(str);
+  while (!ss.eof())
+  {
+    std::string attName, attValue;
+    ss >> attName;
+    ss >> attValue;
+    if (!attName.empty() && !attValue.empty())
+    {
+      std::string subAttValue;
+      if (!attName.compare("playback"))
+      {
+        this->Playback=(!attValue.compare("true"));
+      }
+      if (!attName.compare("recording"))
+      {
+        this->Recording=(!attValue.compare("true"));
+      }
+      if (!attName.compare("overwriteProxyName"))
+      {
+        this->OverwriteProxyName=(!attValue.compare("true"));
+      }
+    }
+  }
+}
+
+std::string vtkMRMLSequenceBrowserNode::SynchronizationProperties::ToString()
+{
+  std::stringstream ss;
+  ss << "playback" << " " << (this->Playback ? "true" : "false") << " ";
+  ss << "recording" << " " << (this->Recording ? "true" : "false") << " ";
+  ss << "overwriteProxyName" << " " << (this->OverwriteProxyName ? "true" : "false") << " ";
+  return ss.str();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -114,6 +157,12 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
     of << roleNameIt->c_str();
   }
   of << "\"";
+
+  for(std::map< std::string, SynchronizationProperties* >::iterator rolePostfixIt=this->SynchronizationPropertiesMap.begin();
+    rolePostfixIt!=this->SynchronizationPropertiesMap.end(); ++rolePostfixIt)
+  {
+    of << indent << " SynchronizationPropertiesMap" << rolePostfixIt->first.c_str() << "=\"" << rolePostfixIt->second->ToString() << "\"";
+  }
 
 }
 
@@ -195,13 +244,24 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       std::stringstream ss(attValue);
       while (!ss.eof())
       {
-        std::string roleName;
-        ss >> roleName;
-        if (!roleName.empty())
+        std::string rolePostfix;
+        ss >> rolePostfix;
+        if (!rolePostfix.empty())
         {
-          this->SynchronizationPostfixes.push_back(roleName);
+          this->SynchronizationPostfixes.push_back(rolePostfix);
+          if (this->SynchronizationPropertiesMap.find(rolePostfix) != this->SynchronizationPropertiesMap.end())
+          {
+            this->SynchronizationPropertiesMap[rolePostfix] = new SynchronizationProperties(); // Populate with default. If for any reason the associated synchronization properties are not found, this is better than having NULL.
+          }
         }
       }
+    }
+    else if (std::string(attName).find("SynchronizationPropertiesMap")!=std::string::npos)
+    {
+      SynchronizationProperties* currSyncProps = new SynchronizationProperties();
+      currSyncProps->FromString(attValue);
+      std::string rolePostfix = std::string(attName).substr(std::string(attName).find("SynchronizationPropertiesMap")+std::string("SynchronizationPropertiesMap").length());
+      this->SynchronizationPropertiesMap[rolePostfix] = currSyncProps;  // Possibly overwriting the default, but that is ok
     }
   }
   this->FixSequenceNodeReferenceRoleName();
@@ -221,6 +281,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   }
   // TODO: The referenced node copying is handled in the superclass. Do we need to copy the other attributes here?
   this->SynchronizationPostfixes=node->SynchronizationPostfixes;
+  this->SynchronizationPropertiesMap=node->SynchronizationPropertiesMap;
 }
 
 //----------------------------------------------------------------------------
@@ -884,6 +945,16 @@ void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned 
     {
       currSequenceNode->SetDataNodeAtValue(this->GetProxyNode(currSequenceNode), currTime.str().c_str());
     }
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference)
+{
+  vtkMRMLNode::OnNodeReferenceAdded(nodeReference);
+  if (std::string(nodeReference->GetReferenceRole()).find( PROXY_NODE_REFERENCE_ROLE_BASE ) != std::string::npos)
+  {
+    this->SetAndObserveNodeReferenceID( nodeReference->GetReferenceRole(), nodeReference->GetReferencedNodeID(), this->RecordingEvents.GetPointer()); // Need to observe the correct events after scene loading
   }
 }
 

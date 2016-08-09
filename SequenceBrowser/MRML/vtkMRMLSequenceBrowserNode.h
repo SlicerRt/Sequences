@@ -191,6 +191,9 @@ protected:
   /// Change the role name to the new one for compatibility with old data.
   void FixSequenceNodeReferenceRoleName();
 
+  /// Called whenever a new node reference is added
+  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference); // Apparently a Pyth wrapping issue
+
   std::string GenerateSynchronizationPostfix();
   std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
 
