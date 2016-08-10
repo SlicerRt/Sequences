@@ -59,6 +59,7 @@ enum
   SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN,
   SYNCH_NODES_NUMBER_OF_COLUMNS // this must be the last line in this enum
 };
+static const char* MASTER_NODE_STATUS_STRING = "M";
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Sequence
@@ -413,9 +414,9 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   }
 
   QHeaderView* tableWidget_SynchronizedSequenceNodes_HeaderView = d->tableWidget_SynchronizedSequenceNodes->horizontalHeader();
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_STATUS_COLUMN, QHeaderView::ResizeToContents);
   tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_NAME_COLUMN, QHeaderView::Interactive);
   tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_TYPE_COLUMN, QHeaderView::Interactive);
-  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_STATUS_COLUMN, QHeaderView::ResizeToContents);
   tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_PLAYBACK_COLUMN, QHeaderView::ResizeToContents);
   tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_RECORDING_COLUMN, QHeaderView::ResizeToContents);
   tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, QHeaderView::ResizeToContents);
@@ -700,38 +701,24 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
   }
 
   vtkNew<vtkCollection> syncedNodes;
-  d->activeBrowserNode()->GetSynchronizedSequenceNodes(syncedNodes.GetPointer(), false);
-  d->tableWidget_SynchronizedSequenceNodes->setRowCount(syncedNodes->GetNumberOfItems()+1); // +1 because we add the master as well
-
-  // Create a line for the master node
-  std::string statusString="M";
-  
-  QTableWidgetItem* nodeNameItem = new QTableWidgetItem( QString(sequenceNode->GetName()) );
-  nodeNameItem->setFlags(nodeNameItem->flags() ^ Qt::ItemIsEditable);
-  d->tableWidget_SynchronizedSequenceNodes->setItem(0, SYNCH_NODES_NAME_COLUMN, nodeNameItem );  
-  
-  QTableWidgetItem* typeItem = new QTableWidgetItem( QString(sequenceNode->GetDataNodeTagName().c_str()) );
-  typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
-  d->tableWidget_SynchronizedSequenceNodes->setItem(0, SYNCH_NODES_TYPE_COLUMN, typeItem);
-
-  QTableWidgetItem* statusItem = new QTableWidgetItem( QString(statusString.c_str()) );
-  statusItem->setFlags(statusItem->flags() ^ Qt::ItemIsEditable);
-  d->tableWidget_SynchronizedSequenceNodes->setItem(0, SYNCH_NODES_STATUS_COLUMN, statusItem);
-
-  if (syncedNodes->GetNumberOfItems() < 1)
-  {
-    // no nodes, so we are done
-    return;
-  }
+  d->activeBrowserNode()->GetSynchronizedSequenceNodes(syncedNodes.GetPointer(), true);
+  d->tableWidget_SynchronizedSequenceNodes->setRowCount(syncedNodes->GetNumberOfItems()); // +1 because we add the master as well
 
   // Create line for the compatible nodes
-
   for (int i=0; i<syncedNodes->GetNumberOfItems(); ++i)
   {
     vtkMRMLSequenceNode* syncedNode = vtkMRMLSequenceNode::SafeDownCast( syncedNodes->GetItemAsObject(i) );
     if (!syncedNode)
     {
       continue;
+    }
+
+    // If this is the master node, then add the master status string (but that is all the difference in the GUI)
+    if (!strcmp(syncedNode->GetID(),d->activeBrowserNode()->GetMasterSequenceNode()->GetID()))
+    {
+      QTableWidgetItem* masterStatusItem = new QTableWidgetItem( MASTER_NODE_STATUS_STRING );
+      masterStatusItem->setFlags(masterStatusItem->flags() ^ Qt::ItemIsEditable);
+      d->tableWidget_SynchronizedSequenceNodes->setItem(i, SYNCH_NODES_STATUS_COLUMN, masterStatusItem);
     }
 
     // Create checkboxes
@@ -761,17 +748,17 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     connect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeRecordingStateChanged(int)));
     connect(overwriteProxyNameCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeOverwriteProxyNameStateChanged(int)));
 
-    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_PLAYBACK_COLUMN, playbackCheckbox);
-    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_RECORDING_COLUMN, recordingCheckbox);
-    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, overwriteProxyNameCheckbox);
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i, SYNCH_NODES_PLAYBACK_COLUMN, playbackCheckbox);
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i, SYNCH_NODES_RECORDING_COLUMN, recordingCheckbox);
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i, SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, overwriteProxyNameCheckbox);
     
     QTableWidgetItem* nameItem = new QTableWidgetItem( QString(syncedNode->GetName()) );
     nameItem->setFlags(nameItem->flags() ^ Qt::ItemIsEditable);
-    d->tableWidget_SynchronizedSequenceNodes->setItem(i+1, SYNCH_NODES_NAME_COLUMN, nameItem);
+    d->tableWidget_SynchronizedSequenceNodes->setItem(i, SYNCH_NODES_NAME_COLUMN, nameItem);
 
     QTableWidgetItem* typeItem = new QTableWidgetItem( QString(syncedNode->GetDataNodeTagName().c_str()) );
     typeItem->setFlags(typeItem->flags() ^ Qt::ItemIsEditable);
-    d->tableWidget_SynchronizedSequenceNodes->setItem(i+1, SYNCH_NODES_TYPE_COLUMN, typeItem);
+    d->tableWidget_SynchronizedSequenceNodes->setItem(i, SYNCH_NODES_TYPE_COLUMN, typeItem);
   }
 
 }
