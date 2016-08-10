@@ -192,7 +192,7 @@ protected:
   void FixSequenceNodeReferenceRoleName();
 
   /// Called whenever a new node reference is added
-  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference); // Apparently a Pyth wrapping issue
+  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference);
 
   std::string GenerateSynchronizationPostfix();
   std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);

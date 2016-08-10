@@ -115,32 +115,50 @@
         </attribute>
         <column>
          <property name="text">
-          <string/>
+          <string>Stat</string>
+         </property>
+         <property name="toolTip">
+          <string>The sequence node's status (M indicates master).</string>
          </property>
         </column>
         <column>
          <property name="text">
           <string>Name</string>
          </property>
+         <property name="toolTip">
+          <string>The sequence node's name.</string>
+         </property>
         </column>
         <column>
          <property name="text">
           <string>Type</string>
          </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>Status</string>
+         <property name="toolTip">
+          <string>The type of the &quot;proxy&quot; node (the node to playback into or record from).</string>
          </property>
         </column>
         <column>
          <property name="text">
           <string>Playback</string>
          </property>
+         <property name="toolTip">
+          <string>Whether to playback the sequence into its &quot;proxy&quot; node.</string>
+         </property>
         </column>
         <column>
          <property name="text">
           <string>Recording</string>
+         </property>
+         <property name="toolTip">
+          <string>Whether to record the sequence from its &quot;proxy&quot; node.</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Overwrite</string>
+         </property>
+         <property name="toolTip">
+          <string>Whether to overwrite the &quot;proxy&quot; node's name with sequence information.</string>
          </property>
         </column>
        </widget>

@@ -51,12 +51,12 @@
 
 enum
 {
-  SYNCH_NODES_SELECTION_COLUMN=0,
+  SYNCH_NODES_STATUS_COLUMN=0,
   SYNCH_NODES_NAME_COLUMN,
   SYNCH_NODES_TYPE_COLUMN,
-  SYNCH_NODES_STATUS_COLUMN,
   SYNCH_NODES_PLAYBACK_COLUMN,
   SYNCH_NODES_RECORDING_COLUMN,
+  SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN,
   SYNCH_NODES_NUMBER_OF_COLUMNS // this must be the last line in this enum
 };
 
@@ -412,11 +412,17 @@ void qSlicerSequenceBrowserModuleWidget::setup()
     connect( toolBar, SIGNAL(activeBrowserNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
   }
 
-  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_SELECTION_COLUMN, 20);
-  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 300);
-  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_TYPE_COLUMN, 100);
-  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_PLAYBACK_COLUMN, 50);
-  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_RECORDING_COLUMN, 50);
+  QHeaderView* tableWidget_SynchronizedSequenceNodes_HeaderView = d->tableWidget_SynchronizedSequenceNodes->horizontalHeader();
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_NAME_COLUMN, QHeaderView::Interactive);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_TYPE_COLUMN, QHeaderView::Interactive);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_STATUS_COLUMN, QHeaderView::ResizeToContents);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_PLAYBACK_COLUMN, QHeaderView::ResizeToContents);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_RECORDING_COLUMN, QHeaderView::ResizeToContents);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setResizeMode(SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, QHeaderView::ResizeToContents);
+  tableWidget_SynchronizedSequenceNodes_HeaderView->setStretchLastSection(false);
+
+  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 200);
+  d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_TYPE_COLUMN, 200);
 
   d->ExpandButton_SynchronizeNodes->setChecked(false);
 }
@@ -698,15 +704,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
   d->tableWidget_SynchronizedSequenceNodes->setRowCount(syncedNodes->GetNumberOfItems()+1); // +1 because we add the master as well
 
   // Create a line for the master node
-
-  QCheckBox* checkbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
-  checkbox->setEnabled(false);
-  checkbox->setToolTip(tr("Master sequence node"));
-  std::string statusString="Master";
-  bool checked = true; // master is always checked
-  checkbox->setChecked(checked);
-  checkbox->setProperty("MRMLNodeID",QString(sequenceNode->GetID()));
-  d->tableWidget_SynchronizedSequenceNodes->setCellWidget(0, SYNCH_NODES_SELECTION_COLUMN, checkbox);
+  std::string statusString="M";
   
   QTableWidgetItem* nodeNameItem = new QTableWidgetItem( QString(sequenceNode->GetName()) );
   nodeNameItem->setFlags(nodeNameItem->flags() ^ Qt::ItemIsEditable);
@@ -745,6 +743,10 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     recordingCheckbox->setToolTip(tr("Include this node in synchronized recording"));
     recordingCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
 
+    QCheckBox* overwriteProxyNameCheckbox = new QCheckBox(d->tableWidget_SynchronizedSequenceNodes);
+    overwriteProxyNameCheckbox->setToolTip(tr("Overwrite the associated node's name during playback"));
+    overwriteProxyNameCheckbox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));
+
     // Set previous checked state of the checkbox
     bool playbackChecked = d->activeBrowserNode()->GetPlayback(syncedNode);
     playbackCheckbox->setChecked(playbackChecked);
@@ -752,11 +754,16 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     bool recordingChecked = d->activeBrowserNode()->GetRecording(syncedNode);
     recordingCheckbox->setChecked(recordingChecked);
 
+    bool overwriteProxyNameChecked = d->activeBrowserNode()->GetOverwriteProxyName(syncedNode);
+    overwriteProxyNameCheckbox->setChecked(overwriteProxyNameChecked);
+
     connect(playbackCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodePlaybackStateChanged(int)));
     connect(recordingCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeRecordingStateChanged(int)));
+    connect(overwriteProxyNameCheckbox, SIGNAL(stateChanged(int)), this, SLOT(synchronizedSequenceNodeOverwriteProxyNameStateChanged(int)));
 
     d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_PLAYBACK_COLUMN, playbackCheckbox);
     d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_RECORDING_COLUMN, recordingCheckbox);
+    d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i + 1, SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, overwriteProxyNameCheckbox);
     
     QTableWidgetItem* nameItem = new QTableWidgetItem( QString(syncedNode->GetName()) );
     nameItem->setFlags(nameItem->flags() ^ Qt::ItemIsEditable);
@@ -813,6 +820,29 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateC
   std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
   vtkMRMLSequenceNode* synchronizedNode = vtkMRMLSequenceNode::SafeDownCast( this->mrmlScene()->GetNodeByID(synchronizedNodeID) );
   d->activeBrowserNode()->SetRecording(synchronizedNode, aState);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeOverwriteProxyNameStateChanged(int aState)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+
+  if (d->activeBrowserNode()==NULL)
+  {
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeOverwriteProxyNameStateChanged: Invalid activeBrowserNode";
+    return;
+  }
+  
+  QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
+  if (!senderCheckbox)
+  {
+    qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeOverwriteProxyNameStateChanged: Invalid sender checkbox";
+    return;
+  }
+
+  std::string synchronizedNodeID = senderCheckbox->property("MRMLNodeID").toString().toLatin1().constData();
+  vtkMRMLSequenceNode* synchronizedNode = vtkMRMLSequenceNode::SafeDownCast( this->mrmlScene()->GetNodeByID(synchronizedNodeID) );
+  d->activeBrowserNode()->SetOverwriteProxyName(synchronizedNode, aState);
 }
 
 //------------------------------------------------------------------------------

@@ -292,7 +292,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     // Slice browser is updated when there is a rename, but we want to avoid update, because
     // the source node may be hidden from editors and it would result in removing the target node
     // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
-    targetProxyNode->SetName(sourceDataNode->GetName());
+    // targetProxyNode->SetName(sourceDataNode->GetName()); // TODO: This is no longer needed because the ShallowCopy function does not change node visibility?
 
     // Mostly it is a shallow copy (for example for volumes, models)
     std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
@@ -300,24 +300,27 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     this->ShallowCopy(targetProxyNode, sourceDataNode);
 
     // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
-    const char* sequenceName=synchronizedSequenceNode->GetName();
-    const char* indexName=synchronizedSequenceNode->GetIndexName();
-    const char* unit=synchronizedSequenceNode->GetIndexUnit();
-    std::string targetProxyNodeName;
-    targetProxyNodeName+=(sequenceName?sequenceName:"?");
-    targetProxyNodeName+=" [";
-    if (indexName)
+    if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
     {
-      targetProxyNodeName+=indexName;
-      targetProxyNodeName+="=";
+      const char* sequenceName=synchronizedSequenceNode->GetName();
+      const char* indexName=synchronizedSequenceNode->GetIndexName();
+      const char* unit=synchronizedSequenceNode->GetIndexUnit();
+      std::string targetProxyNodeName;
+      targetProxyNodeName+=(sequenceName?sequenceName:"?");
+      targetProxyNodeName+=" [";
+      if (indexName)
+      {
+        targetProxyNodeName+=indexName;
+        targetProxyNodeName+="=";
+      }
+      targetProxyNodeName+=indexValue;
+      if (unit)
+      {
+        targetProxyNodeName+=unit;
+      }
+      targetProxyNodeName+="]";
+      targetProxyNode->SetName(targetProxyNodeName.c_str());
     }
-    targetProxyNodeName+=indexValue;
-    if (unit)
-    {
-      targetProxyNodeName+=unit;
-    }
-    targetProxyNodeName+="]";
-    targetProxyNode->SetName(targetProxyNodeName.c_str());
 
     vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetProxyNode);
     if (targetDisplayableNode!=NULL)
