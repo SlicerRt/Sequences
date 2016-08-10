@@ -131,10 +131,10 @@
         </column>
         <column>
          <property name="text">
-          <string>Type</string>
+          <string>Node</string>
          </property>
          <property name="toolTip">
-          <string>The type of the &quot;proxy&quot; node (the node to playback into or record from).</string>
+          <string>The &quot;proxy&quot; node for the sequence (the node to playback into or record from).</string>
          </property>
         </column>
         <column>

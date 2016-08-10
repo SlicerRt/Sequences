@@ -60,6 +60,8 @@ protected slots:
   void synchronizedSequenceNodeRecordingStateChanged(int aState);
   void synchronizedSequenceNodeOverwriteProxyNameStateChanged(int aState);
 
+  void onProxyNodeChanged(vtkMRMLNode* newProxyNode);
+
   /// Respond to the scene events
   void onNodeAddedEvent(vtkObject* scene, vtkObject* node);
   void onNodeRemovedEvent(vtkObject* scene, vtkObject* node);
