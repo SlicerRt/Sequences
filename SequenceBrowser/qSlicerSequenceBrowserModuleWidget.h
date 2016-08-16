@@ -55,6 +55,8 @@ protected slots:
   void onActiveBrowserNodeModified(vtkObject* caller);
   void updateChart();
 
+  void sequenceNodeNameEdited(int row, int column);
+
   void onAddSequenceNodeButtonClicked();
   void onRemoveSequenceNodesButtonClicked();
 
