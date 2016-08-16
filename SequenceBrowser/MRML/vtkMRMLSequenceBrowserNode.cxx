@@ -257,9 +257,9 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         if (!rolePostfix.empty())
         {
           this->SynchronizationPostfixes.push_back(rolePostfix);
-          if (this->SynchronizationPropertiesMap.find(rolePostfix) != this->SynchronizationPropertiesMap.end())
+          if (this->SynchronizationPropertiesMap.find(rolePostfix) == this->SynchronizationPropertiesMap.end())
           {
-            this->SynchronizationPropertiesMap[rolePostfix] = new SynchronizationProperties(); // Populate with default. If for any reason the associated synchronization properties are not found, this is better than having NULL.
+            this->SynchronizationPropertiesMap[rolePostfix] = new SynchronizationProperties(); // Populate with default. If for any reason (e.g. old scene) the associated synchronization properties are not found, this is better than having NULL.
           }
         }
       }
