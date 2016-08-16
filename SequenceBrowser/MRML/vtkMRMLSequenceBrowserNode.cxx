@@ -54,13 +54,14 @@ static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 // Declare the Synchronization Properties struct
 struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
 {
-  SynchronizationProperties(): Playback(true), Recording(true), OverwriteProxyName(true) {}
+  SynchronizationProperties(): Playback(true), Recording(true), OverwriteProxyName(true), SaveChanges(false) {}
   void FromString( std::string str );
   std::string ToString();
 
   bool Playback;
   bool Recording;
   bool OverwriteProxyName;
+  bool SaveChanges;
 };
 
 void vtkMRMLSequenceBrowserNode::SynchronizationProperties::FromString( std::string str )
@@ -86,6 +87,10 @@ void vtkMRMLSequenceBrowserNode::SynchronizationProperties::FromString( std::str
       {
         this->OverwriteProxyName=(!attValue.compare("true"));
       }
+      if (!attName.compare("saveChanges"))
+      {
+        this->SaveChanges=(!attValue.compare("true"));
+      }
     }
   }
 }
@@ -96,6 +101,7 @@ std::string vtkMRMLSequenceBrowserNode::SynchronizationProperties::ToString()
   ss << "playback" << " " << (this->Playback ? "true" : "false") << " ";
   ss << "recording" << " " << (this->Recording ? "true" : "false") << " ";
   ss << "overwriteProxyName" << " " << (this->OverwriteProxyName ? "true" : "false") << " ";
+  ss << "saveChanges" << " " << (this->SaveChanges ? "true" : "false") << " ";
   return ss.str();
 }
 
@@ -1039,6 +1045,18 @@ bool vtkMRMLSequenceBrowserNode::GetOverwriteProxyName(vtkMRMLSequenceNode* sequ
   return syncProps->OverwriteProxyName;
 }
 
+//---------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::GetSaveChanges(vtkMRMLSequenceNode* sequenceNode)
+{
+  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
+  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
+  if (rolePostfix=="" || syncProps==NULL)
+  {
+    return false;
+  }
+  return syncProps->SaveChanges;
+}
+
 
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording)
@@ -1074,4 +1092,16 @@ void vtkMRMLSequenceBrowserNode::SetOverwriteProxyName(vtkMRMLSequenceNode* sequ
     return;
   }
   syncProps->OverwriteProxyName = overwrite;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save)
+{
+  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
+  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
+  if (rolePostfix=="" || syncProps==NULL)
+  {
+    return;
+  }
+  syncProps->SaveChanges = save;
 }

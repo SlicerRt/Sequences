@@ -102,7 +102,7 @@
       <item>
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
-         <number>6</number>
+         <number>7</number>
         </property>
         <attribute name="horizontalHeaderVisible">
          <bool>true</bool>
@@ -115,7 +115,7 @@
         </attribute>
         <column>
          <property name="text">
-          <string>Stat</string>
+          <string>Status</string>
          </property>
          <property name="toolTip">
           <string>The sequence node's status (M indicates master).</string>
@@ -159,6 +159,14 @@
          </property>
          <property name="toolTip">
           <string>Whether to overwrite the &quot;proxy&quot; node's name with sequence information.</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Save Changes</string>
+         </property>
+         <property name="toolTip">
+          <string>Whether to save the changes made on the proxy node into the sequence's data.</string>
          </property>
         </column>
        </widget>

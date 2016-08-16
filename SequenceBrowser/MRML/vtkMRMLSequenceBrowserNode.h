@@ -166,11 +166,13 @@ public:
   bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
   bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
   bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);
+  bool GetSaveChanges(vtkMRMLSequenceNode* sequenceNode);
 
   /// Set the synchrnization properties for the given sequence/proxy/displays tuple
   void SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording);
   void SetPlayback(vtkMRMLSequenceNode* sequenceNode, bool playback);
   void SetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode, bool overwrite);
+  void SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save);
 
   /// Helper function for performance optimization of volume browsing
   /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,

@@ -36,6 +36,9 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkTimerLog.h>
+#include <vtkImageData.h>
+#include <vtkPolyData.h>
+#include <vtkAbstractTransform.h>
 
 // STL includes
 #include <algorithm>
@@ -297,7 +300,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     // Mostly it is a shallow copy (for example for volumes, models)
     std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
     nodeModifiedStates.push_back(nodeModifiedState);
-    this->ShallowCopy(targetProxyNode, sourceDataNode);
+    this->ShallowCopy(targetProxyNode, sourceDataNode, !browserNode->GetSaveChanges(synchronizedSequenceNode));
 
     // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
     if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
@@ -444,36 +447,36 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source)
+void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source, bool deepCopyData/*=false*/)
 {
   int oldModified=target->StartModify();
-  if (target->IsA("vtkMRMLScalarVolumeNode"))
+  if (target->IsA("vtkMRMLVolumeNode")) // Note: vtkMRMLLabelMapVolumeNode is a subclass of vtkMRMLScalarVolumeNode
   {
-    vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
-    vtkMRMLScalarVolumeNode* sourceScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(source);
+    vtkMRMLVolumeNode* targetVolumeNode=vtkMRMLVolumeNode::SafeDownCast(target);
+    vtkMRMLVolumeNode* sourceVolumeNode=vtkMRMLVolumeNode::SafeDownCast(source);
     // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
-    sourceScalarVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
-    targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
-    targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
-  }
-  else if (target->IsA("vtkMRMLLabelMapVolumeNode"))
-  {
-    vtkMRMLLabelMapVolumeNode* targetLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(target);
-    vtkMRMLLabelMapVolumeNode* sourceLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(source);
-    // targetLabelMapVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
-    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
-    sourceLabelMapVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
-    targetLabelMapVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    targetLabelMapVolumeNode->SetName(sourceLabelMapVolumeNode->GetName());
-    targetLabelMapVolumeNode->SetAndObserveImageData(sourceLabelMapVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
+    sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
+    targetVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
+    vtkSmartPointer<vtkImageData> targetImageData = sourceVolumeNode->GetImageData();    
+    if ( deepCopyData )
+    {
+      targetImageData = sourceVolumeNode->GetImageData()->NewInstance();
+      targetImageData->DeepCopy(sourceVolumeNode->GetImageData());    
+    }
+    targetVolumeNode->SetAndObserveImageData(targetImageData); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
   }
   else if (target->IsA("vtkMRMLModelNode"))
   {
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
-    targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
+    vtkSmartPointer<vtkPolyData> targetPolyData = sourceModelNode->GetPolyData();    
+    if ( deepCopyData )
+    {
+      targetPolyData = sourceModelNode->GetPolyData()->NewInstance();
+      targetPolyData->DeepCopy(sourceModelNode->GetPolyData());    
+    }
+    targetModelNode->SetAndObservePolyData(targetPolyData);
   }
   else if (target->IsA("vtkMRMLMarkupsFiducialNode"))
   {
@@ -485,8 +488,13 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   {
     vtkMRMLTransformNode* targetTransformNode=vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode=vtkMRMLTransformNode::SafeDownCast(source);
-    vtkAbstractTransform* transform=sourceTransformNode->GetTransformToParent();
-    targetTransformNode->SetAndObserveTransformToParent(transform);
+    vtkSmartPointer<vtkAbstractTransform> targetAbstractTransform = sourceTransformNode->GetTransformToParent();    
+    if ( deepCopyData )
+    {
+      targetAbstractTransform = sourceTransformNode->GetTransformToParent()->NewInstance();
+      targetAbstractTransform->DeepCopy(sourceTransformNode->GetTransformToParent());    
+    }
+    targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
   }
   else if (target->IsA("vtkMRMLCameraNode"))
   {
