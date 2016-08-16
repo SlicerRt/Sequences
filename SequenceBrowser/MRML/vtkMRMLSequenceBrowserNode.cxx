@@ -49,6 +49,8 @@ static const char* SEQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef"; // Old
 static const char* PROXY_NODE_REFERENCE_ROLE_BASE = "dataNodeRef"; // TODO: Change this to "proxyNodeRef", but need to maintain backwards-compatibility with "dataNodeRef"
 static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
+static const char* PROXY_NODE_COPY_ATTRIBUTE_NAME = "proxyNodeCopy";
+
 
 
 // Declare the Synchronization Properties struct
@@ -501,9 +503,11 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   {
     proxyNode = sourceProxyNode->CreateNodeInstance();
     this->Scene->AddNode(proxyNode);
+    proxyNode->SetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME,"true"); // Indicate that this is a copy
     proxyNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   }
 
+  this->RemoveProxyNode(rolePostfix); // This will also remove the proxy node from the scene if necessary
   this->SetAndObserveNodeReferenceID(proxyNodeRef.c_str(), proxyNode->GetID(), this->RecordingEvents.GetPointer());
 
   // Add copy of the display node(s)
@@ -517,6 +521,7 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
     if (copy)
     {
       displayNode = vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
+      displayNode->SetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME,"true"); // Indicate that this is a copy
     }
     if (displayNode) // Added to check if displayNode is valid
     {
@@ -615,7 +620,10 @@ void vtkMRMLSequenceBrowserNode::RemoveProxyNode(const std::string& postfix)
   vtkMRMLNode* proxyNode=this->GetNodeReference(proxyNodeRef.c_str());
   if (proxyNode!=NULL)
   {
-    this->Scene->RemoveNode(proxyNode); // TODO: This should not remove the proxy node from the scene if it wasn't copied
+    if (proxyNode->GetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME)!=NULL)
+    {
+      this->Scene->RemoveNode(proxyNode);
+    }
     this->RemoveNodeReferenceIDs(proxyNodeRef.c_str());
   }
   this->EndModify(oldModify);
@@ -627,11 +635,14 @@ void vtkMRMLSequenceBrowserNode::RemoveProxyDisplayNodes(const std::string& post
   bool oldModify=this->StartModify();
   std::vector< vtkMRMLNode* > displayNodes;
   std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+postfix;
-  GetNodeReferences(displayNodesRef.c_str(), displayNodes);
+  this->GetNodeReferences(displayNodesRef.c_str(), displayNodes);
   for (std::vector< vtkMRMLNode* >::iterator displayNodeIt=displayNodes.begin(); displayNodeIt!=displayNodes.end(); ++displayNodeIt)
   {
-    this->Scene->RemoveNode(*displayNodeIt); // TODO: This should not remove the proxy node from the scene if it wasn't copied
-  }
+    if ((*displayNodeIt)->GetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME)!=NULL)
+    {
+      this->Scene->RemoveNode(*displayNodeIt);
+    }  
+  }  
   this->RemoveNodeReferenceIDs(displayNodesRef.c_str());
   this->EndModify(oldModify);
 }

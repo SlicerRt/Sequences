@@ -172,87 +172,64 @@
        </widget>
       </item>
       <item>
-       <widget class="ctkExpandButton" name="ExpandButton_SynchronizeNodes">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <property name="topMargin">
+         <number>0</number>
         </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="mirrorOnExpand">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QGroupBox" name="GroupBox_SynchronizeNodes">
-        <property name="title">
-         <string>Synchronize Nodes</string>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <property name="topMargin">
-            <number>0</number>
-           </property>
-           <item>
-            <layout class="QVBoxLayout" name="verticalLayout_4">
-             <item>
-              <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeSequenceNode">
-               <property name="nodeTypes">
-                <stringlist>
-                 <string>vtkMRMLSequenceNode</string>
-                </stringlist>
-               </property>
-               <property name="noneEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="addEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="removeEnabled">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeVirtualNode">
-               <property name="noneEnabled">
-                <bool>true</bool>
-               </property>
-               <property name="addEnabled">
-                <bool>false</bool>
-               </property>
-               <property name="removeEnabled">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QPushButton" name="pushButton_AddSynchronizedNode">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
+        <item>
+         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeSequenceNode">
+          <property name="nodeTypes">
+           <stringlist>
+            <string>vtkMRMLSequenceNode</string>
+           </stringlist>
+          </property>
+          <property name="noneEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="addEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="removeEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="noneDisplay">
+           <string>Create new sequence</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_AddSequenceNode">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>Add the selected sequence to the browser.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_RemoveSequenceNode">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>Remove the selected sequence(s) from the browser.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
@@ -378,11 +355,6 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ctkExpandButton</class>
-   <extends>QToolButton</extends>
-   <header>ctkExpandButton.h</header>
-  </customwidget>
-  <customwidget>
    <class>qMRMLSequenceBrowserPlayWidget</class>
    <extends>qMRMLWidget</extends>
    <header>qMRMLSequenceBrowserPlayWidget.h</header>
@@ -444,38 +416,6 @@
     <hint type="destinationlabel">
      <x>194</x>
      <y>383</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>qSlicerSequenceBrowserModuleWidget</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_SynchronizeVirtualNode</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>213</x>
-     <y>404</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>194</x>
-     <y>409</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ExpandButton_SynchronizeNodes</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GroupBox_SynchronizeNodes</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>213</x>
-     <y>373</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>213</x>
-     <y>427</y>
     </hint>
    </hints>
   </connection>

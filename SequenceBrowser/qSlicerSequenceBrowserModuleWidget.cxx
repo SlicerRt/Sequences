@@ -404,8 +404,10 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect( d->MRMLNodeComboBox_Sequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
   connect( d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)) );
   connect( d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)) );
-  connect( d->pushButton_AddSynchronizedNode, SIGNAL(clicked()), this, SLOT(onAddSynchronizedNodeButtonClicked()) );
-  d->pushButton_AddSynchronizedNode->setIcon( QApplication::style()->standardIcon( QStyle::SP_ArrowUp ) );
+  connect( d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()) );
+  connect( d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()) );
+  d->pushButton_AddSequenceNode->setIcon( QIcon( ":/Icons/Add.png" ) );
+  d->pushButton_RemoveSequenceNode->setIcon( QIcon( ":/Icons/Remove.png" ) );
 
   
   qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
@@ -426,8 +428,6 @@ void qSlicerSequenceBrowserModuleWidget::setup()
 
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 200);
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_PROXY_COLUMN, 200);
-
-  d->ExpandButton_SynchronizeNodes->setChecked(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -647,10 +647,34 @@ void qSlicerSequenceBrowserModuleWidget::setMasterSequenceNode(vtkMRMLSequenceNo
 }
 
 // --------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onAddSynchronizedNodeButtonClicked()
+void qSlicerSequenceBrowserModuleWidget::onAddSequenceNodeButtonClicked()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
-  d->logic()->AddSynchronizedNode(d->MRMLNodeComboBox_SynchronizeSequenceNode->currentNode(), d->MRMLNodeComboBox_SynchronizeVirtualNode->currentNode(), d->MRMLNodeComboBox_ActiveBrowser->currentNode());
+  d->logic()->AddSynchronizedNode(d->MRMLNodeComboBox_SynchronizeSequenceNode->currentNode(), NULL, d->MRMLNodeComboBox_ActiveBrowser->currentNode());
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::onRemoveSequenceNodesButtonClicked()
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  // First, grab all of the selected rows
+  QModelIndexList modelIndexList = d->tableWidget_SynchronizedSequenceNodes->selectionModel()->selectedIndexes();
+  std::vector<bool> selectedRows = std::vector<bool>(d->tableWidget_SynchronizedSequenceNodes->rowCount(), false);
+  for (QModelIndexList::iterator index = modelIndexList.begin(); index!=modelIndexList.end(); index++)
+  {
+    selectedRows.at((*index).row()) = true;
+  }
+  // Now, use the MRML ID stored by the proxy node combo box to determine the sequence nodes to remove from the browser
+  for (int i=0; i<selectedRows.size(); i++)
+  {
+    if (selectedRows.at(i))
+    {
+      QWidget* proxyNodeComboBox = d->tableWidget_SynchronizedSequenceNodes->cellWidget(i, SYNCH_NODES_PROXY_COLUMN);
+      std::string synchronizedNodeID = proxyNodeComboBox->property("MRMLNodeID").toString().toLatin1().constData();
+      disconnect(proxyNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(onProxyNodeChanged(vtkMRMLNode*))); // No need to reconnect - the entire row is going to be removed
+      d->activeBrowserNode()->RemoveSynchronizedSequenceNode(synchronizedNodeID.c_str());
+    }
+  }
 }
 
 //-----------------------------------------------------------------------------
