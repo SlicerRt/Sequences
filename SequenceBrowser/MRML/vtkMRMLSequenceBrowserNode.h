@@ -45,15 +45,6 @@ public:
   vtkTypeMacro(vtkMRMLSequenceBrowserNode,vtkMRMLNode);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  /// The type of synchronization. Whether synchronized for playback, recording, etc.
-  enum SynchronizationTypes
-  {
-    Placeholder = 0, // This is ignored, but necessary so Playback is not 0
-    Playback,
-    Recording,
-    NumberOfSynchronizationTypes // this line must be the last one
-  };
-
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
 
@@ -93,23 +84,12 @@ public:
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode=false);
 
-  /// Returns all synchonized sequences node that have a particular type (does not include the master sequence node by default)
-  void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
-  void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, SynchronizationTypes syncType, bool includeMasterNode = false);
-
   /// Deprecated. Use IsSynchronizedSequenceNodeID instead.
   bool IsSynchronizedSequenceNode(const char* sequenceNodeId, bool includeMasterNode = false);
 
   /// Returns true if the node is selected for synchronized browsing
   bool IsSynchronizedSequenceNodeID(const char* sequenceNodeId, bool includeMasterNode = false);
   bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, bool includeMasterNode = false);
-
-  /// Returns true if the node has a particular type of synchronization
-  bool IsSynchronizedSequenceNodeID(const char* nodeId, SynchronizationTypes syncType, bool includeMasterNode = false);
-  bool IsSynchronizedSequenceNode(vtkMRMLSequenceNode* sequenceNode, SynchronizationTypes syncType, bool includeMasterNode = false);
-
-  /// Set whether or not a node has a particular type of synchronization
-  void SetSequenceNodeSynchronizationType(const char* nodeId, SynchronizationTypes syncType, bool sync);
 
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);
@@ -134,7 +114,7 @@ public:
   vtkGetMacro(SelectedItemNumber, int);
   vtkSetMacro(SelectedItemNumber, int);
 
-  /// Get/set recording of virtual output nodes
+  /// Get/set recording of proxy nodes
   vtkGetMacro(RecordingActive, bool);
   void SetRecordingActive(bool recording);
   vtkBooleanMacro(RecordingActive, bool);
@@ -153,32 +133,46 @@ public:
   /// Selects last sequence item for display, returns current selected item number
   int SelectLastItem();
 
-  /// Adds virtual output nodes from another scene (typically from the main scene). The data node is not copied but a clean node is instantiated of the same node type.
-  vtkMRMLNode* AddVirtualOutputNodes(vtkMRMLNode* dataNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
+  /// Adds proxy nodes from another scene (typically from the main scene). The data node is optionally copied.
+  vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
+  vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkCollection* displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
-  /// Get virtual output node corresponding to a sequence node.
-  vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode);
+  /// Get proxy corresponding to a sequence node.
+  vtkMRMLNode* GetProxyNode(vtkMRMLSequenceNode* sequenceNode);
 
-  /// Get sequence node corresponding to a virtual output data node.
-  vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* virtualOutputDataNode);
+  /// Get sequence node corresponding to a proxy node.
+  vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* proxyNode);
 
-  void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
-  void GetVirtualOutputDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes);
+  void GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
+  void GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes);
 
-  void GetAllVirtualOutputDataNodes(std::vector< vtkMRMLNode* > &nodes);
-  void GetAllVirtualOutputDataNodes(vtkCollection* nodes);
+  void GetAllProxyNodes(std::vector< vtkMRMLNode* > &nodes);
+  void GetAllProxyNodes(vtkCollection* nodes);
 
-  /// Deprecated. Use IsVirtualOutputDataNodeID instead.
-  bool IsVirtualOutputDataNode(const char* nodeId);
+  /// Deprecated. Use IsProxyNodeID instead.
+  bool IsProxyNode(const char* nodeId);
   
-  /// Returns true if the nodeId belongs to a virtual output data node managed by this browser node.
-  bool IsVirtualOutputDataNodeID(const char* nodeId);
+  /// Returns true if the nodeId belongs to a proxy node managed by this browser node.
+  bool IsProxyNodeID(const char* nodeId);
 
-  void RemoveVirtualOutputDataNode(const std::string& postfix);
+  // TODO: Should these methods be protected? Probably the "world" shouldn't need to know about the postfixes.
+  void RemoveProxyNode(const std::string& postfix);
 
-  void RemoveVirtualOutputDisplayNodes(const std::string& postfix);
+  void RemoveProxyDisplayNodes(const std::string& postfix);
 
-  void RemoveAllVirtualOutputNodes();
+  void RemoveAllProxyNodes();
+
+  /// Get the synchrnization properties for the given sequence/proxy/displays tuple
+  bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
+  bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
+  bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);
+  bool GetSaveChanges(vtkMRMLSequenceNode* sequenceNode);
+
+  /// Set the synchrnization properties for the given sequence/proxy/displays tuple
+  void SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording);
+  void SetPlayback(vtkMRMLSequenceNode* sequenceNode, bool playback);
+  void SetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode, bool overwrite);
+  void SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save);
 
   /// Helper function for performance optimization of volume browsing
   /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
@@ -186,7 +180,7 @@ public:
   /// The method has no effect if there is no output display node or it is not scalar volume display node type.
   void ScalarVolumeAutoWindowLevelOff();
 
-  /// Process MRML node events for recording of the virtual output nodes
+  /// Process MRML node events for recording of the proxy nodes
   void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData );
 
 protected:
@@ -199,8 +193,11 @@ protected:
   /// Change the role name to the new one for compatibility with old data.
   void FixSequenceNodeReferenceRoleName();
 
-  std::string GenerateVirtualNodePostfix();
-  std::string GetVirtualNodePostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
+  /// Called whenever a new node reference is added
+  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference);
+
+  std::string GenerateSynchronizationPostfix();
+  std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
 
 protected:
   bool PlaybackActive;
@@ -215,12 +212,16 @@ protected:
 
   vtkNew< vtkIntArray > RecordingEvents;
 
-  // Unique postfixes for storing references to sequence nodes, virtual data nodes, and virtual display nodes
-  // For example, a sequence node reference role name is SEDQUENCE_NODE_REFERENCE_ROLE_BASE+virtualNodePostfix
-  std::vector< std::string > VirtualNodePostfixes;
+  // Unique postfixes for storing references to sequence nodes, proxy nodes, proxy display nodes, and properties
+  // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix
+  std::vector< std::string > SynchronizationPostfixes;
 
-  // Counter that is used for generating the unique (only for this class) virtual node postfix strings
+  // Counter that is used for generating the unique (only for this class) proxy node postfix strings
   int LastPostfixIndex;
+
+private:
+  struct SynchronizationProperties;
+  std::map< std::string, SynchronizationProperties* > SynchronizationPropertiesMap;
 };
 
 #endif

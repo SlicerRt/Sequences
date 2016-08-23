@@ -54,9 +54,18 @@ protected slots:
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void updateChart();
-  void onAddSynchronizedNodeButtonClicked();
 
-  void synchronizedSequenceNodeCheckStateChanged(int aState);
+  void sequenceNodeNameEdited(int row, int column);
+
+  void onAddSequenceNodeButtonClicked();
+  void onRemoveSequenceNodesButtonClicked();
+
+  void synchronizedSequenceNodePlaybackStateChanged(int aState);
+  void synchronizedSequenceNodeRecordingStateChanged(int aState);
+  void synchronizedSequenceNodeOverwriteProxyNameStateChanged(int aState);
+  void synchronizedSequenceNodeSaveChangesStateChanged(int aState);
+
+  void onProxyNodeChanged(vtkMRMLNode* newProxyNode);
 
   /// Respond to the scene events
   void onNodeAddedEvent(vtkObject* scene, vtkObject* node);

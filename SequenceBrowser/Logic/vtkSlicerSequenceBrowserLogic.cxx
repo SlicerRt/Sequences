@@ -36,6 +36,9 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkTimerLog.h>
+#include <vtkImageData.h>
+#include <vtkPolyData.h>
+#include <vtkAbstractTransform.h>
 
 // STL includes
 #include <algorithm>
@@ -49,7 +52,7 @@ vtkStandardNewMacro(vtkSlicerSequenceBrowserLogic);
 
 //----------------------------------------------------------------------------
 vtkSlicerSequenceBrowserLogic::vtkSlicerSequenceBrowserLogic()
-: UpdateVirtualOutputNodesInProgress(false)
+: UpdateProxyNodesInProgress(false)
 {
 }
 
@@ -129,7 +132,7 @@ void vtkSlicerSequenceBrowserLogic::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
+void vtkSlicerSequenceBrowserLogic::UpdateAllProxyNodes()
 {
   double updateStartTimeSec = vtkTimerLog::GetUniversalTime();
 
@@ -178,27 +181,27 @@ void vtkSlicerSequenceBrowserLogic::UpdateAllVirtualOutputNodes()
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLSequenceBrowserNode::SynchronizationTypes syncType/*=NULL*/)
+void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode* browserNode)
 {
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkNew<vtkTimerLog> timer;
   timer->StartTimer();  
 #endif 
 
-  if (this->UpdateVirtualOutputNodesInProgress)
+  if (this->UpdateProxyNodesInProgress)
   {
     // avoid infinite loops (caused by triggering a node update during a node update)
     return;
   }
   if (browserNode==NULL)
   {
-    vtkWarningMacro("vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes failed: browserNode is invalid");
+    vtkWarningMacro("vtkSlicerSequenceBrowserLogic::UpdateProxyNodes failed: browserNode is invalid");
     return;
   }
   
   if (browserNode->GetMasterSequenceNode()==NULL)
   {
-    browserNode->RemoveAllVirtualOutputNodes();
+    browserNode->RemoveAllProxyNodes();
     return;
   }
 
@@ -209,7 +212,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     return;
   }
 
-  this->UpdateVirtualOutputNodesInProgress=true;
+  this->UpdateProxyNodesInProgress=true;
   
   int selectedItemNumber=browserNode->GetSelectedItemNumber();
   std::string indexValue;
@@ -219,14 +222,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
   }
 
   std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
-  if (syncType==NULL)
-  {
-    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
-  }
-  else
-  {
-    browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, syncType, true);
-  }
+  browserNode->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
   
   // Store the previous modified state of nodes to allow calling EndModify when all the nodes are updated (to prevent multiple renderings on partial update)
   std::vector< std::pair<vtkMRMLNode*, int> > nodeModifiedStates;
@@ -239,46 +235,51 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
       vtkErrorMacro("Synchronized sequence node is invalid");
       continue;
     }
-    vtkMRMLNode* sourceNode=synchronizedSequenceNode->GetDataNodeAtValue(indexValue.c_str());
-    if (sourceNode==NULL)
+    if(!browserNode->GetPlayback(synchronizedSequenceNode))
+    {
+      continue;
+    }
+
+    vtkMRMLNode* sourceDataNode=synchronizedSequenceNode->GetDataNodeAtValue(indexValue.c_str());
+    if (sourceDataNode==NULL)
     {
       // no source node is available for the chosen time point
       continue;
     }
     
     // Get the current target output node
-    vtkMRMLNode* targetOutputNode=browserNode->GetVirtualOutputDataNode(synchronizedSequenceNode);    
-    if (targetOutputNode!=NULL)
+    vtkMRMLNode* targetProxyNode=browserNode->GetProxyNode(synchronizedSequenceNode);    
+    if (targetProxyNode!=NULL)
     {
       // a virtual output node with the requested role exists already
-      if (strcmp(targetOutputNode->GetClassName(),sourceNode->GetClassName())!=0)
+      if (strcmp(targetProxyNode->GetClassName(),sourceDataNode->GetClassName())!=0)
       {
         // this node is of a different class, cannot be reused
-        targetOutputNode=NULL;
+        targetProxyNode=NULL;
       }
     }
 
     // Create the virtual output node (and display nodes) if it doesn't exist yet
-    if (targetOutputNode==NULL)
+    if (targetProxyNode==NULL)
     {
       // Get the display nodes      
       std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
       synchronizedSequenceNode->GetDisplayNodesAtValue(sourceDisplayNodes, indexValue.c_str());
 
       // Add the new data and display nodes to the virtual outputs      
-      targetOutputNode=browserNode->AddVirtualOutputNodes(sourceNode,sourceDisplayNodes,synchronizedSequenceNode);
+      targetProxyNode=browserNode->AddProxyNode(sourceDataNode,sourceDisplayNodes,synchronizedSequenceNode);
     }
 
-    if (targetOutputNode==NULL)
+    if (targetProxyNode==NULL)
     {
       // failed to add target output node
       continue;
     }
 
-    // Get the display nodes
+    // Get all the display nodes
     std::vector< vtkMRMLDisplayNode* > targetDisplayNodes;
     {
-      vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
+      vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetProxyNode);
       if (targetDisplayableNode!=NULL)
       {
         int numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
@@ -294,34 +295,37 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     // Slice browser is updated when there is a rename, but we want to avoid update, because
     // the source node may be hidden from editors and it would result in removing the target node
     // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
-    targetOutputNode->SetName(sourceNode->GetName());
+    // targetProxyNode->SetName(sourceDataNode->GetName()); // TODO: This is no longer needed because the ShallowCopy function does not change node visibility?
 
     // Mostly it is a shallow copy (for example for volumes, models)
-    std::pair<vtkMRMLNode*, int> nodeModifiedState(targetOutputNode, targetOutputNode->StartModify());
+    std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
     nodeModifiedStates.push_back(nodeModifiedState);
-    this->ShallowCopy(targetOutputNode, sourceNode);
+    this->ShallowCopy(targetProxyNode, sourceDataNode, !browserNode->GetSaveChanges(synchronizedSequenceNode));
 
-    // Generation of data node name: sequence node name (IndexName = IndexValue IndexUnit)
-    const char* sequenceName=synchronizedSequenceNode->GetName();
-    const char* indexName=synchronizedSequenceNode->GetIndexName();
-    const char* unit=synchronizedSequenceNode->GetIndexUnit();
-    std::string dataNodeName;
-    dataNodeName+=(sequenceName?sequenceName:"?");
-    dataNodeName+=" [";
-    if (indexName)
+    // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
+    if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
     {
-      dataNodeName+=indexName;
-      dataNodeName+="=";
+      const char* sequenceName=synchronizedSequenceNode->GetName();
+      const char* indexName=synchronizedSequenceNode->GetIndexName();
+      const char* unit=synchronizedSequenceNode->GetIndexUnit();
+      std::string targetProxyNodeName;
+      targetProxyNodeName+=(sequenceName?sequenceName:"?");
+      targetProxyNodeName+=" [";
+      if (indexName)
+      {
+        targetProxyNodeName+=indexName;
+        targetProxyNodeName+="=";
+      }
+      targetProxyNodeName+=indexValue;
+      if (unit)
+      {
+        targetProxyNodeName+=unit;
+      }
+      targetProxyNodeName+="]";
+      targetProxyNode->SetName(targetProxyNodeName.c_str());
     }
-    dataNodeName+=indexValue;
-    if (unit)
-    {
-      dataNodeName+=unit;
-    }
-    dataNodeName+="]";
-    targetOutputNode->SetName(dataNodeName.c_str());
 
-    vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetOutputNode);
+    vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetProxyNode);
     if (targetDisplayableNode!=NULL)
     {
       // Get the minimum of the display nodes that are already in the target displayable node
@@ -367,7 +371,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
     (nodeModifiedStateIt->first)->EndModify(nodeModifiedStateIt->second);
   }
 
-  this->UpdateVirtualOutputNodesInProgress=false;
+  this->UpdateProxyNodesInProgress=false;
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
   timer->StopTimer();
@@ -376,7 +380,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes(vtkMRMLSequenceBrow
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* virtualNode, vtkMRMLNode* bNode)
+void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode)
 {
   vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(sNode);
   vtkMRMLSequenceBrowserNode* browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(bNode);
@@ -393,10 +397,10 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
     sequenceNode = vtkMRMLSequenceNode::SafeDownCast( this->GetMRMLScene()->CreateNodeByClass("vtkMRMLSequenceNode") );
     this->GetMRMLScene()->AddNode( sequenceNode );
     sequenceNode->Delete(); // Can release the pointer - ownership has been transferred to the scene
-    if (virtualNode!=NULL)
+    if (proxyNode!=NULL)
     {
       std::stringstream sequenceNodeName;
-      sequenceNodeName << virtualNode->GetName() << "-Sequence";
+      sequenceNodeName << proxyNode->GetName() << "-Sequence";
       sequenceNode->SetName(sequenceNodeName.str().c_str());
     }
   }
@@ -411,12 +415,12 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
 
   if (!browserNode->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), true))
   {
-    std::string virtualRolePostfix = browserNode->AddSynchronizedSequenceNode(sequenceNode->GetID());
+    browserNode->AddSynchronizedSequenceNodeID(sequenceNode->GetID());
   }
-  if (virtualNode!=NULL)
+  if (proxyNode!=NULL)
   {
     std::vector< vtkMRMLDisplayNode* > displayNodes;
-    vtkMRMLDisplayableNode* virtualDisplayableNode = vtkMRMLDisplayableNode::SafeDownCast(virtualNode);
+    vtkMRMLDisplayableNode* virtualDisplayableNode = vtkMRMLDisplayableNode::SafeDownCast(proxyNode);
     if (virtualDisplayableNode != NULL)
     {
       for (int i=0; i<virtualDisplayableNode->GetNumberOfDisplayNodes(); i++)
@@ -424,7 +428,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
         displayNodes.push_back(virtualDisplayableNode->GetNthDisplayNode(i));
       }
     }
-    browserNode->AddVirtualOutputNodes(virtualNode, displayNodes, sequenceNode, false);
+    browserNode->AddProxyNode(proxyNode, displayNodes, sequenceNode, false);
   }
 
 }
@@ -439,40 +443,40 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
     return;
   }
 
-  this->UpdateVirtualOutputNodes(browserNode, vtkMRMLSequenceBrowserNode::Playback);
+  this->UpdateProxyNodes(browserNode);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source)
+void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source, bool deepCopyData/*=false*/)
 {
   int oldModified=target->StartModify();
-  if (target->IsA("vtkMRMLScalarVolumeNode"))
+  if (target->IsA("vtkMRMLVolumeNode")) // Note: vtkMRMLLabelMapVolumeNode is a subclass of vtkMRMLScalarVolumeNode
   {
-    vtkMRMLScalarVolumeNode* targetScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(target);
-    vtkMRMLScalarVolumeNode* sourceScalarVolumeNode=vtkMRMLScalarVolumeNode::SafeDownCast(source);
+    vtkMRMLVolumeNode* targetVolumeNode=vtkMRMLVolumeNode::SafeDownCast(target);
+    vtkMRMLVolumeNode* sourceVolumeNode=vtkMRMLVolumeNode::SafeDownCast(source);
     // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
-    sourceScalarVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
-    targetScalarVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    targetScalarVolumeNode->SetName(sourceScalarVolumeNode->GetName());
-    targetScalarVolumeNode->SetAndObserveImageData(sourceScalarVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
-  }
-  else if (target->IsA("vtkMRMLLabelMapVolumeNode"))
-  {
-    vtkMRMLLabelMapVolumeNode* targetLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(target);
-    vtkMRMLLabelMapVolumeNode* sourceLabelMapVolumeNode=vtkMRMLLabelMapVolumeNode::SafeDownCast(source);
-    // targetLabelMapVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
-    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
-    sourceLabelMapVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
-    targetLabelMapVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    targetLabelMapVolumeNode->SetName(sourceLabelMapVolumeNode->GetName());
-    targetLabelMapVolumeNode->SetAndObserveImageData(sourceLabelMapVolumeNode->GetImageData()); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
+    sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
+    targetVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
+    vtkSmartPointer<vtkImageData> targetImageData = sourceVolumeNode->GetImageData();    
+    if ( deepCopyData )
+    {
+      targetImageData = sourceVolumeNode->GetImageData()->NewInstance();
+      targetImageData->DeepCopy(sourceVolumeNode->GetImageData());    
+    }
+    targetVolumeNode->SetAndObserveImageData(targetImageData); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
   }
   else if (target->IsA("vtkMRMLModelNode"))
   {
     vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
-    targetModelNode->SetAndObservePolyData(sourceModelNode->GetPolyData());
+    vtkSmartPointer<vtkPolyData> targetPolyData = sourceModelNode->GetPolyData();    
+    if ( deepCopyData )
+    {
+      targetPolyData = sourceModelNode->GetPolyData()->NewInstance();
+      targetPolyData->DeepCopy(sourceModelNode->GetPolyData());    
+    }
+    targetModelNode->SetAndObservePolyData(targetPolyData);
   }
   else if (target->IsA("vtkMRMLMarkupsFiducialNode"))
   {
@@ -484,8 +488,13 @@ void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode
   {
     vtkMRMLTransformNode* targetTransformNode=vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode=vtkMRMLTransformNode::SafeDownCast(source);
-    vtkAbstractTransform* transform=sourceTransformNode->GetTransformToParent();
-    targetTransformNode->SetAndObserveTransformToParent(transform);
+    vtkSmartPointer<vtkAbstractTransform> targetAbstractTransform = sourceTransformNode->GetTransformToParent();    
+    if ( deepCopyData )
+    {
+      targetAbstractTransform = sourceTransformNode->GetTransformToParent()->NewInstance();
+      targetAbstractTransform->DeepCopy(sourceTransformNode->GetTransformToParent());    
+    }
+    targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
   }
   else if (target->IsA("vtkMRMLCameraNode"))
   {
