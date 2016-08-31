@@ -18,6 +18,7 @@
 // MRMLSequence includes
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
+#include "vtkMRMLVolumeSequenceStorageNode.h"
 
 // MRML includes
 #include <vtkMRMLDisplayableNode.h>
@@ -27,6 +28,7 @@
 
 // VTK includes
 #include <vtkCollection.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 
 // STD includes
@@ -405,34 +407,34 @@ std::string vtkMRMLSequenceNode::GetDataNodeClassName()
   {
     return "";
   }
-  // All the nodes should be of the same class, so just get the class from the first one
-  vtkMRMLNode* node=this->IndexEntries[0].DataNode;
-  if (node==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetDataNodeClassName node is invalid");
-    return "";
-  }
-  const char* className=node->GetClassName();
-  return SAFE_CHAR_POINTER(className);
+// All the nodes should be of the same class, so just get the class from the first one
+vtkMRMLNode* node = this->IndexEntries[0].DataNode;
+if (node == NULL)
+{
+  vtkErrorMacro("vtkMRMLSequenceNode::GetDataNodeClassName node is invalid");
+  return "";
+}
+const char* className = node->GetClassName();
+return SAFE_CHAR_POINTER(className);
 }
 
 //-----------------------------------------------------------------------------
 std::string vtkMRMLSequenceNode::GetDataNodeTagName()
 {
-  std::string undefinedReturn="undefined";
+  std::string undefinedReturn = "undefined";
   if (this->IndexEntries.empty())
   {
     return undefinedReturn;
   }
   // All the nodes should be of the same class, so just get the class from the first one
-  vtkMRMLNode* node=this->IndexEntries[0].DataNode;
-  if (node==NULL)
+  vtkMRMLNode* node = this->IndexEntries[0].DataNode;
+  if (node == NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::GetDataNodeClassName node is invalid");
     return undefinedReturn;
   }
-  const char* tagName=node->GetNodeTagName();
-  if (tagName==NULL)
+  const char* tagName = node->GetNodeTagName();
+  if (tagName == NULL)
   {
     return undefinedReturn;
   }
@@ -442,9 +444,9 @@ std::string vtkMRMLSequenceNode::GetDataNodeTagName()
 //-----------------------------------------------------------------------------
 vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int itemNumber)
 {
-  if (this->IndexEntries.size()<=itemNumber)
+  if (this->IndexEntries.size() <= itemNumber)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: itemNumber "<<itemNumber<<" is out of range");
+    vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: itemNumber " << itemNumber << " is out of range");
     return NULL;
   }
   return this->IndexEntries[itemNumber].DataNode;
@@ -454,34 +456,34 @@ vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int itemNumber)
 void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &displayNodes, const char* indexValue)
 {
   displayNodes.clear();
-  if (indexValue==NULL)
+  if (indexValue == NULL)
   {
-    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid index value"); 
+    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid index value");
     return;
   }
-  if (this->SequenceScene==NULL)
+  if (this->SequenceScene == NULL)
   {
     vtkErrorMacro("GetDisplayNodesAtValue failed, invalid scene");
     return;
   }
-  int seqItemIndex=GetSequenceItemIndex(indexValue);
-  if (seqItemIndex<0)
+  int seqItemIndex = GetSequenceItemIndex(indexValue);
+  if (seqItemIndex < 0)
   {
     // sequence item is not found
     return;
   }
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[seqItemIndex].DataNode);
-  if (displayableNode==NULL)
+  vtkMRMLDisplayableNode* displayableNode = vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[seqItemIndex].DataNode);
+  if (displayableNode == NULL)
   {
     // not a displayable node, so there are no display nodes
     return;
   }
-  int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-  for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
+  int numOfDisplayNodes = displayableNode->GetNumberOfDisplayNodes();
+  for (int displayNodeIndex = 0; displayNodeIndex < numOfDisplayNodes; displayNodeIndex++)
   {
-    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
+    vtkMRMLDisplayNode* displayNode = vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
     displayNodes.push_back(displayNode);
-  }  
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -494,6 +496,27 @@ vtkMRMLScene* vtkMRMLSequenceNode::GetSequenceScene()
 vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
 {
   return vtkMRMLSequenceStorageNode::New();
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* filename /* =NULL */)
+{
+  // Use specific volume sequence storage node, if possible
+  vtkNew<vtkMRMLVolumeSequenceStorageNode> volumeSequenceStorageNode;
+  bool volumeSequenceStorageNodeCompatibleFilename = true;
+  if (filename)
+    {
+    if (volumeSequenceStorageNode->GetSupportedFileExtension(filename, false, true).empty())
+      {
+      volumeSequenceStorageNodeCompatibleFilename = false;
+      }
+    }
+  if (volumeSequenceStorageNodeCompatibleFilename && volumeSequenceStorageNode->CanWriteFromReferenceNode(this))
+    {
+    return "vtkMRMLVolumeSequenceStorageNode";
+    }
+  // Use generic storage node
+  return "vtkMRMLSequenceStorageNode";
 }
 
 //-----------------------------------------------------------

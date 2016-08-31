@@ -79,7 +79,7 @@ qSlicerIO::IOFileType qSlicerVolumeSequenceImporterIO::fileType() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerVolumeSequenceImporterIO::extensions() const
 {
-  return QStringList() << "Volume Sequence (*.nrrd *.nhdr)";
+  return QStringList() << "Volume Sequence (*.seq.nrrd *.seq.nhdr)" << "Volume Sequence (*.nrrd *.nhdr)";
 }
 
 //-----------------------------------------------------------------------------
