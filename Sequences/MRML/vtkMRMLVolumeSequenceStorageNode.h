@@ -34,6 +34,9 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode :
 
   /// Return true if the node can be read in.
   virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
+
+  /// Return true if the node can be written by using thie writer.
+  virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode);
   virtual int WriteDataInternal(vtkMRMLNode *refNode);
 
   ///
@@ -51,6 +54,12 @@ protected:
   /// This implementation delegates most everything to the superclass
   /// but it has an early exit if the file to be read is incompatible.
   virtual int ReadDataInternal(vtkMRMLNode* refNode);
+  
+  /// Initialize all the supported write file types
+  virtual void InitializeSupportedReadFileTypes();
+
+  /// Initialize all the supported write file types
+  virtual void InitializeSupportedWriteFileTypes();
 };
 
 #endif

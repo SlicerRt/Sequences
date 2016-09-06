@@ -23,7 +23,7 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkImageData.h"
 #include "vtkImageExtractComponents.h"
 #include "vtkNew.h"
-
+#include "vtkStringArray.h"
 
 //----------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLVolumeSequenceStorageNode);
@@ -143,6 +143,87 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
 }
 
 //----------------------------------------------------------------------------
+bool vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode(vtkMRMLNode *refNode)
+{
+  vtkMRMLSequenceNode* volSequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
+  if (volSequenceNode == NULL)
+    {
+    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: invalid volSequenceNode");
+    return false;
+    }
+  if (volSequenceNode->GetNumberOfDataNodes() == 0)
+    {
+    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: no data nodes");
+    return false;
+    }
+
+  vtkMRMLVolumeNode* firstFrameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(0));
+  if (firstFrameVolume == NULL)
+    {
+    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only volume nodes can be written");
+    return false;
+    }
+
+  int firstFrameVolumeExtent[6] = { 0, -1, 0, -1, 0, -1 };
+  int firstFrameVolumeScalarType = VTK_VOID;
+  int firstFrameVolumeNumberOfComponents = 0;
+  if (firstFrameVolume->GetImageData())
+    {
+    firstFrameVolume->GetImageData()->GetExtent(firstFrameVolumeExtent);
+    firstFrameVolumeScalarType = firstFrameVolume->GetImageData()->GetScalarType();
+    firstFrameVolumeNumberOfComponents = firstFrameVolume->GetImageData()->GetNumberOfScalarComponents();
+    if (firstFrameVolumeNumberOfComponents != 1)
+      {
+      vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only single scalar component volumes can be written by VTK NRRD writer");
+      return false;
+      }
+    }
+
+  int numberOfFrameVolumes = volSequenceNode->GetNumberOfDataNodes();
+  for (int frameIndex = 1; frameIndex<numberOfFrameVolumes; frameIndex++)
+    {
+    vtkMRMLVolumeNode* currentFrameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(frameIndex));
+    if (currentFrameVolume == NULL)
+      {
+      vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only volume nodes can be written (frame "<<frameIndex<<")");
+      return false;
+      }
+    vtkNew<vtkMatrix4x4> currentVolumeIjkToRas;
+    currentFrameVolume->GetIJKToRASMatrix(currentVolumeIjkToRas.GetPointer());
+
+    int currentFrameVolumeExtent[6] = { 0, -1, 0, -1, 0, -1 };
+    int currentFrameVolumeScalarType = VTK_VOID;
+    int currentFrameVolumeNumberOfComponents = 0;
+    if (currentFrameVolume->GetImageData())
+      {
+      currentFrameVolume->GetImageData()->GetExtent(currentFrameVolumeExtent);
+      currentFrameVolumeScalarType = currentFrameVolume->GetImageData()->GetScalarType();
+      currentFrameVolumeNumberOfComponents = currentFrameVolume->GetImageData()->GetNumberOfScalarComponents();
+      }
+    for (int i = 0; i < 6; i++)
+      {
+      if (firstFrameVolumeExtent[i] != currentFrameVolumeExtent[i])
+        {
+        vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: extent mismatch (frame " << frameIndex << ")");
+        return false;
+        }
+      }
+    if (currentFrameVolumeScalarType != firstFrameVolumeScalarType)
+      {
+      vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: scalar type mismatch (frame " << frameIndex << ")");
+      return false;
+      }
+    if (currentFrameVolumeNumberOfComponents != firstFrameVolumeNumberOfComponents)
+      {
+      vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: number of components mismatch (frame " << frameIndex << ")");
+      return false;
+      }
+    }
+
+  return true;
+}
+
+//----------------------------------------------------------------------------
 int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 {
   vtkMRMLSequenceNode* volSequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
@@ -246,7 +327,25 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 }
 
 //----------------------------------------------------------------------------
+void vtkMRMLVolumeSequenceStorageNode::InitializeSupportedReadFileTypes()
+{
+  this->SupportedReadFileTypes->InsertNextValue("Volume sequence (.seq.nrrd)");
+  this->SupportedReadFileTypes->InsertNextValue("Volume sequence (.seq.nhdr)");
+  this->SupportedReadFileTypes->InsertNextValue("Volume sequence (.nrrd)");
+  this->SupportedReadFileTypes->InsertNextValue("Volume sequence (.nhdr)");
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLVolumeSequenceStorageNode::InitializeSupportedWriteFileTypes()
+{
+  this->SupportedWriteFileTypes->InsertNextValue("Volume sequence (.seq.nrrd)");
+  this->SupportedWriteFileTypes->InsertNextValue("Volume sequence (.seq.nhdr)");
+  this->SupportedWriteFileTypes->InsertNextValue("Volume sequence (.nrrd)");
+  this->SupportedWriteFileTypes->InsertNextValue("Volume sequence (.nhdr)");
+}
+
+//----------------------------------------------------------------------------
 const char* vtkMRMLVolumeSequenceStorageNode::GetDefaultWriteFileExtension()
 {
-  return "nrrd";
+  return "seq.nrrd";
 }

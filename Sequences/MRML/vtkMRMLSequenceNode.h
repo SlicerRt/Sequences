@@ -117,6 +117,10 @@ public:
 
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
+  /// Returns vtkMRMLVolumeSequenceStorageNode if applicable (sequence contains volumes with the same type and geometry)
+  /// and generic vtkMRMLSequenceStorageNode otherwise.
+  virtual std::string GetDefaultStorageNodeClassName(const char* filename = NULL);
+
   virtual void UpdateScene(vtkMRMLScene *scene);
 
   /// Type of the index. Controls the behavior of sorting, finding, etc. Additional types may be added in the future, such as tag cloud, two-dimensional index, ...

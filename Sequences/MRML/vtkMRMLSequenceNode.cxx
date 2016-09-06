@@ -19,6 +19,7 @@
 #include "vtkMRMLNodeSequencer.h"
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
+#include "vtkMRMLVolumeSequenceStorageNode.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -26,6 +27,7 @@
 // VTK includes
 #include <vtkNew.h>
 #include <vtkCollection.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 //#include <vtkImageData.h>
 #include <vtkSmartPointer.h>
@@ -462,6 +464,27 @@ vtkMRMLScene* vtkMRMLSequenceNode::GetSequenceScene()
 vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
 {
   return vtkMRMLSequenceStorageNode::New();
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* filename /* =NULL */)
+{
+  // Use specific volume sequence storage node, if possible
+  vtkNew<vtkMRMLVolumeSequenceStorageNode> volumeSequenceStorageNode;
+  bool volumeSequenceStorageNodeCompatibleFilename = true;
+  if (filename)
+    {
+    if (volumeSequenceStorageNode->GetSupportedFileExtension(filename, false, true).empty())
+      {
+      volumeSequenceStorageNodeCompatibleFilename = false;
+      }
+    }
+  if (volumeSequenceStorageNodeCompatibleFilename && volumeSequenceStorageNode->CanWriteFromReferenceNode(this))
+    {
+    return "vtkMRMLVolumeSequenceStorageNode";
+    }
+  // Use generic storage node
+  return "vtkMRMLSequenceStorageNode";
 }
 
 //-----------------------------------------------------------
