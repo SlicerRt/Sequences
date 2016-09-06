@@ -97,10 +97,6 @@ bool qSlicerVolumeSequenceImporterIO::load(const IOProperties& properties)
   bool success = d->MetafileImporterLogic->ReadVolumeSequence( fileName.toStdString(), &browserNode );
   if (success && browserNode != NULL)
   {
-    // if save changes are allowed then proxy nodes are updated using shallow copy, which is faster
-    browserNode->SetSaveChanges(browserNode->GetMasterSequenceNode(), true);
-    // Hide recording buttons
-    browserNode->SetRecording(browserNode->GetMasterSequenceNode(), false);
     qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
   }
   return success;

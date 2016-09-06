@@ -88,16 +88,16 @@ protected:
 
   /*! Read all the fields in the metaimage file header */
   bool ReadSequenceMetafileTransforms(const std::string& fileName, const std::string &baseNodeName,
-    std::deque< vtkMRMLNode* > &createdNodes, std::map< int, std::string >& frameNumberToIndexValueMap);
+    std::deque< vtkMRMLSequenceNode* > &createdNodes, std::map< int, std::string >& frameNumberToIndexValueMap);
 
   /*! Read pixel data from the metaimage. Returns the pointer to the created image sequence. */
-  vtkMRMLNode* ReadSequenceMetafileImages(const std::string& fileName, const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap );
+  vtkMRMLSequenceNode* ReadSequenceMetafileImages(const std::string& fileName, const std::string &baseNodeName, std::map< int, std::string >& frameNumberToIndexValueMap );
 
   /*! Write pixel data to the metaimage. Returns the pointer to the created image sequence. */
-  void WriteSequenceMetafileImages(const std::string& fileName, vtkMRMLNode* imageNode, vtkMRMLNode* masterNode);
+  void WriteSequenceMetafileImages(const std::string& fileName, vtkMRMLSequenceNode* imageNode, vtkMRMLSequenceNode* masterNode);
 
   /*! Write the transform fields to the metaimage header. */
-  void WriteSequenceMetafileTransforms(const std::string& fileName, std::deque< vtkMRMLNode* > &transformNodes, vtkMRMLNode* masterNode, vtkMRMLNode* imageNode);
+  void WriteSequenceMetafileTransforms(const std::string& fileName, std::deque< vtkMRMLSequenceNode* > &transformNodes, vtkMRMLSequenceNode* masterNode, vtkMRMLSequenceNode* imageNode);
 
   /*! Generate a node name that contains the hierarchy name and index value */
   std::string GenerateDataNodeName(const std::string &dataItemName, const std::string& indexValue);

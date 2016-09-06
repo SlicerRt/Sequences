@@ -58,9 +58,9 @@ struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
 {
   SynchronizationProperties():
     Playback(true),
-    Recording(true),
+    Recording(false), // to only show recording controls if it's explicitly asked by the user
     OverwriteProxyName(true),
-    SaveChanges(false)
+    SaveChanges(true) // for performance reasons
   {
   }
   
