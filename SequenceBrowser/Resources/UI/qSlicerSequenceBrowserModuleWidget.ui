@@ -131,7 +131,7 @@
         </column>
         <column>
          <property name="text">
-          <string>Node</string>
+          <string>Proxy node</string>
          </property>
          <property name="toolTip">
           <string>The &quot;proxy&quot; node for the sequence (the node to playback into or record from).</string>

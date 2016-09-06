@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>334</width>
-    <height>42</height>
+    <width>662</width>
+    <height>82</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -51,20 +51,6 @@
       <iconset resource="../qSlicerSequenceBrowserModuleWidgets.qrc">
        <normaloff>:/Icons/pqVcrPlay24.png</normaloff>
        <normalon>:/Icons/pqVcrPause24.png</normalon>:/Icons/pqVcrPlay24.png</iconset>
-     </property>
-     <property name="checkable">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="pushButton_VcrRecord">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="../qSlicerSequenceBrowserModuleWidgets.qrc">
-       <normaloff>:/Icons/VcrRecord16.png</normaloff>:/Icons/VcrRecord16.png</iconset>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -126,6 +112,37 @@
      </property>
      <property name="checkable">
       <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="pushButton_VcrRecord">
+     <property name="toolTip">
+      <string>Enable continuous recording of proxy nodes modifications</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerSequenceBrowserModuleWidgets.qrc">
+       <normaloff>:/Icons/VcrRecord16.png</normaloff>:/Icons/VcrRecord16.png</iconset>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="pushButton_Snapshot">
+     <property name="toolTip">
+      <string>Add a snapshot of current state of all proxy nodes</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerSequenceBrowserModuleWidgets.qrc">
+       <normaloff>:/Icons/pqCamera24.png</normaloff>:/Icons/pqCamera24.png</iconset>
      </property>
     </widget>
    </item>

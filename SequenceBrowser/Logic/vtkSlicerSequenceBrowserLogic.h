@@ -73,8 +73,6 @@ protected:
 
   bool IsDataConnectorNode(vtkMRMLNode*);
 
-  void ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source, bool deepCopyData=false);
-
   // Time of the last update of each browser node (in universal time)
   std::map< vtkMRMLSequenceBrowserNode*, double > LastSequenceBrowserUpdateTimeSec;
 

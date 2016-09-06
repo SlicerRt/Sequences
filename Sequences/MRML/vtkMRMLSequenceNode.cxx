@@ -16,21 +16,19 @@
 ==============================================================================*/
 
 // MRMLSequence includes
+#include "vtkMRMLNodeSequencer.h"
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
 
 // MRML includes
-#include <vtkMRMLDisplayableNode.h>
-#include <vtkMRMLDisplayNode.h>
-#include <vtkMRMLScalarVolumeDisplayNode.h>
-#include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLScene.h>
 
 // VTK includes
 #include <vtkNew.h>
 #include <vtkCollection.h>
 #include <vtkObjectFactory.h>
-#include <vtkImageData.h>
+//#include <vtkImageData.h>
+#include <vtkSmartPointer.h>
 #include <vtkTimerLog.h>
 
 // STD includes
@@ -191,8 +189,8 @@ void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
 // Does NOT copy: ID, FilePrefix, Name, VolumeID
 void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
 {
+  int wasModified = this->StartModify();
   Superclass::Copy(anode);
-  this->DisableModifiedEventOn();
 
   vtkMRMLSequenceNode *snode = (vtkMRMLSequenceNode *) anode;
 
@@ -211,7 +209,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
       vtkErrorMacro("Invalid node in vtkMRMLSequenceNode");
       continue;
     }
-    this->SequenceScene->CopyNode(node);
+    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->DeepCopyNodeToScene(node, this->SequenceScene);
   }
 
   this->IndexEntries.clear();
@@ -236,8 +234,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
     this->IndexEntries.push_back(seqItem);
   }  
 
-  this->DisableModifiedEventOff();
-  this->InvokePendingModifiedEvent();
+  this->EndModify(wasModified);
 }
 
 //----------------------------------------------------------------------------
@@ -247,84 +244,53 @@ void vtkMRMLSequenceNode::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceNode::CopyNode(vtkMRMLNode* n)
+void vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const char* indexValue, bool shallowCopy /* = false */)
 {
-  if (n==NULL)
+  if (node==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::CopyNode failed, invalid node"); 
-    return NULL;
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid node"); 
+    return;
   }
-  std::string newNodeName = this->SequenceScene->GetUniqueNameByString(n->GetName() ? n->GetName() : "Sequence");
-  vtkMRMLNode* newNode=this->SequenceScene->CopyNode(n);
-  newNode->SetName(newNodeName.c_str()); // Make sure all the node names in the sequence's scene are unique for saving purposes
-
-  int disabledModify = newNode->StartModify();
-
-  // Need to deep copy the image data if it is a volume node
-  vtkMRMLVolumeNode* volumeNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
-  if (volumeNode!=NULL)
+  if (indexValue==NULL)
   {
-    // Need to get a observe a copy of the image data (this is OK even if it is NULL)
-    vtkNew<vtkImageData> imageDataCopy;
-    imageDataCopy->DeepCopy(volumeNode->GetImageData());
-    volumeNode->SetAndObserveImageData(imageDataCopy.GetPointer());
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid indexValue"); 
+    return;
   }
-
-  // Copy display nodes if relevant displayable node
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(n);
-  if (displayableNode!=NULL)
+  vtkMRMLNode* nodeToBeUpdated = this->GetDataNodeAtValue(indexValue);
+  if (!nodeToBeUpdated)
   {
-    vtkMRMLDisplayableNode* newDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(newNode);
-    int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-    for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-    {
-      vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(this->CopyNode(displayableNode->GetNthDisplayNode(displayNodeIndex)));
-
-      // Performance optimization: disable auto WW/WL computation in scalar display nodes, as it computation time is very significant
-      // and it would be performed each time when switching between volumes
-      vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(displayNode);
-      if (scalarVolumeDisplayNode)
-      {
-        scalarVolumeDisplayNode->AutoWindowLevelOff();
-      }
-
-      newDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex, displayNode->GetID());
-    }
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, indexValue not found");
+    return;
   }
-
-  // Add more here if particular node types need special treatment
-
-  newNode->EndModify(disabledModify);
-  return newNode;
+  vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->CopyNode(node, nodeToBeUpdated, shallowCopy);
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue)
 {
-  if (node==NULL)
+  if (node == NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid node"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid node");
     return;
   }
-  if (indexValue==NULL)
+  if (indexValue == NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid indexValue"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid indexValue");
     return;
   }
 
   // Add a copy of the node to the sequence's scene
-  vtkMRMLNode* newNode=this->CopyNode(node);
-
-  int seqItemIndex=GetSequenceItemIndex(indexValue);
+  vtkMRMLNode* newNode = vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->DeepCopyNodeToScene(node, this->SequenceScene);
+  int seqItemIndex = GetSequenceItemIndex(indexValue);
   if (seqItemIndex<0)
   {
     // The sequence item doesn't exist yet
     IndexEntryType seqItem;
-    seqItem.IndexValue=indexValue;
+    seqItem.IndexValue = indexValue;
     this->IndexEntries.push_back(seqItem);
-    seqItemIndex=this->IndexEntries.size()-1;
+    seqItemIndex = this->IndexEntries.size() - 1;
   }
-  this->IndexEntries[seqItemIndex].DataNode=newNode;
+  this->IndexEntries[seqItemIndex].DataNode = newNode;
   this->IndexEntries[seqItemIndex].DataNodeID.clear();
 }
 
@@ -484,40 +450,6 @@ vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int itemNumber)
     return NULL;
   }
   return this->IndexEntries[itemNumber].DataNode;
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLSequenceNode::GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &displayNodes, const char* indexValue)
-{
-  displayNodes.clear();
-  if (indexValue==NULL)
-  {
-    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid index value"); 
-    return;
-  }
-  if (this->SequenceScene==NULL)
-  {
-    vtkErrorMacro("GetDisplayNodesAtValue failed, invalid scene");
-    return;
-  }
-  int seqItemIndex=GetSequenceItemIndex(indexValue);
-  if (seqItemIndex<0)
-  {
-    // sequence item is not found
-    return;
-  }
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(this->IndexEntries[seqItemIndex].DataNode);
-  if (displayableNode==NULL)
-  {
-    // not a displayable node, so there are no display nodes
-    return;
-  }
-  int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-  for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-  {
-    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
-    displayNodes.push_back(displayNode);
-  }  
 }
 
 //-----------------------------------------------------------------------------

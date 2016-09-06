@@ -28,12 +28,9 @@
 
 #include "vtkSlicerSequencesModuleMRMLExport.h"
 
-class vtkMRMLDisplayNode;
-
 /// \brief MRML node for representing a sequence of MRML nodes
 ///
-/// This node contains a sequence of nodes (data nodes) and additional
-/// referenced nodes, typically display nodes.
+/// This node contains a sequence of nodes (data nodes).
 ///
 /// The data nodes can be referred to by an index, for example:
 /// IndexName: time
@@ -66,9 +63,6 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "Sequence";};
 
-  /// Create a copy of an input node, ensuring the necessary data is copied for storing in the sequence
-  vtkMRMLNode* CopyNode(vtkMRMLNode* n);
-
   /// Set index name (example: time)
   vtkSetStringMacro(IndexName);
   /// Get index name (example: time)
@@ -90,8 +84,12 @@ public:
   static const char* GetIndexTypeAsString(int indexType);
   static int GetIndexTypeFromString(const char* indexTypeString);
 
-  /// Add a copy of the provided node to this sequence as a data node
+  /// Add a copy of the provided node to this sequence as a data node.
+  /// Always deep-copy.
   void SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue);
+
+  /// Update an existing data node
+  void UpdateDataNodeAtValue(vtkMRMLNode* node, const char* indexValue, bool shallowCopy = false);
 
   void RemoveDataNodeAtValue(const char* indexValue);
 
@@ -99,9 +97,6 @@ public:
 
   /// Get the node corresponding to the specified index value
   vtkMRMLNode* GetDataNodeAtValue(const char* indexValue);
-
-  /// Get the all the display nodes corresponding to the specified index value
-  void GetDisplayNodesAtValue(std::vector< vtkMRMLDisplayNode* > &dataNodes, const char* indexValue);
 
   /// Get the data node corresponding to the n-th index value
   vtkMRMLNode* GetNthDataNode(int itemNumber);
@@ -131,8 +126,6 @@ public:
     TextIndex,
     NumberOfIndexTypes // this line must be the last one
   };
-
-public:
 
 protected:
   vtkMRMLSequenceNode();
@@ -164,7 +157,6 @@ protected:
 
   /// List of data items (the scene may contain some more nodes, such as storage nodes)
   std::deque< IndexEntryType > IndexEntries;
-
 };
 
 #endif

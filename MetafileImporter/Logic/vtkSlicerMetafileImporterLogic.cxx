@@ -683,9 +683,16 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
       sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
     }
     // Show output volume in the slice viewer
-    vtkMRMLNode* masterProxyNode=sequenceBrowserNode->GetProxyNode(vtkMRMLSequenceNode::SafeDownCast(masterNode));
-    if (masterProxyNode->IsA("vtkMRMLVolumeNode"))
+    vtkMRMLVolumeNode* masterProxyNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(vtkMRMLSequenceNode::SafeDownCast(masterNode)));
+    if (masterProxyNode)
     {
+      masterProxyNode->CreateDefaultDisplayNodes();
+      vtkMRMLScalarVolumeDisplayNode* displayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(masterProxyNode->GetDisplayNode());
+      if (displayNode)
+      {
+        // for performance optimization
+        displayNode->AutoWindowLevelOff();
+      }
       vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
       vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
       if (selectionNode)
@@ -696,7 +703,6 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
           appLogic->PropagateVolumeSelection();
           appLogic->FitSliceToAll();
         }
-        sequenceBrowserNode->ScalarVolumeAutoWindowLevelOff(); // for performance optimization
       }
     }
   }
@@ -833,9 +839,16 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   }
 
   // Show output volume in the slice viewer
-  vtkMRMLNode* masterProxyNode=sequenceBrowserNode->GetProxyNode(volumeSequenceNode.GetPointer());
-  if (masterProxyNode->IsA("vtkMRMLVolumeNode"))
+  vtkMRMLVolumeNode* masterProxyNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(volumeSequenceNode.GetPointer()));
+  if (masterProxyNode)
   {
+    masterProxyNode->CreateDefaultDisplayNodes();
+    vtkMRMLScalarVolumeDisplayNode* displayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(masterProxyNode->GetDisplayNode());
+    if (displayNode)
+    {
+      // for performance optimization
+      displayNode->AutoWindowLevelOff();
+    }
     vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
     vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
     if (selectionNode)
@@ -846,8 +859,7 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
         appLogic->PropagateVolumeSelection();
         appLogic->FitSliceToAll();
       }
-      sequenceBrowserNode->ScalarVolumeAutoWindowLevelOff(); // for performance optimization
-    } 
+    }
   }
 
   return true;

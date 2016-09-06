@@ -1,5 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
   <qresource>
+    <file>Icons/pqCamera24.png</file>
     <file>Icons/pqVcrBack24.png</file>
     <file>Icons/pqVcrFirst24.png</file>
     <file>Icons/pqVcrForward24.png</file>

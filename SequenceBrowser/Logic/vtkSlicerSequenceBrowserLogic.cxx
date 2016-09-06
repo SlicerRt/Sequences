@@ -19,6 +19,7 @@
 
 // Sequence Logic includes
 #include "vtkSlicerSequenceBrowserLogic.h"
+#include "vtkMRMLNodeSequencer.h"
 #include "vtkMRMLSequenceBrowserNode.h"
 #include "vtkMRMLSequenceNode.h"
 
@@ -198,6 +199,12 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     vtkWarningMacro("vtkSlicerSequenceBrowserLogic::UpdateProxyNodes failed: browserNode is invalid");
     return;
   }
+
+  if (browserNode->GetRecordingActive())
+  {
+    // don't update proxy nodes while recording (sequence is updated from proxy nodes)
+    return;
+  }
   
   if (browserNode->GetMasterSequenceNode()==NULL)
   {
@@ -262,12 +269,8 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     // Create the virtual output node (and display nodes) if it doesn't exist yet
     if (targetProxyNode==NULL)
     {
-      // Get the display nodes      
-      std::vector< vtkMRMLDisplayNode* > sourceDisplayNodes;
-      synchronizedSequenceNode->GetDisplayNodesAtValue(sourceDisplayNodes, indexValue.c_str());
-
       // Add the new data and display nodes to the virtual outputs      
-      targetProxyNode=browserNode->AddProxyNode(sourceDataNode,sourceDisplayNodes,synchronizedSequenceNode);
+      targetProxyNode=browserNode->AddProxyNode(sourceDataNode,synchronizedSequenceNode);
     }
 
     if (targetProxyNode==NULL)
@@ -300,7 +303,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodes(vtkMRMLSequenceBrowserNode*
     // Mostly it is a shallow copy (for example for volumes, models)
     std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
     nodeModifiedStates.push_back(nodeModifiedState);
-    this->ShallowCopy(targetProxyNode, sourceDataNode, !browserNode->GetSaveChanges(synchronizedSequenceNode));
+    // TODO: if we really want to force non-mutable nodes in the sequence then we have to deep-copy, but that's slow.
+    // Make sure that by default/most of the time shallow-copy is used.
+    bool shallowCopy = browserNode->GetSaveChanges(synchronizedSequenceNode);
+    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->CopyNode(sourceDataNode, targetProxyNode, shallowCopy);
 
     // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
     if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
@@ -419,16 +425,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
   }
   if (proxyNode!=NULL)
   {
-    std::vector< vtkMRMLDisplayNode* > displayNodes;
-    vtkMRMLDisplayableNode* virtualDisplayableNode = vtkMRMLDisplayableNode::SafeDownCast(proxyNode);
-    if (virtualDisplayableNode != NULL)
-    {
-      for (int i=0; i<virtualDisplayableNode->GetNumberOfDisplayNodes(); i++)
-      {
-        displayNodes.push_back(virtualDisplayableNode->GetNthDisplayNode(i));
-      }
-    }
-    browserNode->AddProxyNode(proxyNode, displayNodes, sequenceNode, false);
+    browserNode->AddProxyNode(proxyNode, sequenceNode, false);
   }
 
 }
@@ -444,79 +441,6 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
   }
 
   this->UpdateProxyNodes(browserNode);
-}
-
-//---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::ShallowCopy(vtkMRMLNode* target, vtkMRMLNode* source, bool deepCopyData/*=false*/)
-{
-  int oldModified=target->StartModify();
-  if (target->IsA("vtkMRMLVolumeNode")) // Note: vtkMRMLLabelMapVolumeNode is a subclass of vtkMRMLScalarVolumeNode
-  {
-    vtkMRMLVolumeNode* targetVolumeNode=vtkMRMLVolumeNode::SafeDownCast(target);
-    vtkMRMLVolumeNode* sourceVolumeNode=vtkMRMLVolumeNode::SafeDownCast(source);
-    // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
-    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix=vtkSmartPointer<vtkMatrix4x4>::New();
-    sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
-    targetVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
-    vtkSmartPointer<vtkImageData> targetImageData = sourceVolumeNode->GetImageData();    
-    if ( deepCopyData )
-    {
-      targetImageData = sourceVolumeNode->GetImageData()->NewInstance();
-      targetImageData->DeepCopy(sourceVolumeNode->GetImageData());    
-    }
-    targetVolumeNode->SetAndObserveImageData(targetImageData); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
-  }
-  else if (target->IsA("vtkMRMLModelNode"))
-  {
-    vtkMRMLModelNode* targetModelNode=vtkMRMLModelNode::SafeDownCast(target);
-    vtkMRMLModelNode* sourceModelNode=vtkMRMLModelNode::SafeDownCast(source);
-    vtkSmartPointer<vtkPolyData> targetPolyData = sourceModelNode->GetPolyData();    
-    if ( deepCopyData )
-    {
-      targetPolyData = sourceModelNode->GetPolyData()->NewInstance();
-      targetPolyData->DeepCopy(sourceModelNode->GetPolyData());    
-    }
-    targetModelNode->SetAndObservePolyData(targetPolyData);
-  }
-  else if (target->IsA("vtkMRMLMarkupsFiducialNode"))
-  {
-    vtkMRMLMarkupsFiducialNode* targetMarkupsFiducialNode=vtkMRMLMarkupsFiducialNode::SafeDownCast(target);
-    vtkMRMLMarkupsFiducialNode* sourceMarkupsFiducialNode=vtkMRMLMarkupsFiducialNode::SafeDownCast(source);
-    targetMarkupsFiducialNode->Copy(sourceMarkupsFiducialNode);
-  }
-  else if (target->IsA("vtkMRMLTransformNode"))
-  {
-    vtkMRMLTransformNode* targetTransformNode=vtkMRMLTransformNode::SafeDownCast(target);
-    vtkMRMLTransformNode* sourceTransformNode=vtkMRMLTransformNode::SafeDownCast(source);
-    vtkSmartPointer<vtkAbstractTransform> targetAbstractTransform = sourceTransformNode->GetTransformToParent();    
-    if ( deepCopyData )
-    {
-      targetAbstractTransform = sourceTransformNode->GetTransformToParent()->NewInstance();
-      targetAbstractTransform->DeepCopy(sourceTransformNode->GetTransformToParent());    
-    }
-    targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
-  }
-  else if (target->IsA("vtkMRMLCameraNode"))
-  {
-    vtkMRMLCameraNode* targetCameraNode=vtkMRMLCameraNode::SafeDownCast(target);
-    vtkMRMLCameraNode* sourceCameraNode=vtkMRMLCameraNode::SafeDownCast(source);
-    int disabledModify = targetCameraNode->StartModify();
-    targetCameraNode->SetPosition(sourceCameraNode->GetPosition());
-    targetCameraNode->SetFocalPoint(sourceCameraNode->GetFocalPoint());
-    targetCameraNode->SetViewUp(sourceCameraNode->GetViewUp());
-    targetCameraNode->SetParallelProjection(sourceCameraNode->GetParallelProjection());
-    targetCameraNode->SetParallelScale(sourceCameraNode->GetParallelScale());
-    // Maybe the new position and focalpoint combo doesn't fit the existing
-    // clipping range
-    targetCameraNode->ResetClippingRange();
-    targetCameraNode->EndModify(disabledModify);
-  }
-  else
-  {
-    // TODO: maybe get parent transform, display nodes, storage node, and restore it after the copy
-    target->CopyWithSingleModifiedEvent(source);
-  }
-  target->EndModify(oldModified);
 }
 
 //---------------------------------------------------------------------------

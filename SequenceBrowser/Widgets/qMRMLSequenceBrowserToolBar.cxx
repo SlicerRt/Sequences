@@ -75,7 +75,7 @@ void qMRMLSequenceBrowserToolBarPrivate::init()
   this->SequenceBrowserNodeSelector->setMaximumWidth(350);
   
   this->SequenceBrowserPlayWidget = new qMRMLSequenceBrowserPlayWidget();
-  this->SequenceBrowserPlayWidget->setMaximumWidth(350);
+  this->SequenceBrowserPlayWidget->setMaximumWidth(450);
 
   this->SequenceBrowserSeekWidget = new qMRMLSequenceBrowserSeekWidget();
   this->SequenceBrowserSeekWidget->setMinimumWidth(150);

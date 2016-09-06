@@ -35,7 +35,6 @@
 
 class vtkCollection;
 class vtkMRMLSequenceNode;
-class vtkMRMLDisplayNode;
 class vtkIntArray;
 
 class VTK_SLICER_SEQUENCEBROWSER_MODULE_MRML_EXPORT vtkMRMLSequenceBrowserNode : public vtkMRMLNode
@@ -134,17 +133,13 @@ public:
   int SelectLastItem();
 
   /// Adds proxy nodes from another scene (typically from the main scene). The data node is optionally copied.
-  vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, std::vector< vtkMRMLDisplayNode* > &displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
-  vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkCollection* displayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
+  vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
   /// Get proxy corresponding to a sequence node.
   vtkMRMLNode* GetProxyNode(vtkMRMLSequenceNode* sequenceNode);
 
   /// Get sequence node corresponding to a proxy node.
   vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* proxyNode);
-
-  void GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes);
-  void GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes);
 
   void GetAllProxyNodes(std::vector< vtkMRMLNode* > &nodes);
   void GetAllProxyNodes(vtkCollection* nodes);
@@ -158,30 +153,28 @@ public:
   // TODO: Should these methods be protected? Probably the "world" shouldn't need to know about the postfixes.
   void RemoveProxyNode(const std::string& postfix);
 
-  void RemoveProxyDisplayNodes(const std::string& postfix);
-
   void RemoveAllProxyNodes();
 
-  /// Get the synchrnization properties for the given sequence/proxy/displays tuple
+  /// Returns true if any of the sequence node is allowed to record
+  bool IsAnySequenceNodeRecording();
+
+  /// Get the synchrnization properties for the given sequence/proxy tuple
   bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
   bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
   bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);
   bool GetSaveChanges(vtkMRMLSequenceNode* sequenceNode);
 
-  /// Set the synchrnization properties for the given sequence/proxy/displays tuple
+  /// Set the synchrnization properties for the given sequence/proxy tuple
   void SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording);
   void SetPlayback(vtkMRMLSequenceNode* sequenceNode, bool playback);
   void SetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode, bool overwrite);
   void SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save);
 
-  /// Helper function for performance optimization of volume browsing
-  /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
-  /// this significantly slowing down browsing.
-  /// The method has no effect if there is no output display node or it is not scalar volume display node type.
-  void ScalarVolumeAutoWindowLevelOff();
-
   /// Process MRML node events for recording of the proxy nodes
   void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData );
+
+  /// Save state of all proxy nodes that recording is enabled for
+  virtual void SaveProxyNodesState();
 
 protected:
   vtkMRMLSequenceBrowserNode();
@@ -210,9 +203,7 @@ protected:
   double InitialTime;
   bool RecordMasterOnly;
 
-  vtkNew< vtkIntArray > RecordingEvents;
-
-  // Unique postfixes for storing references to sequence nodes, proxy nodes, proxy display nodes, and properties
+  // Unique postfixes for storing references to sequence nodes, proxy nodes, and properties
   // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix
   std::vector< std::string > SynchronizationPostfixes;
 

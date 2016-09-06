@@ -60,6 +60,7 @@ public slots:
   void onVcrPrevious();
   void onVcrNext();
   void onVcrLast();
+  void onRecordSnapshot();
 
 protected slots:
   void updateWidgetFromMRML();

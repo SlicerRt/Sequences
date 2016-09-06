@@ -22,6 +22,7 @@
 // MRMLSequence includes
 #include "vtkMRMLSequenceBrowserNode.h"
 #include "vtkMRMLSequenceNode.h"
+#include "vtkMRMLNodeSequencer.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -47,7 +48,6 @@
 // First reference is the master sequence node, subsequent references are the synchronized sequence nodes
 static const char* SEQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef"; // Old: rootNodeRef
 static const char* PROXY_NODE_REFERENCE_ROLE_BASE = "dataNodeRef"; // TODO: Change this to "proxyNodeRef", but need to maintain backwards-compatibility with "dataNodeRef"
-static const char* DISPLAY_NODES_REFERENCE_ROLE_BASE = "displayNodesRef";
 
 static const char* PROXY_NODE_COPY_ATTRIBUTE_NAME = "proxyNodeCopy";
 
@@ -56,14 +56,21 @@ static const char* PROXY_NODE_COPY_ATTRIBUTE_NAME = "proxyNodeCopy";
 // Declare the Synchronization Properties struct
 struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
 {
-  SynchronizationProperties(): Playback(true), Recording(true), OverwriteProxyName(true), SaveChanges(false) {}
+  SynchronizationProperties():
+    Playback(true),
+    Recording(true),
+    OverwriteProxyName(true),
+    SaveChanges(false)
+  {
+  }
+  
   void FromString( std::string str );
   std::string ToString();
 
   bool Playback;
   bool Recording;
-  bool OverwriteProxyName;
-  bool SaveChanges;
+  bool OverwriteProxyName; // change proxy node name during replay (includes index value)
+  bool SaveChanges; // save proxy node changes into the sequence
 };
 
 void vtkMRMLSequenceBrowserNode::SynchronizationProperties::FromString( std::string str )
@@ -128,10 +135,6 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
   this->InitialTime = vtkTimerLog::GetUniversalTime();
 
   this->LastPostfixIndex = 0;
-
-  // vtkCommand::AnyEvent grabs all of the events, but is very slow
-  this->RecordingEvents->InsertNextValue( vtkCommand::ModifiedEvent );
-  // Other events
 }
 
 //----------------------------------------------------------------------------
@@ -357,7 +360,6 @@ void vtkMRMLSequenceBrowserNode::RemoveAllProxyNodes()
     rolePostfixIt!=this->SynchronizationPostfixes.end(); ++rolePostfixIt)
   {
     this->RemoveProxyNode(*rolePostfixIt);
-    this->RemoveProxyDisplayNodes(*rolePostfixIt);
   }
   this->EndModify(oldModify);
 }
@@ -428,52 +430,7 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::GetProxyNode(vtkMRMLSequenceNode* seque
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, std::vector< vtkMRMLDisplayNode* > &displayNodes)
-{
-  displayNodes.clear();
-  vtkMRMLNode* proxyNode=this->GetProxyNode(sequenceNode);
-  if (proxyNode==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetProxyDisplayNodes failed: sequenceNode is invalid");
-    return;
-  }
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(proxyNode);
-  if (displayableNode==NULL)
-  {
-    // not a displayable node so there are no display nodes
-    return;
-  }
-  int numOfDisplayNodes=displayableNode->GetNumberOfDisplayNodes();
-  for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-  {
-    vtkMRMLDisplayNode* displayNode=vtkMRMLDisplayNode::SafeDownCast(displayableNode->GetNthDisplayNode(displayNodeIndex));
-    if (displayNode==NULL)
-    {
-      continue;
-    }
-    displayNodes.push_back(displayNode);
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetProxyDisplayNodes(vtkMRMLSequenceNode* sequenceNode, vtkCollection* displayNodes)
-{
-  if (displayNodes==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetProxyDisplayNodes failed: displayNodes is invalid");
-    return;
-  }
-  std::vector< vtkMRMLDisplayNode* > displayNodesVector;
-  this->GetProxyDisplayNodes(sequenceNode, displayNodesVector);
-  displayNodes->RemoveAllItems();
-  for (std::vector< vtkMRMLDisplayNode* >::iterator it = displayNodesVector.begin(); it != displayNodesVector.end(); ++it)
-  {
-    displayNodes->AddItem(*it);
-  }
-}
-
-//----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNode, std::vector< vtkMRMLDisplayNode* > &sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy)
+vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkMRMLSequenceNode* sequenceNode, bool copy)
 {
   if (sequenceNode==NULL)
   {
@@ -508,52 +465,10 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   }
 
   this->RemoveProxyNode(rolePostfix); // This will also remove the proxy node from the scene if necessary
-  this->SetAndObserveNodeReferenceID(proxyNodeRef.c_str(), proxyNode->GetID(), this->RecordingEvents.GetPointer());
-
-  // Add copy of the display node(s)
-  vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(proxyNode);    
-  std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+rolePostfix;
-  this->RemoveProxyDisplayNodes(rolePostfix);
-  for (std::vector< vtkMRMLDisplayNode* >::iterator sourceDisplayNodeIt=sourceDisplayNodes.begin(); sourceDisplayNodeIt!=sourceDisplayNodes.end(); ++sourceDisplayNodeIt)
-  {
-    vtkMRMLDisplayNode* sourceDisplayNode=(*sourceDisplayNodeIt);
-    vtkMRMLDisplayNode* displayNode = sourceDisplayNode;
-    if (copy)
-    {
-      displayNode = vtkMRMLDisplayNode::SafeDownCast(this->Scene->CopyNode(sourceDisplayNode));
-      displayNode->SetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME,"true"); // Indicate that this is a copy
-    }
-    if (displayNode) // Added to check if displayNode is valid
-    {
-      this->AddNodeReferenceID(displayNodesRef.c_str(), displayNode->GetID());
-      if (displayableNode)
-      {
-        displayableNode->AddAndObserveDisplayNodeID(displayNode->GetID());
-      }
-    }
-  }
+  this->SetAndObserveNodeReferenceID(proxyNodeRef.c_str(), proxyNode->GetID(), vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->GetRecordingEvents());
 
   this->EndModify(oldModify);
   return proxyNode;
-}
-
-//----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkCollection* sourceDisplayNodes, vtkMRMLSequenceNode* sequenceNode, bool copy)
-{
-  if (sourceDisplayNodes==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::AddProxyNode failed: sourceDisplayNodes is invalid");
-    return NULL;
-  }
-  std::vector< vtkMRMLDisplayNode* > sourceDisplayNodesVector;
-  vtkNew<vtkCollectionIterator> sourceDisplayNodesIt;
-  sourceDisplayNodesIt->SetCollection( sourceDisplayNodes );
-  for ( sourceDisplayNodesIt->InitTraversal(); sourceDisplayNodesIt->IsDoneWithTraversal(); sourceDisplayNodesIt->GoToNextItem() )
-  {
-    vtkMRMLDisplayNode* currDisplayNode = vtkMRMLDisplayNode::SafeDownCast( sourceDisplayNodesIt->GetCurrentObject() );
-    sourceDisplayNodesVector.push_back( currDisplayNode );
-  }
-  return this->AddProxyNode(sourceProxyNode, sourceDisplayNodesVector, sequenceNode, copy);
 }
 
 //----------------------------------------------------------------------------
@@ -626,24 +541,6 @@ void vtkMRMLSequenceBrowserNode::RemoveProxyNode(const std::string& postfix)
     }
     this->RemoveNodeReferenceIDs(proxyNodeRef.c_str());
   }
-  this->EndModify(oldModify);
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::RemoveProxyDisplayNodes(const std::string& postfix)
-{
-  bool oldModify=this->StartModify();
-  std::vector< vtkMRMLNode* > displayNodes;
-  std::string displayNodesRef=DISPLAY_NODES_REFERENCE_ROLE_BASE+postfix;
-  this->GetNodeReferences(displayNodesRef.c_str(), displayNodes);
-  for (std::vector< vtkMRMLNode* >::iterator displayNodeIt=displayNodes.begin(); displayNodeIt!=displayNodes.end(); ++displayNodeIt)
-  {
-    if ((*displayNodeIt)->GetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME)!=NULL)
-    {
-      this->Scene->RemoveNode(*displayNodeIt);
-    }  
-  }  
-  this->RemoveNodeReferenceIDs(displayNodesRef.c_str());
   this->EndModify(oldModify);
 }
 
@@ -755,7 +652,6 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode(const char* node
       this->SynchronizationPostfixes.erase(rolePostfixIt);
       this->RemoveNodeReferenceIDs(sequenceNodeRef.c_str());
       this->RemoveProxyNode(rolePostfix);
-      this->RemoveProxyDisplayNodes(rolePostfix);      
       this->EndModify(oldModify);
       return;
     }
@@ -801,28 +697,6 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(vtkCollection* syn
   for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedDataNodesVector.begin(); it != synchronizedDataNodesVector.end(); ++it)
   {
     synchronizedDataNodes->AddItem(*it);
-  }
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff()
-{
-  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
-  if (sequenceNode==NULL)
-  {
-    vtkWarningMacro("vtkMRMLSequenceBrowserNode::ScalarVolumeAutoWindowLevelOff failed: sequence node is invalid");
-    return;
-  }
-  std::vector< vtkMRMLDisplayNode* > displayNodes;
-  this->GetProxyDisplayNodes(sequenceNode, displayNodes);
-  for (std::vector< vtkMRMLDisplayNode* >::iterator displayNodePtrIt = displayNodes.begin(); displayNodePtrIt != displayNodes.end(); ++displayNodePtrIt)
-  {
-    vtkMRMLScalarVolumeDisplayNode *scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(*displayNodePtrIt);
-    if (scalarVolumeDisplayNode==NULL)
-    {
-      continue;
-    }
-    scalarVolumeDisplayNode->AutoWindowLevelOff();
   }
 }
 
@@ -927,42 +801,81 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
 void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData )
 {
   this->vtkMRMLNode::ProcessMRMLEvents( caller, event, callData );
-  
-  // Do nothing if the node is not recording
-  if (!this->GetRecordingActive())
-  {
-    return;
-  }
-  // Make sure it was a virtual output data node
+
   vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(caller);
-  if (modifiedNode==NULL || !this->IsProxyNode(modifiedNode->GetID()))
+  if (modifiedNode == NULL || !this->IsProxyNode(modifiedNode->GetID()))
   {
+    // we are only interested in proxy node modified events
     return;
   }
 
-  // If we only record when the master node is modified, then skip if it was not the master node that was modified
-  const char* masterVirtualOutputNodeID = this->GetProxyNode(this->GetMasterSequenceNode())->GetID();
-  if (this->GetRecordMasterOnly() && strcmp(modifiedNode->GetID(), masterVirtualOutputNodeID)!=0)
+  // Record proxy node state into new sequence item
+  if (this->GetRecordingActive())
   {
+    // If we only record when the master node is modified, then skip if it was not the master node that was modified
+    const char* masterVirtualOutputNodeID = this->GetProxyNode(this->GetMasterSequenceNode())->GetID();
+    if (!this->GetRecordMasterOnly() || strcmp(modifiedNode->GetID(), masterVirtualOutputNodeID) == 0)
+    {
+      this->SaveProxyNodesState();
+    }
     return;
   }
 
-  // To maintain syncing, we need to record for all sequences at every given timestamp
+  // Update sequence item from proxy node
+  vtkMRMLSequenceNode* sequenceNode = this->GetSequenceNode(modifiedNode);
+  if (!this->GetPlaybackActive() && sequenceNode && this->GetSaveChanges(sequenceNode))
+  {    
+    sequenceNode->UpdateDataNodeAtValue(modifiedNode, sequenceNode->GetNthIndexValue(this->GetSelectedItemNumber()).c_str(), true /* shallow copy*/);
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SaveProxyNodesState()
+{
   std::stringstream currTime;
-  currTime << ( vtkTimerLog::GetUniversalTime() - this->InitialTime );
+  bool continuousRecording = this->GetRecordingActive();
+  if (continuousRecording)
+  {
+    // Continuous recording.
+    // To maintain syncing, we need to record for all sequences at every given timestamp.
+    currTime << (vtkTimerLog::GetUniversalTime() - this->InitialTime);
+  }
+  else
+  {
+    // Recording a single snapshot
+    // TODO: add support for non-numeric index type
+    double lastItemTime = 0;
+    if (this->GetMasterSequenceNode()->GetNumberOfDataNodes() > 0)
+    {
+      std::stringstream timeString;
+      timeString << this->GetMasterSequenceNode()->GetNthIndexValue(this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1);
+      timeString >> lastItemTime;
+    }
+    double playbackRateFps = this->GetPlaybackRateFps() != 0.0 ? this->GetPlaybackRateFps() : 1.0;
+    currTime << lastItemTime + 1.0 / playbackRateFps;
+  }
 
   // Record into each sequence
+  int wasModified = this->StartModify();
   std::vector< vtkMRMLSequenceNode* > sequenceNodes;
-  this->GetSynchronizedSequenceNodes( sequenceNodes, true );
+  this->GetSynchronizedSequenceNodes(sequenceNodes, true);
   vtkMRMLSequenceNode* sequenceNode = NULL;
-  for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++ )
+  bool snapshotAdded = false;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++)
   {
     vtkMRMLSequenceNode* currSequenceNode = (*it);
     if (this->GetRecording(currSequenceNode))
     {
       currSequenceNode->SetDataNodeAtValue(this->GetProxyNode(currSequenceNode), currTime.str().c_str());
+      snapshotAdded = true;
     }
   }
+  if (snapshotAdded)
+  {
+    this->Modified();
+    this->SelectLastItem();
+  }
+  this->EndModify(wasModified);
 }
 
 //---------------------------------------------------------------------------
@@ -971,7 +884,10 @@ void vtkMRMLSequenceBrowserNode::OnNodeReferenceAdded(vtkMRMLNodeReference* node
   vtkMRMLNode::OnNodeReferenceAdded(nodeReference);
   if (std::string(nodeReference->GetReferenceRole()).find( PROXY_NODE_REFERENCE_ROLE_BASE ) != std::string::npos)
   {
-    this->SetAndObserveNodeReferenceID( nodeReference->GetReferenceRole(), nodeReference->GetReferencedNodeID(), this->RecordingEvents.GetPointer()); // Need to observe the correct events after scene loading
+    // Need to observe the correct events after scene loading
+    this->SetAndObserveNodeReferenceID( nodeReference->GetReferenceRole(), nodeReference->GetReferencedNodeID(), 
+      vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(nodeReference->GetReferencedNode())->GetRecordingEvents());
+    // TODO: check if nodeReference->GetReferencedNode() is already valid here
   }
 }
 
@@ -1019,6 +935,24 @@ vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetSequenceNode(vtkMRMLNode* pr
   return NULL;
 }
 
+//---------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::IsAnySequenceNodeRecording()
+{
+  for (std::vector< std::string >::iterator rolePostfixIt = this->SynchronizationPostfixes.begin();
+    rolePostfixIt != this->SynchronizationPostfixes.end(); ++rolePostfixIt)
+  {
+    SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[(*rolePostfixIt)];
+    if (syncProps == NULL)
+    {
+      continue;
+    }
+    if (syncProps->Recording)
+    {
+      return true;
+    }
+  }
+  return false;
+}
 
 //---------------------------------------------------------------------------
 bool vtkMRMLSequenceBrowserNode::GetRecording(vtkMRMLSequenceNode* sequenceNode)
@@ -1068,7 +1002,6 @@ bool vtkMRMLSequenceBrowserNode::GetSaveChanges(vtkMRMLSequenceNode* sequenceNod
   return syncProps->SaveChanges;
 }
 
-
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording)
 {
@@ -1078,7 +1011,11 @@ void vtkMRMLSequenceBrowserNode::SetRecording(vtkMRMLSequenceNode* sequenceNode,
   {
     return;
   }
-  syncProps->Recording = recording;
+  if (syncProps->Recording != recording)
+  {
+    syncProps->Recording = recording;
+    this->Modified();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -1090,7 +1027,11 @@ void vtkMRMLSequenceBrowserNode::SetPlayback(vtkMRMLSequenceNode* sequenceNode, 
   {
     return;
   }
-  syncProps->Playback = playback;
+  if (syncProps->Playback != playback)
+  {
+    syncProps->Playback = playback;
+    this->Modified();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -1102,7 +1043,11 @@ void vtkMRMLSequenceBrowserNode::SetOverwriteProxyName(vtkMRMLSequenceNode* sequ
   {
     return;
   }
-  syncProps->OverwriteProxyName = overwrite;
+  if (syncProps->OverwriteProxyName != overwrite)
+  {
+    syncProps->OverwriteProxyName = overwrite;
+    this->Modified();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -1114,5 +1059,9 @@ void vtkMRMLSequenceBrowserNode::SetSaveChanges(vtkMRMLSequenceNode* sequenceNod
   {
     return;
   }
-  syncProps->SaveChanges = save;
+  if (syncProps->SaveChanges != save)
+  {
+    syncProps->SaveChanges = save;
+    this->Modified();
+  }
 }

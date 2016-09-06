@@ -704,6 +704,15 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
 
+  if (d->activeBrowserNode() != NULL &&
+    (d->activeBrowserNode()->GetRecordingActive() || d->activeBrowserNode()->GetPlaybackActive()))
+  {
+    // this is an expensive operation, we cannot afford to do it while recording or replaying
+    // TODO: make this update method much more efficient
+    return;
+  }
+
+
   // Clear the table
   for (int row=0; row<d->tableWidget_SynchronizedSequenceNodes->rowCount(); row++)
   {

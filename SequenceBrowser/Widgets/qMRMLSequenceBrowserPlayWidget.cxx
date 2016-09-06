@@ -62,9 +62,10 @@ void qMRMLSequenceBrowserPlayWidgetPrivate::init()
   QObject::connect( this->pushButton_VcrNext, SIGNAL(clicked()), q, SLOT(onVcrNext()) );
   QObject::connect( this->pushButton_VcrLast, SIGNAL(clicked()), q, SLOT(onVcrLast()) );
   QObject::connect( this->pushButton_VcrPlayPause, SIGNAL(toggled(bool)), q, SLOT(setPlaybackEnabled(bool)) );
-  QObject::connect( this->pushButton_VcrRecord, SIGNAL(toggled(bool)), q, SLOT(setRecordingEnabled(bool)) );
-  QObject::connect( this->pushButton_VcrLoop, SIGNAL(toggled(bool)), q, SLOT(setPlaybackLoopEnabled(bool)) );
+  QObject::connect(this->pushButton_VcrLoop, SIGNAL(toggled(bool)), q, SLOT(setPlaybackLoopEnabled(bool)));
   QObject::connect( this->doubleSpinBox_VcrPlaybackRate, SIGNAL(valueChanged(double)), q, SLOT(setPlaybackRateFps(double)) );
+  QObject::connect(this->pushButton_VcrRecord, SIGNAL(toggled(bool)), q, SLOT(setRecordingEnabled(bool)));
+  QObject::connect(this->pushButton_Snapshot, SIGNAL(clicked()), q, SLOT(onRecordSnapshot()));
 
   q->updateWidgetFromMRML();
 }
@@ -123,7 +124,7 @@ void qMRMLSequenceBrowserPlayWidget::updateWidgetFromMRML()
   bool vcrControlsEnabled=false;   
 
   int numberOfDataNodes=sequenceNode->GetNumberOfDataNodes();
-  if (numberOfDataNodes>0)
+  if (numberOfDataNodes>0 && !d->SequenceBrowserNode->GetRecordingActive())
   {
     vcrControlsEnabled=true;
     
@@ -131,16 +132,26 @@ void qMRMLSequenceBrowserPlayWidget::updateWidgetFromMRML()
     d->pushButton_VcrPlayPause->setChecked(d->SequenceBrowserNode->GetPlaybackActive());
     d->pushButton_VcrPlayPause->blockSignals(pushButton_VcrPlayPauseBlockSignals);
 
-    bool pushButton_VcrRecordingBlockSignals = d->pushButton_VcrRecord->blockSignals(true);
-    d->pushButton_VcrRecord->setChecked(d->SequenceBrowserNode->GetRecordingActive());
-    d->pushButton_VcrRecord->blockSignals(pushButton_VcrRecordingBlockSignals);
-
     bool pushButton_VcrLoopBlockSignals = d->pushButton_VcrLoop->blockSignals(true);
     d->pushButton_VcrLoop->setChecked(d->SequenceBrowserNode->GetPlaybackLooped());
     d->pushButton_VcrLoop->blockSignals(pushButton_VcrLoopBlockSignals);
   }
 
+  bool signalsBlocked = d->doubleSpinBox_VcrPlaybackRate->blockSignals(true);
   d->doubleSpinBox_VcrPlaybackRate->setValue(d->SequenceBrowserNode->GetPlaybackRateFps());
+  d->doubleSpinBox_VcrPlaybackRate->blockSignals(signalsBlocked);
+
+  bool pushButton_VcrRecordingBlockSignals = d->pushButton_VcrRecord->blockSignals(true);
+  d->pushButton_VcrRecord->setChecked(d->SequenceBrowserNode->GetRecordingActive());
+  d->pushButton_VcrRecord->blockSignals(pushButton_VcrRecordingBlockSignals);
+
+  bool recordingAllowed = d->SequenceBrowserNode->IsAnySequenceNodeRecording();
+  bool playbackActive = d->SequenceBrowserNode->GetPlaybackActive();
+  bool recordingActive = d->SequenceBrowserNode->GetRecordingActive();
+  d->pushButton_VcrRecord->setVisible(recordingAllowed);
+  d->pushButton_VcrRecord->setEnabled(!playbackActive);
+  d->pushButton_Snapshot->setVisible(recordingAllowed);
+  d->pushButton_Snapshot->setEnabled(!playbackActive && !recordingActive);
 
   foreach( QObject*w, vcrPlaybackControls ) { w->setProperty( "enabled", vcrControlsEnabled ); }
 }
@@ -196,6 +207,20 @@ void qMRMLSequenceBrowserPlayWidget::onVcrNext()
   }
   d->SequenceBrowserNode->SelectNextItem(1);
 }
+
+//-----------------------------------------------------------------------------
+void qMRMLSequenceBrowserPlayWidget::onRecordSnapshot()
+{
+  Q_D(qMRMLSequenceBrowserPlayWidget);
+  if (d->SequenceBrowserNode == NULL)
+  {
+    qCritical() << "onRecordSnapshot failed: no active browser node is selected";
+    updateWidgetFromMRML();
+    return;
+  }
+  d->SequenceBrowserNode->SaveProxyNodesState();
+}
+
 
 //-----------------------------------------------------------------------------
 void qMRMLSequenceBrowserPlayWidget::setPlaybackEnabled(bool play)

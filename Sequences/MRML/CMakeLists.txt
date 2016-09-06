@@ -11,6 +11,8 @@ set(${KIT}_INCLUDE_DIRECTORIES
   )
 
 set(${KIT}_SRCS
+  vtkMRMLNodeSequencer.cxx
+  vtkMRMLNodeSequencer.h
   vtkMRMLSequenceNode.cxx
   vtkMRMLSequenceNode.h
   vtkMRMLSequenceStorageNode.cxx
