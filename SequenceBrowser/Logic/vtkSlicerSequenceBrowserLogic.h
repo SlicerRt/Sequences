@@ -54,6 +54,18 @@ public:
   /// Updates the contents of all the proxy nodes (all the nodes copied from the master and synchronized sequences to the scene)
   void UpdateProxyNodes(vtkMRMLSequenceBrowserNode* browserNode);
 
+  /// Deprecated method!
+  void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
+  {
+    static bool warningLogged = false;
+    if (!warningLogged)
+    {
+      vtkWarningMacro("vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes is deprecated, use vtkSlicerSequenceBrowserLogic::UpdateProxyNodes method instead");
+      warningLogged = true;
+    }
+    this->UpdateProxyNodes(browserNode);
+  }
+
   /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
   void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode);
 

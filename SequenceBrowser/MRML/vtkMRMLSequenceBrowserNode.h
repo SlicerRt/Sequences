@@ -138,6 +138,18 @@ public:
   /// Get proxy corresponding to a sequence node.
   vtkMRMLNode* GetProxyNode(vtkMRMLSequenceNode* sequenceNode);
 
+  /// Deprecated method!
+  vtkMRMLNode* GetVirtualOutputDataNode(vtkMRMLSequenceNode* sequenceNode)
+  {
+    static bool warningLogged = false;
+    if (!warningLogged)
+    {
+      vtkWarningMacro("vtkMRMLSequenceBrowserNode::GetVirtualOutputDataNode is deprecated, use vtkMRMLSequenceBrowserNode::GetProxyNode method instead");
+      warningLogged = true;
+    }
+    return this->GetProxyNode(sequenceNode);
+  }
+
   /// Get sequence node corresponding to a proxy node.
   vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* proxyNode);
 
