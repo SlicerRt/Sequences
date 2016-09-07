@@ -660,9 +660,9 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode(const char* node
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode/*=false*/)
+void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedSequenceNodes, bool includeMasterNode/*=false*/)
 {
-  synchronizedDataNodes.clear();
+  synchronizedSequenceNodes.clear();
 
   for (std::vector< std::string >::iterator rolePostfixIt=this->SynchronizationPostfixes.begin();
     rolePostfixIt!=this->SynchronizationPostfixes.end(); ++rolePostfixIt)
@@ -679,24 +679,24 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(std::vector< vtkMR
       // valid case during scene updates
       continue;
     }
-    synchronizedDataNodes.push_back(synchronizedNode);
+    synchronizedSequenceNodes.push_back(synchronizedNode);
   }
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode /* =false */)
+void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(vtkCollection* synchronizedSequenceNodes, bool includeMasterNode /* =false */)
 {
-  if (synchronizedDataNodes==NULL)
+  if (synchronizedSequenceNodes==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes failed: synchronizedDataNodes is invalid");
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes failed: synchronizedSequenceNodes is invalid");
     return;
   }
   std::vector< vtkMRMLSequenceNode* > synchronizedDataNodesVector;
   this->GetSynchronizedSequenceNodes(synchronizedDataNodesVector, includeMasterNode);
-  synchronizedDataNodes->RemoveAllItems();
+  synchronizedSequenceNodes->RemoveAllItems();
   for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedDataNodesVector.begin(); it != synchronizedDataNodesVector.end(); ++it)
   {
-    synchronizedDataNodes->AddItem(*it);
+    synchronizedSequenceNodes->AddItem(*it);
   }
 }
 
@@ -1005,15 +1005,32 @@ bool vtkMRMLSequenceBrowserNode::GetSaveChanges(vtkMRMLSequenceNode* sequenceNod
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetRecording(vtkMRMLSequenceNode* sequenceNode, bool recording)
 {
-  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
-  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
-  if (rolePostfix=="" || syncProps==NULL)
+  std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
+  if (sequenceNode)
   {
-    return;
+    synchronizedSequenceNodes.push_back(sequenceNode);
   }
-  if (syncProps->Recording != recording)
+  else
   {
-    syncProps->Recording = recording;
+    this->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  bool modified = false;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedSequenceNodes.begin(); it != synchronizedSequenceNodes.end(); ++it)
+  {
+    std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(*it);
+    SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[rolePostfix];
+    if (rolePostfix == "" || syncProps == NULL)
+    {
+      continue;
+    }
+    if (syncProps->Recording != recording)
+    {
+      syncProps->Recording = recording;
+      modified = true;
+    }
+  }
+  if (modified)
+  {
     this->Modified();
   }
 }
@@ -1021,15 +1038,32 @@ void vtkMRMLSequenceBrowserNode::SetRecording(vtkMRMLSequenceNode* sequenceNode,
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetPlayback(vtkMRMLSequenceNode* sequenceNode, bool playback)
 {
-  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
-  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
-  if (rolePostfix=="" || syncProps==NULL)
+  std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
+  if (sequenceNode)
   {
-    return;
+    synchronizedSequenceNodes.push_back(sequenceNode);
   }
-  if (syncProps->Playback != playback)
+  else
   {
-    syncProps->Playback = playback;
+    this->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  bool modified = false;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedSequenceNodes.begin(); it != synchronizedSequenceNodes.end(); ++it)
+  {
+    std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(*it);
+    SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[rolePostfix];
+    if (rolePostfix == "" || syncProps == NULL)
+    {
+      continue;
+    }
+    if (syncProps->Playback != playback)
+    {
+      syncProps->Playback = playback;
+      modified = true;
+    }
+  }
+  if (modified)
+  {
     this->Modified();
   }
 }
@@ -1037,15 +1071,32 @@ void vtkMRMLSequenceBrowserNode::SetPlayback(vtkMRMLSequenceNode* sequenceNode, 
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode, bool overwrite)
 {
-  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
-  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
-  if (rolePostfix=="" || syncProps==NULL)
+  std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
+  if (sequenceNode)
   {
-    return;
+    synchronizedSequenceNodes.push_back(sequenceNode);
   }
-  if (syncProps->OverwriteProxyName != overwrite)
+  else
   {
-    syncProps->OverwriteProxyName = overwrite;
+    this->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  bool modified = false;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedSequenceNodes.begin(); it != synchronizedSequenceNodes.end(); ++it)
+  {
+    std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(*it);
+    SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[rolePostfix];
+    if (rolePostfix == "" || syncProps == NULL)
+    {
+      continue;
+    }
+    if (syncProps->OverwriteProxyName != overwrite)
+    {
+      syncProps->OverwriteProxyName = overwrite;
+      modified = true;
+    }
+  }
+  if (modified)
+  {
     this->Modified();
   }
 }
@@ -1053,15 +1104,32 @@ void vtkMRMLSequenceBrowserNode::SetOverwriteProxyName(vtkMRMLSequenceNode* sequ
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save)
 {
-  std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(sequenceNode);
-  SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[ rolePostfix ];
-  if (rolePostfix=="" || syncProps==NULL)
+  std::vector< vtkMRMLSequenceNode* > synchronizedSequenceNodes;
+  if (sequenceNode)
   {
-    return;
+    synchronizedSequenceNodes.push_back(sequenceNode);
   }
-  if (syncProps->SaveChanges != save)
+  else
   {
-    syncProps->SaveChanges = save;
+    this->GetSynchronizedSequenceNodes(synchronizedSequenceNodes, true);
+  }
+  bool modified = false;
+  for (std::vector< vtkMRMLSequenceNode* >::iterator it = synchronizedSequenceNodes.begin(); it != synchronizedSequenceNodes.end(); ++it)
+  {
+    std::string rolePostfix = this->GetSynchronizationPostfixFromSequence(*it);
+    SynchronizationProperties* syncProps = this->SynchronizationPropertiesMap[rolePostfix];
+    if (rolePostfix == "" || syncProps == NULL)
+    {
+      continue;
+    }
+    if (syncProps->SaveChanges != save)
+    {
+      syncProps->SaveChanges = save;
+      modified = true;
+    }
+  }
+  if (modified)
+  {
     this->Modified();
   }
 }

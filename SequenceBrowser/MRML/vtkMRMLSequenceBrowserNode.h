@@ -150,11 +150,48 @@ public:
     return this->GetProxyNode(sequenceNode);
   }
 
+  /// Deprecated method!
+  void SetOverwriteTargetNodeName(bool overwrite)
+  {
+    static bool warningLogged = false;
+    if (!warningLogged)
+    {
+      vtkWarningMacro("vtkMRMLSequenceBrowserNode::SetOverwriteTargetNodeName is deprecated, use vtkMRMLSequenceBrowserNode::SetOverwriteProxyName method instead");
+      warningLogged = true;
+    }
+    this->SetOverwriteProxyName(NULL, overwrite);
+  }
+
+  /// Deprecated method!
+  void SetDeepCopyVirtualNodes(bool deepcopy)
+  {
+    static bool warningLogged = false;
+    if (!warningLogged)
+    {
+      vtkWarningMacro("vtkMRMLSequenceBrowserNode::SetDeepCopyVirtualNodes is deprecated, use vtkMRMLSequenceBrowserNode::SetSaveChanges method instead");
+      warningLogged = true;
+    }
+    this->SetSaveChanges(NULL, !deepcopy);
+  }
+
   /// Get sequence node corresponding to a proxy node.
   vtkMRMLSequenceNode* GetSequenceNode(vtkMRMLNode* proxyNode);
 
   void GetAllProxyNodes(std::vector< vtkMRMLNode* > &nodes);
   void GetAllProxyNodes(vtkCollection* nodes);
+
+  
+  /// Deprecated method!
+  void GetAllVirtualOutputDataNodes(vtkCollection* nodes)
+  {
+    static bool warningLogged = false;
+    if (!warningLogged)
+    {
+      vtkWarningMacro("vtkMRMLSequenceBrowserNode::GetAllVirtualOutputDataNodes is deprecated, use vtkMRMLSequenceBrowserNode::GetAllProxyNodes method instead");
+      warningLogged = true;
+    }
+    this->GetAllProxyNodes(nodes);
+  }
 
   /// Deprecated. Use IsProxyNodeID instead.
   bool IsProxyNode(const char* nodeId);
