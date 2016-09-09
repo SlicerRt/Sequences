@@ -467,7 +467,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::
   vtkMRMLSequenceNode* imageSequenceNode = vtkMRMLSequenceNode::SafeDownCast(imageNode);
 
   // Read the file back in
-  std::ifstream headerInStream( fileName, std::ios_base::binary );
+  std::ifstream headerInStream( fileName.c_str(), std::ios_base::binary );
 
   std::string line;
   std::string elementDataFileLine;
@@ -486,7 +486,7 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::
   headerInStream.close();
 
   // Append the transform information to the end of the file
-  std::ofstream headerOutStream( fileName, std::ios_base::binary );
+  std::ofstream headerOutStream( fileName.c_str(), std::ios_base::binary );
   headerOutStream << defaultHeaderOutStream.str();
 
   // Add the necessary header header stuff
