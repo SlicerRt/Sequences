@@ -43,13 +43,12 @@ vtkMRMLNodeNewMacro(vtkMRMLSequenceNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceNode::vtkMRMLSequenceNode()
-: IndexName(0)
-, IndexUnit(0)
-, SequenceScene(0)
+: SequenceScene(0)
+, IndexType(vtkMRMLSequenceNode::NumericIndex)
+, NumericIndexValueTolerance(0.001)
 {
   this->SetIndexName("time");
   this->SetIndexUnit("s");
-  this->SetIndexType(this->NumericIndex);
   this->HideFromEditorsOff();
   this->SequenceScene=vtkMRMLScene::New();
 }
@@ -59,16 +58,14 @@ vtkMRMLSequenceNode::~vtkMRMLSequenceNode()
 {
   this->SequenceScene->Delete();
   this->SequenceScene=NULL;
-  this->SetIndexName(NULL);
-  this->SetIndexUnit(NULL);
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceNode::RemoveAllDataNodes()
-{  
+{
+  this->IndexEntries.clear();
   this->SequenceScene->Delete();
   this->SequenceScene=vtkMRMLScene::New();
-  this->IndexEntries.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -79,20 +76,22 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
   // Write all MRML node attributes into output stream
   vtkIndent indent(nIndent);
 
-  if (this->IndexName != NULL)
+  if (!this->IndexName.empty())
   {
     of << indent << " indexName=\"" << this->IndexName << "\"";
   }
-  if (this->IndexUnit != NULL)
+  if (!this->IndexUnit.empty())
   {
     of << indent << " indexUnit=\"" << this->IndexUnit << "\"";
   }
 
-  const char* indexTypeString=GetIndexTypeAsString();
-  if (indexTypeString!=NULL)
+  std::string indexTypeString=GetIndexTypeAsString();
+  if (!indexTypeString.empty())
   {    
     of << indent << " indexType=\"" << indexTypeString << "\"";
   }
+
+  of << indent << " numericIndexValueTolerance=\"" << this->NumericIndexValueTolerance << "\"";
 
   of << indent << " indexValues=\"";
   for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
@@ -153,6 +152,14 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
         indexType=vtkMRMLSequenceNode::TextIndex;
       }
       SetIndexType(indexType);
+    }
+    else if (!strcmp(attName, "numericIndexValueTolerance"))
+    {
+      std::stringstream ss;
+      ss << attValue;
+      double numericIndexValueTolerance = 0.001;
+      ss >> numericIndexValueTolerance;
+      this->SetNumericIndexValueTolerance(numericIndexValueTolerance);
     }
     else if (!strcmp(attName, "indexValues"))
     {
@@ -243,69 +250,99 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
 void vtkMRMLSequenceNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   vtkMRMLNode::PrintSelf(os,indent);
+  os << indent << "indexName: " << this->IndexName + "\n";
+  os << indent << "indexUnit: " << this->IndexUnit + "\n";
+
+  std::string indexTypeString = GetIndexTypeAsString();
+  os << indent << "indexType: " << indexTypeString << "\n";
+
+  os << indent << "numericIndexValueTolerance: " << this->NumericIndexValueTolerance << "\n";
+
+  os << indent << "indexValues: ";
+  if (this->IndexEntries.empty())
+  {
+    os << "(none)";
+  }
+  else
+  {
+    os << this->IndexEntries[0].IndexValue;
+    if (this->IndexEntries.size() > 1)
+    {
+      os << " ... " << this->IndexEntries[this->IndexEntries.size()-1].IndexValue;
+      os << " (" << this->IndexEntries.size() << " items)";
+    }
+  }
+  os << "\n";
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const char* indexValue, bool shallowCopy /* = false */)
+bool vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue, bool shallowCopy /* = false */)
 {
   if (node==NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid node"); 
-    return;
-  }
-  if (indexValue==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid indexValue"); 
-    return;
+    return false;
   }
   vtkMRMLNode* nodeToBeUpdated = this->GetDataNodeAtValue(indexValue);
   if (!nodeToBeUpdated)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, indexValue not found");
-    return;
+    vtkDebugMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, indexValue not found");
+    return false;
   }
   vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->CopyNode(node, nodeToBeUpdated, shallowCopy);
+  return true;
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue)
+int vtkMRMLSequenceNode::GetInsertPosition(const std::string& indexValue)
+{
+  int insertPosition = this->IndexEntries.size();
+  if (this->IndexType == vtkMRMLSequenceNode::NumericIndex && !this->IndexEntries.empty())
+  {
+    double numericIndexValue = atof(indexValue.c_str());
+    int numberOfSeqItems = this->IndexEntries.size();
+    for (int i = 0; i < numberOfSeqItems; i++)
+    {
+      double foundNumericIndexValue = atof(this->IndexEntries[i].IndexValue.c_str());
+      if (foundNumericIndexValue > numericIndexValue)
+      {
+        insertPosition = i;
+        break;
+      }
+    }
+  }
+  return insertPosition;
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue)
 {
   if (node == NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid node");
     return;
   }
-  if (indexValue == NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid indexValue");
-    return;
-  }
 
   // Add a copy of the node to the sequence's scene
   vtkMRMLNode* newNode = vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->DeepCopyNodeToScene(node, this->SequenceScene);
-  int seqItemIndex = GetSequenceItemIndex(indexValue);
+  int seqItemIndex = this->GetItemNumberFromIndexValue(indexValue);
   if (seqItemIndex<0)
   {
     // The sequence item doesn't exist yet
+    seqItemIndex = GetInsertPosition(indexValue);
+    // Create new item    
     IndexEntryType seqItem;
     seqItem.IndexValue = indexValue;
-    this->IndexEntries.push_back(seqItem);
-    seqItemIndex = this->IndexEntries.size() - 1;
+    this->IndexEntries.insert(this->IndexEntries.begin() + seqItemIndex, seqItem);
   }
   this->IndexEntries[seqItemIndex].DataNode = newNode;
   this->IndexEntries[seqItemIndex].DataNodeID.clear();
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const char* indexValue)
+void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const std::string& indexValue)
 {
-  if (indexValue==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue failed, invalid indexValue"); 
-    return;
-  }
-
-  int seqItemIndex=GetSequenceItemIndex(indexValue);
+  int seqItemIndex = GetItemNumberFromIndexValue(indexValue);
   if (seqItemIndex<0)
   {
     vtkWarningMacro("vtkMRMLSequenceNode::RemoveDataNodeAtValue: node was not found at index value "<<indexValue);
@@ -317,14 +354,13 @@ void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const char* indexValue)
 }
 
 //----------------------------------------------------------------------------
-int vtkMRMLSequenceNode::GetSequenceItemIndex(const char* indexValue)
+int vtkMRMLSequenceNode::GetItemNumberFromIndexValue(const std::string& indexValue, bool exactMatchRequired /* =true */)
 {
-  if (indexValue==NULL)
+  int numberOfSeqItems=this->IndexEntries.size();
+  if (numberOfSeqItems == 0)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::GetSequenceItemIndex failed, invalid index value"); 
     return -1;
   }
-  int numberOfSeqItems=this->IndexEntries.size();
   for (int i=0; i<numberOfSeqItems; i++)
   {
     if (this->IndexEntries[i].IndexValue.compare(indexValue)==0)
@@ -332,26 +368,45 @@ int vtkMRMLSequenceNode::GetSequenceItemIndex(const char* indexValue)
       return i;
     }
   }
+  if (this->IndexType == NumericIndex)
+  {
+    // find index value right before the requested one
+    double numericIndexValue = atof(indexValue.c_str());
+    int i = 0;
+    for (; i < numberOfSeqItems; i++)
+    {
+      double foundNumericIndexValue = atof(this->IndexEntries[i].IndexValue.c_str());
+      if (fabs(foundNumericIndexValue - numericIndexValue) <= this->NumericIndexValueTolerance)
+      {
+        // found an exact match
+        return i;
+      }
+      if (foundNumericIndexValue > numericIndexValue)
+      {
+        break;
+      }
+    }
+    if (exactMatchRequired)
+    {
+      return -1;
+    }
+    return (i == 0) ? 0 : i - 1;
+  }
   return -1;
 }
 
 //---------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const char* indexValue)
+vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const std::string& indexValue, bool exactMatchRequired /* =true */)
 {
-  if (indexValue==NULL)
-  {
-    vtkErrorMacro("GetDataNodesAtValue failed, invalid index value"); 
-    return NULL;
-  }
   if (this->SequenceScene==NULL)
   {
     vtkErrorMacro("GetDataNodesAtValue failed, invalid scene");
     return NULL;
   }
-  int seqItemIndex=GetSequenceItemIndex(indexValue);
-  if (seqItemIndex<0)
+  int seqItemIndex = this->GetItemNumberFromIndexValue(indexValue, exactMatchRequired);
+  if (seqItemIndex < 0)
   {
-    // sequence item is not found
+    // not found
     return NULL;
   }
   return this->IndexEntries[seqItemIndex].DataNode;
@@ -375,31 +430,36 @@ int vtkMRMLSequenceNode::GetNumberOfDataNodes()
 }
 
 //-----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::UpdateIndexValue(const char* oldIndexValue, const char* newIndexValue)
+bool vtkMRMLSequenceNode::UpdateIndexValue(const std::string& oldIndexValue, const std::string& newIndexValue)
 {
-  if (oldIndexValue==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, invalid oldIndexValue"); 
-    return;
-  }
-  if (newIndexValue==NULL)
-  {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, invalid newIndexValue"); 
-    return;
-  }
-  if (strcmp(oldIndexValue,newIndexValue)==0)
+  if (oldIndexValue == newIndexValue)
   {
     // no change
-    return;
+    return true;
   }
-  int seqItemIndex=GetSequenceItemIndex(oldIndexValue);
-  if (seqItemIndex<0)
+  int oldSeqItemIndex = GetItemNumberFromIndexValue(oldIndexValue);
+  if (oldSeqItemIndex<0)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no data node found with index value "<<oldIndexValue); 
-    return;
+    return false;
+  }
+  if (this->GetItemNumberFromIndexValue(newIndexValue) >= 0)
+  {
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, data node is already defined at index value " << newIndexValue);
+    return false;
   }
   // Update the index value
-  this->IndexEntries[seqItemIndex].IndexValue=newIndexValue;
+  this->IndexEntries[oldSeqItemIndex].IndexValue = newIndexValue;
+  if (this->IndexType == vtkMRMLSequenceNode::NumericIndex)
+  {
+    IndexEntryType movingEntry = this->IndexEntries[oldSeqItemIndex];
+    // Remove from current position
+    this->IndexEntries.erase(this->IndexEntries.begin() + oldSeqItemIndex);
+    // Insert into new position
+    int insertPosition = this->GetInsertPosition(newIndexValue);
+    this->IndexEntries.insert(this->IndexEntries.begin() + insertPosition, movingEntry);
+  }
+  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -515,33 +575,29 @@ void vtkMRMLSequenceNode::SetIndexTypeFromString(const char *indexTypeString)
 }
 
 //-----------------------------------------------------------
-const char* vtkMRMLSequenceNode::GetIndexTypeAsString()
+std::string vtkMRMLSequenceNode::GetIndexTypeAsString()
 {
   return vtkMRMLSequenceNode::GetIndexTypeAsString(this->IndexType);
 }
 
 //-----------------------------------------------------------
-const char* vtkMRMLSequenceNode::GetIndexTypeAsString(int indexType)
+std::string vtkMRMLSequenceNode::GetIndexTypeAsString(int indexType)
 {
   switch (indexType)
   {
   case vtkMRMLSequenceNode::NumericIndex: return "numeric";
   case vtkMRMLSequenceNode::TextIndex: return "text";
   default:
-    return NULL;
+    return "";
   }
 }
 
 //-----------------------------------------------------------
-int vtkMRMLSequenceNode::GetIndexTypeFromString(const char* indexTypeString)
+int vtkMRMLSequenceNode::GetIndexTypeFromString(const std::string& indexTypeString)
 {
-  if (indexTypeString==NULL)
-  {
-    return -1;
-  }
   for (int i=0; i<vtkMRMLSequenceNode::NumberOfIndexTypes; i++)
   {
-    if (strcmp(indexTypeString, GetIndexTypeAsString(i))==0)
+    if (indexTypeString == GetIndexTypeAsString(i))
     {
       // found it
       return i;

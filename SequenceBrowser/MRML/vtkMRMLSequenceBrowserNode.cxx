@@ -128,7 +128,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
   this->PlaybackRateFps = 10.0;
   this->PlaybackItemSkippingEnabled = true;
   this->PlaybackLooped = true;
-  this->SelectedItemNumber = 0;
+  this->SelectedItemNumber = -1;
 
   this->RecordMasterOnly = false;
   this->RecordingActive = false;
@@ -327,15 +327,48 @@ std::string vtkMRMLSequenceBrowserNode::GenerateSynchronizationPostfix()
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID)
 {
-  bool oldModify=this->StartModify();
-  std::string rolePostfix;
-  if (!this->SynchronizationPostfixes.empty())
+  if (!sequenceNodeID)
   {
+    // master node can only be NULL if there are no synchronized nodes
     this->RemoveAllSequenceNodes();
+    return;
   }
-  if (sequenceNodeID!=NULL)
+  if (this->GetMasterSequenceNode()
+    && this->GetMasterSequenceNode()->GetID() != NULL
+    && strcmp(this->GetMasterSequenceNode()->GetID(), sequenceNodeID) == 0)
   {
-    this->AddSynchronizedSequenceNodeID(sequenceNodeID); // The same "adding" mechanism is used, but the master must be the zeroth elements of the postfixes vector
+    // no change
+    return;
+  }
+  std::string masterPostfix = this->GetSynchronizationPostfixFromSequenceID(sequenceNodeID);
+  if (masterPostfix.empty() || this->GetMasterSequenceNode() == NULL)
+  {
+    bool oldModify = this->StartModify();
+    // Master is not among the browsed nodes, or it is an empty browser node.
+    this->RemoveAllSequenceNodes();
+    // Master is the first element in the postfixes vector.
+    this->AddSynchronizedSequenceNodeID(sequenceNodeID);
+    this->EndModify(oldModify);
+    return;
+  }
+  bool oldModify = this->StartModify();
+  // Get the currently selected index value (so that we can restore the closest value with the new master)
+  std::string lastSelectedIndexValue = this->GetMasterSequenceNode()->GetNthIndexValue(this->GetSelectedItemNumber());
+  // Move the new master's postfix to the front of the list
+  std::vector< std::string >::iterator oldMasterPostfixPosition = std::find(this->SynchronizationPostfixes.begin(), this->SynchronizationPostfixes.end(), masterPostfix);
+  iter_swap(oldMasterPostfixPosition, this->SynchronizationPostfixes.begin());
+  this->Modified();
+  // Select the closest selected item index in the new master node
+  vtkMRMLSequenceNode* newMasterNode = (this->Scene ? vtkMRMLSequenceNode::SafeDownCast(this->Scene->GetNodeByID(sequenceNodeID)) : NULL);
+  if (newMasterNode != NULL)
+  {
+    int newSelectedIndex = newMasterNode->GetItemNumberFromIndexValue(lastSelectedIndexValue, false);
+    this->SetSelectedItemNumber(newSelectedIndex);
+  }
+  else
+  {
+    // We don't know what items are in this new master node
+    this->SetSelectedItemNumber(0);
   }
   this->EndModify(oldModify);
 }
@@ -391,7 +424,6 @@ void vtkMRMLSequenceBrowserNode::RemoveAllSequenceNodes()
   this->EndModify(oldModify);
 }
 
-
 //----------------------------------------------------------------------------
 std::string vtkMRMLSequenceBrowserNode::GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode)
 {
@@ -405,6 +437,26 @@ std::string vtkMRMLSequenceBrowserNode::GetSynchronizationPostfixFromSequence(vt
   {
     std::string sequenceNodeRef=SEQUENCE_NODE_REFERENCE_ROLE_BASE+(*rolePostfixIt);
     if (this->GetNodeReference(sequenceNodeRef.c_str())==sequenceNode)
+    {
+      return (*rolePostfixIt);
+    }
+  }
+  return "";
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetSynchronizationPostfixFromSequenceID(const char* sequenceNodeID)
+{
+  if (sequenceNodeID == NULL)
+  {
+    vtkErrorMacro("vtkMRMLSequenceBrowserNode::GetSynchronizationPostfixFromSequenceID failed: sequenceNodeID is invalid");
+    return "";
+  }
+  for (std::vector< std::string >::iterator rolePostfixIt = this->SynchronizationPostfixes.begin();
+    rolePostfixIt != this->SynchronizationPostfixes.end(); ++rolePostfixIt)
+  {
+    std::string sequenceNodeRef = SEQUENCE_NODE_REFERENCE_ROLE_BASE + (*rolePostfixIt);
+    if (strcmp(this->GetNodeReferenceID(sequenceNodeRef.c_str()), sequenceNodeID) == 0)
     {
       return (*rolePostfixIt);
     }
@@ -808,25 +860,7 @@ void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned 
     // we are only interested in proxy node modified events
     return;
   }
-
-  // Record proxy node state into new sequence item
-  if (this->GetRecordingActive())
-  {
-    // If we only record when the master node is modified, then skip if it was not the master node that was modified
-    const char* masterVirtualOutputNodeID = this->GetProxyNode(this->GetMasterSequenceNode())->GetID();
-    if (!this->GetRecordMasterOnly() || strcmp(modifiedNode->GetID(), masterVirtualOutputNodeID) == 0)
-    {
-      this->SaveProxyNodesState();
-    }
-    return;
-  }
-
-  // Update sequence item from proxy node
-  vtkMRMLSequenceNode* sequenceNode = this->GetSequenceNode(modifiedNode);
-  if (!this->GetPlaybackActive() && sequenceNode && this->GetSaveChanges(sequenceNode))
-  {    
-    sequenceNode->UpdateDataNodeAtValue(modifiedNode, sequenceNode->GetNthIndexValue(this->GetSelectedItemNumber()).c_str(), true /* shallow copy*/);
-  }
+  this->InvokeCustomModifiedEvent(ProxyNodeModifiedEvent, modifiedNode);
 }
 
 //---------------------------------------------------------------------------

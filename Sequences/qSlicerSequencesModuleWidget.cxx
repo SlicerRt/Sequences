@@ -161,14 +161,14 @@ void qSlicerSequencesModuleWidget::setup()
   {
     for (int indexType=0; indexType<vtkMRMLSequenceNode::NumberOfIndexTypes; indexType++)
     {
-      d->ComboBox_IndexType->addItem(vtkMRMLSequenceNode::GetIndexTypeAsString(indexType));
+      d->ComboBox_IndexType->addItem(vtkMRMLSequenceNode::GetIndexTypeAsString(indexType).c_str());
     }
   }
 
   d->TableWidget_DataNodes->setColumnWidth( DATA_NODE_VALUE_COLUMN, 30 );
   d->TableWidget_DataNodes->setColumnWidth( DATA_NODE_NAME_COLUMN, 100 );
 
-  connect( d->MRMLNodeComboBox_Sequence, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onSequenceNodeChanged() ) );
+  connect( d->MRMLNodeComboBox_Sequence, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onSequenceNodeSelectionChanged() ) );
 
   connect( d->LineEdit_IndexName, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexNameEdited() ) );
   connect( d->LineEdit_IndexUnit, SIGNAL( textEdited( const QString & ) ), this, SLOT( onIndexUnitEdited() ) );
@@ -283,7 +283,7 @@ void qSlicerSequencesModuleWidget::onMRMLSceneEndCloseEvent()
 
 
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::onSequenceNodeChanged()
+void qSlicerSequencesModuleWidget::onSequenceNodeSelectionChanged()
 {
   Q_D(qSlicerSequencesModuleWidget);
   d->LineEdit_NewDataNodeIndexValue->setText("0");
@@ -552,17 +552,17 @@ void qSlicerSequencesModuleWidget::UpdateSequenceNode()
   QString typeName=currentSequence->GetDataNodeTagName().c_str();
   d->Label_DataNodeTypeValue->setText( typeName.toLatin1().constData() ); // TODO: maybe use the node->tag instead?
 
-  d->LineEdit_IndexName->setText( FROM_STD_STRING_SAFE( currentSequence->GetIndexName() ) );
-  d->LineEdit_IndexUnit->setText( FROM_STD_STRING_SAFE( currentSequence->GetIndexUnit() ) );
-  d->ComboBox_IndexType->setCurrentIndex( d->ComboBox_IndexType->findText(FROM_STD_STRING_SAFE( currentSequence->GetIndexTypeAsString() )) );
+  d->LineEdit_IndexName->setText( currentSequence->GetIndexName().c_str() );
+  d->LineEdit_IndexUnit->setText(currentSequence->GetIndexUnit().c_str());
+  d->ComboBox_IndexType->setCurrentIndex( d->ComboBox_IndexType->findText(currentSequence->GetIndexTypeAsString().c_str()) );
 
   // Display all of the sequence nodes
   d->TableWidget_DataNodes->clear();
   d->TableWidget_DataNodes->setRowCount( currentSequence->GetNumberOfDataNodes() );
   d->TableWidget_DataNodes->setColumnCount( DATA_NODE_NUMBER_OF_COLUMNS );
   std::stringstream valueHeader;
-  valueHeader << FROM_ATTRIBUTE_SAFE( currentSequence->GetIndexName() ); 
-  valueHeader << " (" << FROM_ATTRIBUTE_SAFE( currentSequence->GetIndexUnit() ) << ")";
+  valueHeader << currentSequence->GetIndexName(); 
+  valueHeader << " (" << currentSequence->GetIndexUnit() << ")";
   QStringList SequenceNodesTableHeader;
   //SequenceNodesTableHeader.insert( DATA_NODE_VIS_COLUMN, "Vis" );
   SequenceNodesTableHeader.insert( DATA_NODE_VALUE_COLUMN, valueHeader.str().c_str() );

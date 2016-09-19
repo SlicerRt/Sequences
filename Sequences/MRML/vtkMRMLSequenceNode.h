@@ -64,46 +64,58 @@ public:
   virtual const char* GetNodeTagName() {return "Sequence";};
 
   /// Set index name (example: time)
-  vtkSetStringMacro(IndexName);
+  vtkSetMacro(IndexName, std::string);
   /// Get index name (example: time)
-  vtkGetStringMacro(IndexName);
+  vtkGetMacro(IndexName, std::string);
 
   /// Set unit for the index (example: s)
-  vtkSetStringMacro(IndexUnit);
+  vtkSetMacro(IndexUnit, std::string);
   /// Get unit for the index (example: s)
-  vtkGetStringMacro(IndexUnit);
+  vtkGetMacro(IndexUnit, std::string);
 
   /// Set the type of the index (numeric, text, ...)
   vtkSetMacro(IndexType, int);
   void SetIndexTypeFromString(const char *indexTypeString);
   /// Get the type of the index (numeric, text, ...)
   vtkGetMacro(IndexType, int);
-  virtual const char* GetIndexTypeAsString();
-  
+  virtual std::string GetIndexTypeAsString();
+
+  /// Get tolerance value for comparing numerix index values. If index values differ by less than the tolerance
+  /// then the index values considered to be equal.
+  vtkGetMacro(NumericIndexValueTolerance, double);
+  /// Set tolerance value for comparing numerix index values.
+  vtkSetMacro(NumericIndexValueTolerance, double);
+
   /// Helper functions for converting between string and code representation of the index type
-  static const char* GetIndexTypeAsString(int indexType);
-  static int GetIndexTypeFromString(const char* indexTypeString);
+  static std::string GetIndexTypeAsString(int indexType);
+  static int GetIndexTypeFromString(const std::string &indexTypeString);
 
   /// Add a copy of the provided node to this sequence as a data node.
-  /// Always deep-copy.
-  void SetDataNodeAtValue(vtkMRMLNode* node, const char* indexValue);
+  /// If a sequence item is not found by that index, a new item is added.
+  /// Always performs deep-copy.
+  void SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue);
 
-  /// Update an existing data node
-  void UpdateDataNodeAtValue(vtkMRMLNode* node, const char* indexValue, bool shallowCopy = false);
+  /// Update an existing data node.
+  /// Return true if a data node was found by that index.
+  bool UpdateDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue, bool shallowCopy = false);
 
-  void RemoveDataNodeAtValue(const char* indexValue);
+  void RemoveDataNodeAtValue(const std::string& indexValue);
 
   void RemoveAllDataNodes();
 
   /// Get the node corresponding to the specified index value
-  vtkMRMLNode* GetDataNodeAtValue(const char* indexValue);
+  /// If exact match is not required and index is numeric then the best matching data node is returned.
+  vtkMRMLNode* GetDataNodeAtValue(const std::string& indexValue, bool exactMatchRequired = true);
 
   /// Get the data node corresponding to the n-th index value
   vtkMRMLNode* GetNthDataNode(int itemNumber);
 
   std::string GetNthIndexValue(int itemNumber);
 
-  void UpdateIndexValue(const char* oldIndexValue, const char* newIndexValue);
+  /// If exact match is not required and index is numeric then the best matching data node is returned.
+  int GetItemNumberFromIndexValue(const std::string& indexValue, bool exactMatchRequired = true);
+
+  bool UpdateIndexValue(const std::string& oldIndexValue, const std::string& newIndexValue);
 
   int GetNumberOfDataNodes();
 
@@ -137,7 +149,9 @@ protected:
   vtkMRMLSequenceNode(const vtkMRMLSequenceNode&);
   void operator=(const vtkMRMLSequenceNode&);
 
-  int GetSequenceItemIndex(const char* indexValue);
+  /// Get the index where an item would need to be inserted to.
+  /// If numeric index then insert it by respecting sorting order, otherwise insert to the end.
+  int GetInsertPosition(const std::string& indexValue);
 
   void ReadIndexValues(const std::string& indexText);
 
@@ -151,9 +165,10 @@ protected:
 protected:
 
   /// Describes a the index of the sequence node
-  char* IndexName;
-  char* IndexUnit;
+  std::string IndexName;
+  std::string IndexUnit;
   int IndexType;
+  double NumericIndexValueTolerance;
 
   /// Need to store the nodes in the scene, because for reading/writing nodes
   /// we need MRML storage nodes, which only work if they refer to a data node in the same scene

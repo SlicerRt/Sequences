@@ -30,6 +30,7 @@
 #include <vtkMRMLCameraNode.h>
 #include <vtkMRMLMarkupsFiducialNode.h>
 #include <vtkMRMLModelNode.h>
+#include <vtkMRMLSegmentationNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLVolumeNode.h>
 #include <vtkNew.h>
@@ -136,9 +137,9 @@ public:
     sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
     targetVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
     vtkSmartPointer<vtkImageData> targetImageData = sourceVolumeNode->GetImageData();
-    if (!shallowCopy)
+    if (!shallowCopy && targetImageData.GetPointer()!=NULL)
     {
-      targetImageData = sourceVolumeNode->GetImageData()->NewInstance();
+      targetImageData = vtkSmartPointer<vtkImageData>::Take(sourceVolumeNode->GetImageData()->NewInstance());
       targetImageData->DeepCopy(sourceVolumeNode->GetImageData());
     }
     targetVolumeNode->SetAndObserveImageData(targetImageData); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
@@ -177,6 +178,38 @@ public:
 
 //----------------------------------------------------------------------------
 
+class SegmentationNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  SegmentationNodeSequencer()
+  {
+    this->RecordingEvents->InsertNextValue(vtkSegmentation::MasterRepresentationModified);
+    this->SupportedNodeClassName = "vtkMRMLSegmentationNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLSegmentationNode* targetSegmentationNode = vtkMRMLSegmentationNode::SafeDownCast(target);
+    vtkMRMLSegmentationNode* sourceSegmentationNode = vtkMRMLSegmentationNode::SafeDownCast(source);
+    // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
+    vtkSmartPointer<vtkSegmentation> targetSegmentation = sourceSegmentationNode->GetSegmentation();
+    if (!shallowCopy && targetSegmentation.GetPointer() != NULL)
+    {
+      targetSegmentation = vtkSmartPointer<vtkSegmentation>::Take(sourceSegmentationNode->GetSegmentation()->NewInstance());
+      targetSegmentation->DeepCopy(sourceSegmentationNode->GetSegmentation());
+    }
+    targetSegmentationNode->SetAndObserveSegmentation(targetSegmentation);
+    target->EndModify(oldModified);
+  }
+
+};
+//----------------------------------------------------------------------------
+
 class TransformNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 {
 public:
@@ -196,9 +229,9 @@ public:
     vtkMRMLTransformNode* targetTransformNode = vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode = vtkMRMLTransformNode::SafeDownCast(source);
     vtkSmartPointer<vtkAbstractTransform> targetAbstractTransform = sourceTransformNode->GetTransformToParent();
-    if (!shallowCopy)
+    if (!shallowCopy && targetAbstractTransform.GetPointer()!=NULL)
     {
-      targetAbstractTransform = sourceTransformNode->GetTransformToParent()->NewInstance();
+      targetAbstractTransform = vtkSmartPointer<vtkAbstractTransform>::Take(sourceTransformNode->GetTransformToParent()->NewInstance());
       targetAbstractTransform->DeepCopy(sourceTransformNode->GetTransformToParent());
     }
     targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
@@ -228,9 +261,9 @@ public:
     vtkMRMLModelNode* targetModelNode = vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode = vtkMRMLModelNode::SafeDownCast(source);
     vtkSmartPointer<vtkPolyData> targetPolyData = sourceModelNode->GetPolyData();
-    if (!shallowCopy)
+    if (!shallowCopy && targetPolyData.GetPointer()!=NULL)
     {
-      targetPolyData = sourceModelNode->GetPolyData()->NewInstance();
+      targetPolyData = vtkSmartPointer<vtkPolyData>::Take(sourceModelNode->GetPolyData()->NewInstance());
       targetPolyData->DeepCopy(sourceModelNode->GetPolyData());
     }
     targetModelNode->SetAndObservePolyData(targetPolyData);
@@ -344,6 +377,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new TransformNodeSequencer());
   this->RegisterNodeSequencer(new ModelNodeSequencer());
   this->RegisterNodeSequencer(new CameraNodeSequencer());
+  this->RegisterNodeSequencer(new SegmentationNodeSequencer());
   // TODO: fix link error
   //this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
 }

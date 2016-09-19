@@ -47,7 +47,7 @@ public:
 
 public slots:
 
-  void onSequenceNodeChanged();
+  void onSequenceNodeSelectionChanged();
 
   void onIndexNameEdited();
   void onIndexUnitEdited();

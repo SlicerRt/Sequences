@@ -65,41 +65,6 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QLabel" name="label_SequenceInput">
-          <property name="text">
-           <string>Master node</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
-          <property name="nodeTypes">
-           <stringlist>
-            <string>vtkMRMLSequenceNode</string>
-           </stringlist>
-          </property>
-          <property name="noneEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="addEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="removeEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="renameEnabled">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
          <number>7</number>
@@ -142,31 +107,31 @@
           <string>Playback</string>
          </property>
          <property name="toolTip">
-          <string>Whether to playback the sequence into its &quot;proxy&quot; node.</string>
+          <string>Whether to update proxy node during playback with the contents in the sequence node.</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Recording</string>
+          <string>Rename</string>
          </property>
          <property name="toolTip">
-          <string>Whether to record the sequence from its &quot;proxy&quot; node.</string>
+          <string>Whether to rename the proxy node's name with sequence's name and index value.</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Overwrite</string>
+          <string>Save changes</string>
          </property>
          <property name="toolTip">
-          <string>Whether to overwrite the &quot;proxy&quot; node's name with sequence information.</string>
+          <string>Whether to save the changes made on the proxy node into the sequence's data when not in playback or recording mode.</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Save Changes</string>
+          <string>Record</string>
          </property>
          <property name="toolTip">
-          <string>Whether to save the changes made on the proxy node into the sequence's data.</string>
+          <string>Whether to record changes of the proxy node into the sequence node during recording.</string>
          </property>
         </column>
        </widget>
@@ -231,6 +196,41 @@
         </item>
        </layout>
       </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="label_SequenceInput">
+          <property name="text">
+           <string>Master node</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
+          <property name="nodeTypes">
+           <stringlist>
+            <string>vtkMRMLSequenceNode</string>
+           </stringlist>
+          </property>
+          <property name="noneEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="addEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="removeEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="renameEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>
@@ -239,6 +239,12 @@
      <property name="enabled">
       <bool>true</bool>
      </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>     
      <property name="minimumSize">
       <size>
        <width>0</width>

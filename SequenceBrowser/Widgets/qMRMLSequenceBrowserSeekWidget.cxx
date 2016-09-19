@@ -130,30 +130,10 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     return;
     }
 
-  QString DEFAULT_INDEX_NAME_STRING=tr("time");
-  const char* indexName=sequenceNode->GetIndexName();
   const char* sequenceNodeId = sequenceNode->GetID() ? sequenceNode->GetID() : "(none)";
-  if (indexName!=NULL)
-  {
-    d->label_IndexName->setText(indexName);
-  }
-  else
-  {
-    qWarning() << "Index name is not specified in node" << sequenceNodeId;
-    d->label_IndexName->setText(DEFAULT_INDEX_NAME_STRING);
-  }
+  d->label_IndexName->setText(sequenceNode->GetIndexName().c_str());
+  d->label_IndexUnit->setText(sequenceNode->GetIndexUnit().c_str());
 
-  const char* indexUnit=sequenceNode->GetIndexUnit();
-  if (indexUnit!=NULL)
-  {
-    d->label_IndexUnit->setText(indexUnit);
-  }
-  else
-  {
-    qWarning() << "IndexUnit name is not specified in node" << sequenceNodeId;
-    d->label_IndexUnit->setText("");
-  }
-  
   // Setting the min/max could trigger an index change (if current index is out of the new range),
   // therefore we have to block signals.
   bool sliderBlockSignals = d->slider_IndexValue->blockSignals(true);
@@ -166,7 +146,6 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
   }
   else
   {
-    qDebug() << "Number of child nodes in the selected hierarchy is 0 in node "<<sequenceNodeId;
     d->slider_IndexValue->setEnabled(false);
   }
   d->slider_IndexValue->blockSignals(sliderBlockSignals);

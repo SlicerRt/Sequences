@@ -52,7 +52,10 @@ public:
   void UpdateAllProxyNodes();
 
   /// Updates the contents of all the proxy nodes (all the nodes copied from the master and synchronized sequences to the scene)
-  void UpdateProxyNodes(vtkMRMLSequenceBrowserNode* browserNode);
+  void UpdateProxyNodesFromSequences(vtkMRMLSequenceBrowserNode* browserNode);
+
+  /// Updates the sequence from a changed proxy node (if saving of state changes is allowed)
+  void UpdateSequencesFromProxyNodes(vtkMRMLSequenceBrowserNode* browserNode, vtkMRMLNode* proxyNode);
 
   /// Deprecated method!
   void UpdateVirtualOutputNodes(vtkMRMLSequenceBrowserNode* browserNode)
@@ -63,13 +66,15 @@ public:
       vtkWarningMacro("vtkSlicerSequenceBrowserLogic::UpdateVirtualOutputNodes is deprecated, use vtkSlicerSequenceBrowserLogic::UpdateProxyNodes method instead");
       warningLogged = true;
     }
-    this->UpdateProxyNodes(browserNode);
+    this->UpdateProxyNodesFromSequences(browserNode);
   }
 
   /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
   void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode);
 
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode);
+
+  static bool IsNodeCompatibleForBrowsing(vtkMRMLSequenceNode* masterNode, vtkMRMLSequenceNode* testedNode);
 
 protected:
   vtkSlicerSequenceBrowserLogic();
@@ -90,7 +95,8 @@ protected:
 
 private:
 
-  bool UpdateProxyNodesInProgress;
+  bool UpdateProxyNodesFromSequencesInProgress;
+  bool UpdateSequencesFromProxyNodesInProgress;
 
   vtkSlicerSequenceBrowserLogic(const vtkSlicerSequenceBrowserLogic&); // Not implemented
   void operator=(const vtkSlicerSequenceBrowserLogic&);               // Not implemented

@@ -44,6 +44,12 @@ public:
   vtkTypeMacro(vtkMRMLSequenceBrowserNode,vtkMRMLNode);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  /// ProxyNodeModifiedEvent is invoked when a proxy node is modified
+  enum
+  {
+    ProxyNodeModifiedEvent = 21001
+  };
+
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
 
@@ -240,6 +246,7 @@ protected:
 
   std::string GenerateSynchronizationPostfix();
   std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);
+  std::string GetSynchronizationPostfixFromSequenceID(const char* sequenceNodeID);
 
 protected:
   bool PlaybackActive;

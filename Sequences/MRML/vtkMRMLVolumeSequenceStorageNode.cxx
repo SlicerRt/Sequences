@@ -108,7 +108,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
 
   // Copy image data to sequence of volume nodes
   vtkImageData* imageData = reader->GetOutput();
-  if (imageData == NULL)
+  if (imageData == NULL || imageData->GetPointData()==NULL || imageData->GetPointData()->GetScalars() == NULL)
   {
     vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: invalid image data");
     return 0;

@@ -51,6 +51,7 @@ public:
   virtual void addToolBar();
 
   qSlicerSequenceBrowserModulePrivate();
+  virtual ~qSlicerSequenceBrowserModulePrivate();
   QTimer UpdateAllVirtualOutputNodesTimer;
   qMRMLSequenceBrowserToolBar* ToolBar;
 };
@@ -65,6 +66,19 @@ qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
   this->ToolBar->setWindowTitle(QObject::tr("Sequence browser"));
   this->ToolBar->setObjectName("SequenceBrowser");
   this->ToolBar->setVisible(false);
+}
+
+//-----------------------------------------------------------------------------
+qSlicerSequenceBrowserModulePrivate::~qSlicerSequenceBrowserModulePrivate()
+{
+  if (this->ToolBar->parent() == NULL)
+  {
+    // the toolbar has not been added to the main window
+    // so it is still owned by this class, therefore
+    // we are responsible for deleting it
+    delete this->ToolBar;
+    this->ToolBar = NULL;
+  }
 }
 
 //-----------------------------------------------------------------------------
