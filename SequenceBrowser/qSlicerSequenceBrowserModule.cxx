@@ -54,6 +54,7 @@ public:
   virtual ~qSlicerSequenceBrowserModulePrivate();
   QTimer UpdateAllVirtualOutputNodesTimer;
   qMRMLSequenceBrowserToolBar* ToolBar;
+  bool SequenceBrowserModuleOwnsToolBar;
 };
 
 //-----------------------------------------------------------------------------
@@ -61,6 +62,7 @@ public:
 
 //-----------------------------------------------------------------------------
 qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
+: SequenceBrowserModuleOwnsToolBar(true)
 {
   this->ToolBar = new qMRMLSequenceBrowserToolBar;
   this->ToolBar->setWindowTitle(QObject::tr("Sequence browser"));
@@ -71,7 +73,7 @@ qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
 //-----------------------------------------------------------------------------
 qSlicerSequenceBrowserModulePrivate::~qSlicerSequenceBrowserModulePrivate()
 {
-  if (this->ToolBar->parent() == NULL)
+  if (this->SequenceBrowserModuleOwnsToolBar)
   {
     // the toolbar has not been added to the main window
     // so it is still owned by this class, therefore
@@ -94,6 +96,7 @@ void qSlicerSequenceBrowserModulePrivate::addToolBar()
   this->ToolBar->setWindowTitle("Sequence browser");
   this->ToolBar->setObjectName("SequenceBrowserToolBar");
   mainWindow->addToolBar(this->ToolBar);
+  this->SequenceBrowserModuleOwnsToolBar = false;
   foreach (QMenu* toolBarMenu,mainWindow->findChildren<QMenu*>())
   {
     if(toolBarMenu->objectName()==QString("WindowToolBarsMenu"))
