@@ -43,6 +43,7 @@ qSlicerSequenceBrowserModule
 
   /// Visibility of the sequence browser toolbar
   Q_PROPERTY(bool toolBarVisible READ isToolBarVisible WRITE setToolBarVisible)
+  Q_PROPERTY(bool autoShowToolBar READ autoShowToolBar WRITE setAutoShowToolBar)
 
 public:
 
@@ -61,9 +62,11 @@ public:
   virtual QStringList categories()const;
   virtual QStringList dependencies() const;
 
+  /// Enables automatic showing sequence browser toolbar when a new sequence is loaded
+  Q_INVOKABLE bool autoShowToolBar();
   Q_INVOKABLE bool isToolBarVisible();
   Q_INVOKABLE qMRMLSequenceBrowserToolBar* toolBar();
-
+  
 protected:
 
   /// Initialize the module. Register the volumes reader/writer
@@ -78,6 +81,8 @@ protected:
 public slots:
   virtual void setMRMLScene(vtkMRMLScene*);
   void setToolBarVisible(bool visible);
+  /// Enables automatic showing sequence browser toolbar when a new sequence is loaded
+  void setAutoShowToolBar(bool autoShow);
   void onNodeAddedEvent(vtkObject*, vtkObject*);
   void onNodeRemovedEvent(vtkObject*, vtkObject*);
   void updateAllVirtualOutputNodes();

@@ -158,7 +158,10 @@ bool qSlicerMetafileImporterModule::showSequenceBrowser(vtkMRMLSequenceBrowserNo
     return false;
   }
   qSlicerSequenceBrowserModule* sequenceBrowserModule = dynamic_cast<qSlicerSequenceBrowserModule*>(app->moduleManager()->module("SequenceBrowser"));
-  sequenceBrowserModule->setToolBarActiveBrowserNode(browserNode);
-  sequenceBrowserModule->setToolBarVisible(true);
+  if (sequenceBrowserModule->autoShowToolBar())
+  {
+    sequenceBrowserModule->setToolBarActiveBrowserNode(browserNode);
+    sequenceBrowserModule->setToolBarVisible(true);
+  }
   return true;
 }

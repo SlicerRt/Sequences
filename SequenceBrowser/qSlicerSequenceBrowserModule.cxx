@@ -55,6 +55,7 @@ public:
   QTimer UpdateAllVirtualOutputNodesTimer;
   qMRMLSequenceBrowserToolBar* ToolBar;
   bool SequenceBrowserModuleOwnsToolBar;
+  bool AutoShowToolBar;
 };
 
 //-----------------------------------------------------------------------------
@@ -63,6 +64,7 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerSequenceBrowserModulePrivate::qSlicerSequenceBrowserModulePrivate()
 : SequenceBrowserModuleOwnsToolBar(true)
+, AutoShowToolBar(true)
 {
   this->ToolBar = new qMRMLSequenceBrowserToolBar;
   this->ToolBar->setWindowTitle(QObject::tr("Sequence browser"));
@@ -304,4 +306,18 @@ void qSlicerSequenceBrowserModule::setToolBarActiveBrowserNode(vtkMRMLSequenceBr
 {
   Q_D(qSlicerSequenceBrowserModule);
   return d->ToolBar->setActiveBrowserNode(browserNode);
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerSequenceBrowserModule::autoShowToolBar()
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  return d->AutoShowToolBar;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModule::setAutoShowToolBar(bool autoShow)
+{
+  Q_D(qSlicerSequenceBrowserModule);
+  d->AutoShowToolBar = autoShow;
 }
