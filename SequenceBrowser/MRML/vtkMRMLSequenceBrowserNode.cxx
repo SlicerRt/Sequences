@@ -27,9 +27,7 @@
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLVolumeNode.h>
-#include <vtkMRMLDisplayNode.h>
 #include <vtkMRMLHierarchyNode.h>
-#include <vtkMRMLScalarVolumeDisplayNode.h>
 
 // VTK includes
 #include <vtkNew.h>
@@ -114,9 +112,6 @@ std::string vtkMRMLSequenceBrowserNode::SynchronizationProperties::ToString()
   return ss.str();
 }
 
-
-
-
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLSequenceBrowserNode);
 
@@ -155,6 +150,7 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
   of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
   of << indent << " recordingActive=\"" << (this->RecordingActive ? "true" : "false") << "\"";
+  of << indent << " recordOnMasterModifiedOnly=\"" << (this->RecordMasterOnly ? "true" : "false") << "\"";
 
   of << indent << " virtualNodePostfixes=\""; // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
   for(std::vector< std::string >::iterator roleNameIt=this->SynchronizationPostfixes.begin();
@@ -249,6 +245,17 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetRecordingActive(0);
       }
     }
+    else if (!strcmp(attName, "recordOnMasterModifiedOnly"))
+    {
+      if (!strcmp(attValue, "true"))
+      {
+        this->SetRecordMasterOnly(1);
+      }
+      else
+      {
+        this->SetRecordMasterOnly(0);
+      }
+    }
     else if (!strcmp(attName, "virtualNodePostfixes")) // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
     {
       this->SynchronizationPostfixes.clear();
@@ -283,16 +290,32 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
 // Does NOT copy: ID, FilePrefix, Name, VolumeID
 void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
 {
-  Superclass::Copy(anode);
-  vtkMRMLSequenceBrowserNode* node=vtkMRMLSequenceBrowserNode::SafeDownCast(anode);
-  if (node==NULL)
+  vtkMRMLSequenceBrowserNode* node = vtkMRMLSequenceBrowserNode::SafeDownCast(anode);
+  if (node == NULL)
   {
     vtkErrorMacro("Node copy failed: not a vtkMRMLSequenceNode");
     return;
   }
-  // TODO: The referenced node copying is handled in the superclass. Do we need to copy the other attributes here?
-  this->SynchronizationPostfixes=node->SynchronizationPostfixes;
-  this->SynchronizationPropertiesMap=node->SynchronizationPropertiesMap;
+
+  int wasModified = this->StartModify();
+  Superclass::Copy(anode);
+
+  // Note: node references are copied by the superclass
+  this->SynchronizationPostfixes = node->SynchronizationPostfixes;
+  this->SynchronizationPropertiesMap = node->SynchronizationPropertiesMap;
+  this->InitialTime = node->InitialTime;
+  this->LastPostfixIndex = node->LastPostfixIndex;
+  this->SetHideFromEditors(node->GetHideFromEditors());
+  this->SetPlaybackActive(node->GetPlaybackActive());
+  this->SetPlaybackRateFps(node->GetPlaybackRateFps());
+  this->SetPlaybackItemSkippingEnabled(node->GetPlaybackItemSkippingEnabled());
+  this->SetPlaybackLooped(node->GetPlaybackLooped());
+  this->SetRecordMasterOnly(node->GetRecordMasterOnly());
+  this->SetRecordingActive(node->GetRecordingActive());
+
+  this->SetSelectedItemNumber(node->GetSelectedItemNumber());
+
+  this->EndModify(wasModified);
 }
 
 //----------------------------------------------------------------------------
@@ -306,6 +329,7 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Playback looped: " << (this->PlaybackLooped ? "true" : "false") << '\n';
   os << indent << " Selected item number: " << this->SelectedItemNumber << '\n';
   os << indent << " Recording active: " << (this->RecordingActive ? "true" : "false") << '\n';
+  os << indent << " Recording on master modified only: " << (this->RecordMasterOnly ? "true" : "false") << '\n';
 }
 
 //----------------------------------------------------------------------------
@@ -348,6 +372,7 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
     this->RemoveAllSequenceNodes();
     // Master is the first element in the postfixes vector.
     this->AddSynchronizedSequenceNodeID(sequenceNodeID);
+    this->SetSelectedItemNumber(0);
     this->EndModify(oldModify);
     return;
   }
@@ -421,6 +446,7 @@ void vtkMRMLSequenceBrowserNode::RemoveAllSequenceNodes()
     }
     this->RemoveSynchronizedSequenceNode(node->GetID());
   }
+  this->SetSelectedItemNumber(-1);
   this->EndModify(oldModify);
 }
 
@@ -664,7 +690,13 @@ std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNode(const char* 
 std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNodeID(const char* synchronizedSequenceNodeId)
 {
   bool oldModify = this->StartModify();
-  std::string rolePostfix = this->GenerateSynchronizationPostfix();
+  std::string rolePostfix = this->GetSynchronizationPostfixFromSequenceID(synchronizedSequenceNodeId);
+  if (!rolePostfix.empty())
+  {
+    // already a synchronized sequence node
+    return rolePostfix;
+  }
+  rolePostfix = this->GenerateSynchronizationPostfix();
   this->SynchronizationPostfixes.push_back(rolePostfix);
   std::string sequenceNodeReferenceRole = SEQUENCE_NODE_REFERENCE_ROLE_BASE + rolePostfix;
   this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);

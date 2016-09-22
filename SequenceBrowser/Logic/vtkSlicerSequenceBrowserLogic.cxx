@@ -251,10 +251,39 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       continue;
     }
 
-    vtkMRMLNode* sourceDataNode=synchronizedSequenceNode->GetDataNodeAtValue(indexValue.c_str(), false /*closest match*/);
+    vtkMRMLNode* sourceDataNode = NULL;
+    if (browserNode->GetSaveChanges(synchronizedSequenceNode))
+    {
+      // we want to save changes, therefore we have to make sure a data node is available for the current index
+      if (synchronizedSequenceNode->GetNumberOfDataNodes() > 0)
+      {
+        sourceDataNode = synchronizedSequenceNode->GetDataNodeAtValue(indexValue, true /*exact match*/);
+        if (sourceDataNode == NULL)
+        {
+          // No source node is available for the current exact index.
+          // Add a copy of the closest (previous) item into the sequence at the exact index.
+          sourceDataNode = synchronizedSequenceNode->GetDataNodeAtValue(indexValue, false /*closest match*/);
+        }
+      }
+      else
+      {
+        // There are no data nodes in the sequence.
+        // Insert the current proxy node in the sequence.
+        sourceDataNode = browserNode->GetProxyNode(synchronizedSequenceNode);
+      }
+      if (sourceDataNode)
+      {
+        sourceDataNode = synchronizedSequenceNode->SetDataNodeAtValue(sourceDataNode, indexValue);
+      }
+    }
+    else
+    {
+      // we just want to show a node, therefore we can just use closest data node
+      sourceDataNode = synchronizedSequenceNode->GetDataNodeAtValue(indexValue, false /*closest match*/);
+    }
     if (sourceDataNode==NULL)
     {
-      // no source node is available for the chosen time point
+      // no source node is available
       continue;
     }
     
@@ -282,20 +311,6 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       // failed to add target output node
       continue;
     }
-
-    // Get all the display nodes
-    std::vector< vtkMRMLDisplayNode* > targetDisplayNodes;
-    {
-      vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetProxyNode);
-      if (targetDisplayableNode!=NULL)
-      {
-        int numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
-        for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-        {
-          targetDisplayNodes.push_back(targetDisplayableNode->GetNthDisplayNode(displayNodeIndex));
-        }
-      }
-    }
     
     // Update the target node with the contents of the source node    
 
@@ -307,10 +322,19 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     // Mostly it is a shallow copy (for example for volumes, models)
     std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
     nodeModifiedStates.push_back(nodeModifiedState);
+
+    // Save node references of proxy node
+    // (otherwise parent transform, display node, etc. would be lost)
+    vtkSmartPointer<vtkMRMLNode> proxyOriginalReferenceStorage = vtkSmartPointer<vtkMRMLNode>::Take(targetProxyNode->NewInstance());
+    proxyOriginalReferenceStorage->CopyReferences(targetProxyNode);
+
     // TODO: if we really want to force non-mutable nodes in the sequence then we have to deep-copy, but that's slow.
     // Make sure that by default/most of the time shallow-copy is used.
     bool shallowCopy = browserNode->GetSaveChanges(synchronizedSequenceNode);
     vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->CopyNode(sourceDataNode, targetProxyNode, shallowCopy);
+
+    // Restore node references
+    targetProxyNode->CopyReferences(proxyOriginalReferenceStorage);
 
     // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
     if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
@@ -340,44 +364,6 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       }
       targetProxyNodeName+="]";
       targetProxyNode->SetName(targetProxyNodeName.c_str());
-    }
-
-    vtkMRMLDisplayableNode* targetDisplayableNode=vtkMRMLDisplayableNode::SafeDownCast(targetProxyNode);
-    if (targetDisplayableNode!=NULL)
-    {
-      // Get the minimum of the display nodes that are already in the target displayable node
-      // and the number of display nodes that we need at the end
-      int numOfDisplayNodes=targetDisplayNodes.size();
-      if (numOfDisplayNodes>targetDisplayableNode->GetNumberOfDisplayNodes())
-      {
-        numOfDisplayNodes=targetDisplayableNode->GetNumberOfDisplayNodes();
-      }
-
-      for (int displayNodeIndex=0; displayNodeIndex<numOfDisplayNodes; displayNodeIndex++)
-      {
-        // SetAndObserveNthDisplayNodeID takes a long time, only run it if the display node ptr changed
-        if (targetDisplayableNode->GetNthDisplayNode(displayNodeIndex)!=targetDisplayNodes[displayNodeIndex])
-        {
-          targetDisplayableNode->SetAndObserveNthDisplayNodeID(displayNodeIndex,targetDisplayNodes[displayNodeIndex]->GetID());
-        }
-      }
-      if (targetDisplayableNode->GetNumberOfDisplayNodes()>targetDisplayNodes.size())
-      {
-        // there are some extra display nodes in the target data node that we have to delete
-        while (targetDisplayableNode->GetNumberOfDisplayNodes()>targetDisplayNodes.size())
-        {
-          // remove last display node
-          targetDisplayableNode->RemoveNthDisplayNodeID(targetDisplayableNode->GetNumberOfDisplayNodes()-1);
-        }
-      }
-      if (targetDisplayableNode->GetNumberOfDisplayNodes()<targetDisplayNodes.size())
-      {
-        // we need to add some more display nodes
-        for (int displayNodeIndex=numOfDisplayNodes; displayNodeIndex<targetDisplayNodes.size(); displayNodeIndex++)
-        {
-          targetDisplayableNode->AddAndObserveDisplayNodeID(targetDisplayNodes[displayNodeIndex]->GetID());
-        }
-      }
     }
 
   }
@@ -462,10 +448,11 @@ void vtkSlicerSequenceBrowserLogic::UpdateSequencesFromProxyNodes(vtkMRMLSequenc
     if (sequenceNode && browserNode->GetSaveChanges(sequenceNode) && browserNode->GetSelectedItemNumber()>=0)
     {
       std::string indexValue = masterNode->GetNthIndexValue(browserNode->GetSelectedItemNumber());
-      if (!sequenceNode->UpdateDataNodeAtValue(proxyNode, indexValue, true /* shallow copy*/))
+      int closestItemNumber = sequenceNode->GetItemNumberFromIndexValue(indexValue, false);
+      if (closestItemNumber >= 0)
       {
-        // no existing item is found at that index, add a new one now
-        sequenceNode->SetDataNodeAtValue(proxyNode, indexValue);
+        std::string closestIndexValue = sequenceNode->GetNthIndexValue(closestItemNumber);
+        sequenceNode->UpdateDataNodeAtValue(proxyNode, indexValue, true /* shallow copy*/);
       }
     }
   }

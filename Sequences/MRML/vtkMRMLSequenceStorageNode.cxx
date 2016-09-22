@@ -15,7 +15,6 @@ limitations under the License.
 
 ==============================================================================*/
 
-#include "vtkMRMLDisplayNode.h"
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
 #include "vtkMRMLScene.h"

@@ -315,12 +315,12 @@ int vtkMRMLSequenceNode::GetInsertPosition(const std::string& indexValue)
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue)
+vtkMRMLNode* vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue)
 {
   if (node == NULL)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::SetDataNodeAtValue failed, invalid node");
-    return;
+    return NULL;
   }
 
   // Add a copy of the node to the sequence's scene
@@ -337,6 +337,7 @@ void vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const std::strin
   }
   this->IndexEntries[seqItemIndex].DataNode = newNode;
   this->IndexEntries[seqItemIndex].DataNodeID.clear();
+  return newNode;
 }
 
 //----------------------------------------------------------------------------

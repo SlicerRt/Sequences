@@ -93,7 +93,8 @@ public:
   /// Add a copy of the provided node to this sequence as a data node.
   /// If a sequence item is not found by that index, a new item is added.
   /// Always performs deep-copy.
-  void SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue);
+  /// Returns the data node copy that has just been created.
+  vtkMRMLNode* SetDataNodeAtValue(vtkMRMLNode* node, const std::string& indexValue);
 
   /// Update an existing data node.
   /// Return true if a data node was found by that index.

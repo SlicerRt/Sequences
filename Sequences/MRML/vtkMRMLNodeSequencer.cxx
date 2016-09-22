@@ -88,7 +88,6 @@ bool vtkMRMLNodeSequencer::NodeSequencer::IsNodeSupported(const std::string& nod
 
 void vtkMRMLNodeSequencer::NodeSequencer::CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
 {
-  // TODO: maybe copy without node references?
   target->CopyWithSingleModifiedEvent(source);
 }
 

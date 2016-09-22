@@ -785,13 +785,9 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
 bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
 {
   if (createdBrowserNodePtr != NULL)
-    {
-      *createdBrowserNodePtr = NULL;
-    }
-
-  int dotFound = fileName.find_last_of( "." );
-  int slashFound = fileName.find_last_of( "/" );
-  std::string volumeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+  {
+    *createdBrowserNodePtr = NULL;
+  }
 
   vtkMRMLScene* scene = this->GetMRMLScene();
   if (scene == NULL)
@@ -800,11 +796,13 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
     return false;
   }
 
+  vtkNew<vtkMRMLVolumeSequenceStorageNode> storageNode;
+
   vtkNew<vtkMRMLSequenceNode> volumeSequenceNode;
+  std::string volumeName = storageNode->GetFileNameWithoutExtension(fileName.c_str());
   volumeSequenceNode->SetName(scene->GenerateUniqueName(volumeName).c_str());
   scene->AddNode(volumeSequenceNode.GetPointer());
 
-  vtkNew<vtkMRMLVolumeSequenceStorageNode> storageNode;
   //storageNode->SetCenterImage(options & vtkSlicerVolumesLogic::CenterImage);
   scene->AddNode(storageNode.GetPointer());
   volumeSequenceNode->SetAndObserveStorageNodeID(storageNode->GetID());
