@@ -263,6 +263,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
           // No source node is available for the current exact index.
           // Add a copy of the closest (previous) item into the sequence at the exact index.
           sourceDataNode = synchronizedSequenceNode->GetDataNodeAtValue(indexValue, false /*closest match*/);
+          if (sourceDataNode)
+          {
+            sourceDataNode = synchronizedSequenceNode->SetDataNodeAtValue(sourceDataNode, indexValue);
+          }
         }
       }
       else
@@ -270,10 +274,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
         // There are no data nodes in the sequence.
         // Insert the current proxy node in the sequence.
         sourceDataNode = browserNode->GetProxyNode(synchronizedSequenceNode);
-      }
-      if (sourceDataNode)
-      {
-        sourceDataNode = synchronizedSequenceNode->SetDataNodeAtValue(sourceDataNode, indexValue);
+        if (sourceDataNode)
+        {
+          sourceDataNode = synchronizedSequenceNode->SetDataNodeAtValue(sourceDataNode, indexValue);
+        }
       }
     }
     else
@@ -299,11 +303,11 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       }
     }
 
-    // Create the proxy node (and display nodes) if it doesn't exist yet
     if (targetProxyNode==NULL)
     {
-      // Add the new data and display nodes to the proxy nodes
-      targetProxyNode=browserNode->AddProxyNode(sourceDataNode,synchronizedSequenceNode);
+      // Create the proxy node (and display nodes) if they don't exist yet
+      targetProxyNode=browserNode->AddProxyNode(sourceDataNode, synchronizedSequenceNode);
+      vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->AddDefaultDisplayNodes(targetProxyNode);
     }
 
     if (targetProxyNode==NULL)
@@ -506,6 +510,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
   if (proxyNode!=NULL)
   {
     browserNode->AddProxyNode(proxyNode, sequenceNode, false);
+    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->AddDefaultDisplayNodes(proxyNode);
   }
 
 }

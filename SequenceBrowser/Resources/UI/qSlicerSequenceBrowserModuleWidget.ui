@@ -65,6 +65,66 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeSequenceNode">
+          <property name="nodeTypes">
+           <stringlist>
+            <string>vtkMRMLSequenceNode</string>
+           </stringlist>
+          </property>
+          <property name="noneEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="addEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="removeEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="noneDisplay">
+           <string>Create new sequence</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_AddSequenceNode">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>Add the selected sequence to the browser.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_RemoveSequenceNode">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="toolTip">
+           <string>Remove the selected sequence(s) from the browser.</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
        <widget class="QTableWidget" name="tableWidget_SynchronizedSequenceNodes">
         <property name="columnCount">
          <number>7</number>
@@ -136,101 +196,6 @@
         </column>
        </widget>
       </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SynchronizeSequenceNode">
-          <property name="nodeTypes">
-           <stringlist>
-            <string>vtkMRMLSequenceNode</string>
-           </stringlist>
-          </property>
-          <property name="noneEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="addEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="removeEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="noneDisplay">
-           <string>Create new sequence</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_AddSequenceNode">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Add the selected sequence to the browser.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_RemoveSequenceNode">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Remove the selected sequence(s) from the browser.</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QLabel" name="label_SequenceInput">
-          <property name="text">
-           <string>Master node</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
-          <property name="nodeTypes">
-           <stringlist>
-            <string>vtkMRMLSequenceNode</string>
-           </stringlist>
-          </property>
-          <property name="noneEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="addEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="removeEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="renameEnabled">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
      </layout>
     </widget>
    </item>
@@ -239,12 +204,6 @@
      <property name="enabled">
       <bool>true</bool>
      </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-     <property name="collapsed">
-      <bool>true</bool>
-     </property>     
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -253,6 +212,12 @@
      </property>
      <property name="text">
       <string>Plotting</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <property name="collapsed">
+      <bool>true</bool>
      </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -323,6 +288,34 @@
        <widget class="QCheckBox" name="checkBox_RecordMasterOnly">
         <property name="text">
          <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_SequenceInput">
+        <property name="text">
+         <string>Master node</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_Sequence">
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLSequenceNode</string>
+         </stringlist>
+        </property>
+        <property name="noneEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="addEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="renameEnabled">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

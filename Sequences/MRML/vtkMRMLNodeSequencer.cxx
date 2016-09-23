@@ -30,6 +30,7 @@
 #include <vtkMRMLCameraNode.h>
 #include <vtkMRMLMarkupsFiducialNode.h>
 #include <vtkMRMLModelNode.h>
+#include <vtkMRMLScalarVolumeDisplayNode.h>
 #include <vtkMRMLSegmentationNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLVolumeNode.h>
@@ -111,6 +112,17 @@ vtkMRMLNode* vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(vtkMRMLNod
   return addedTargetNode;
 }
 
+void vtkMRMLNodeSequencer::NodeSequencer::AddDefaultDisplayNodes(vtkMRMLNode* node)
+{
+  vtkMRMLDisplayableNode* displayableNode = vtkMRMLDisplayableNode::SafeDownCast(node);
+  if (displayableNode == NULL)
+  {
+    // not a displayable node, there is nothing to do
+    return;
+  }
+  displayableNode->CreateDefaultDisplayNodes();
+}
+
 //----------------------------------------------------------------------------
 
 class ScalarVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
@@ -145,33 +157,28 @@ public:
     target->EndModify(oldModified);
   }
 
-  /*
-  virtual vtkMRMLNode* DeepCopyNodeToScene(vtkMRMLNode* source, vtkMRMLScene* scene)
+  virtual void AddDefaultDisplayNodes(vtkMRMLNode* node)
   {
-    vtkMRMLNode* newNode = vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(source, scene);
-    if (newNode == NULL)
+    vtkMRMLDisplayableNode* displayableNode = vtkMRMLDisplayableNode::SafeDownCast(node);
+    if (displayableNode == NULL)
     {
-      return NULL;
+      // not a displayable node, there is nothing to do
+      return;
     }
-
-    // To DeepCopy volumes we need to deep copy the image data
-    vtkMRMLVolumeNode* volumeNode = vtkMRMLVolumeNode::SafeDownCast(newNode);
-    if (volumeNode != NULL)
+    if (displayableNode->GetDisplayNode())
     {
-      vtkGenericWarningMacro("ScalarVolumeNodeSequencer::DeepCopyToScene failed: volume node is expected");
-      return newNode;
+      // there is a display node already
+      return;
     }
+    displayableNode->CreateDefaultDisplayNodes();
 
-    // Need to get a observe a copy of the image data (this is OK even if it is NULL)
-    int wasModified = newNode->StartModify();
-    vtkNew<vtkImageData> imageDataCopy;
-    imageDataCopy->DeepCopy(volumeNode->GetImageData());
-    volumeNode->SetAndObserveImageData(imageDataCopy.GetPointer());
-    newNode->EndModify(wasModified);
-
-    return newNode;
+    // Turn off auto window/level for scalar volumes (it is costly to compute recommended ww/wl and image would appear to be flickering)
+    vtkMRMLScalarVolumeDisplayNode* scalarVolumeDisplayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(displayableNode->GetDisplayNode());
+    if (scalarVolumeDisplayNode)
+    {
+      scalarVolumeDisplayNode->AutoWindowLevelOff();
+    }
   }
-  */
 
 };
 
@@ -235,6 +242,11 @@ public:
     }
     targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
     target->EndModify(oldModified);
+  }
+
+  virtual void AddDefaultDisplayNodes(vtkMRMLNode* node)
+  {
+    // don't create display nodes for transforms by default
   }
 
 };

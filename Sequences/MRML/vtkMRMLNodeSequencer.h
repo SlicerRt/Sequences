@@ -56,12 +56,8 @@ public:
     virtual std::string GetSupportedNodeClassName();
     virtual bool IsNodeSupported(vtkMRMLNode* node);
     virtual bool IsNodeSupported(const std::string& nodeClassName);
- 
-    // TODO: Add CreateDefaultDisplayNodes customization, switch scalarVolumeDisplayNode->AutoWindowLevelOff(); for volume nodes
-    /// Helper function for performance optimization of volume browsing
-    /// It disables auto WW/WL computation in scalar display nodes, as WW/WL would be recomputed on each volume change,
-    /// this significantly slowing down browsing.
-    
+    virtual void AddDefaultDisplayNodes(vtkMRMLNode* node);
+
   protected:
     vtkSmartPointer< vtkIntArray > RecordingEvents;
     std::string SupportedNodeClassName;
