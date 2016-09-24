@@ -65,18 +65,19 @@ public:
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "SequenceBrowser";};
 
-  /// Set the sequence data node
-  void SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID);
+  /// Set the sequence data node.
+  /// Returns the new proxy node postfix.
+  std::string SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID);
   /// Get the sequence data node
   vtkMRMLSequenceNode* GetMasterSequenceNode();
   
   /// Deprecated. Use AddSynchronizedSequenceNodeID instead.
   std::string AddSynchronizedSequenceNode(const char* synchronizedSequenceNodeId);
 
-  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  /// Adds a node for synchronized browsing. Returns the new proxy node postfix.
   std::string AddSynchronizedSequenceNodeID(const char* synchronizedSequenceNodeId);
 
-  /// Adds a node for synchronized browsing. Returns the new virtual output node postfix.
+  /// Adds a node for synchronized browsing. Returns the new proxy node postfix.
   std::string AddSynchronizedSequenceNode(vtkMRMLSequenceNode* synchronizedSequenceNode);
 
   /// Removes a node from synchronized browsing

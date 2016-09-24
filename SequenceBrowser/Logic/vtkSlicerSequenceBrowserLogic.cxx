@@ -226,8 +226,8 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
   this->UpdateProxyNodesFromSequencesInProgress = true;
   
   int selectedItemNumber=browserNode->GetSelectedItemNumber();
-  std::string indexValue;
-  if (selectedItemNumber>=0)
+  std::string indexValue("0");
+  if (selectedItemNumber >= 0 && selectedItemNumber < browserNode->GetMasterSequenceNode()->GetNumberOfDataNodes())
   {
     indexValue=browserNode->GetMasterSequenceNode()->GetNthIndexValue(selectedItemNumber);
   }

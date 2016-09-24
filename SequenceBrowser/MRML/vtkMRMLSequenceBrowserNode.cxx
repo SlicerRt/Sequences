@@ -349,20 +349,27 @@ std::string vtkMRMLSequenceBrowserNode::GenerateSynchronizationPostfix()
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID)
+std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID)
 {
   if (!sequenceNodeID)
   {
     // master node can only be NULL if there are no synchronized nodes
     this->RemoveAllSequenceNodes();
-    return;
+    return "";
   }
   if (this->GetMasterSequenceNode()
     && this->GetMasterSequenceNode()->GetID() != NULL
     && strcmp(this->GetMasterSequenceNode()->GetID(), sequenceNodeID) == 0)
   {
     // no change
-    return;
+    if (!this->SynchronizationPostfixes.empty())
+    {
+      return this->SynchronizationPostfixes.front();
+    }
+    else
+    {
+      return "";
+    }
   }
   std::string masterPostfix = this->GetSynchronizationPostfixFromSequenceID(sequenceNodeID);
   if (masterPostfix.empty() || this->GetMasterSequenceNode() == NULL)
@@ -371,10 +378,10 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
     // Master is not among the browsed nodes, or it is an empty browser node.
     this->RemoveAllSequenceNodes();
     // Master is the first element in the postfixes vector.
-    this->AddSynchronizedSequenceNodeID(sequenceNodeID);
+    std::string rolePostfix = this->AddSynchronizedSequenceNodeID(sequenceNodeID);
     this->SetSelectedItemNumber(0);
     this->EndModify(oldModify);
-    return;
+    return rolePostfix;
   }
   bool oldModify = this->StartModify();
   // Get the currently selected index value (so that we can restore the closest value with the new master)
@@ -382,6 +389,7 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
   // Move the new master's postfix to the front of the list
   std::vector< std::string >::iterator oldMasterPostfixPosition = std::find(this->SynchronizationPostfixes.begin(), this->SynchronizationPostfixes.end(), masterPostfix);
   iter_swap(oldMasterPostfixPosition, this->SynchronizationPostfixes.begin());
+  std::string rolePostfix = this->SynchronizationPostfixes.front();
   this->Modified();
   // Select the closest selected item index in the new master node
   vtkMRMLSequenceNode* newMasterNode = (this->Scene ? vtkMRMLSequenceNode::SafeDownCast(this->Scene->GetNodeByID(sequenceNodeID)) : NULL);
@@ -396,6 +404,7 @@ void vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *s
     this->SetSelectedItemNumber(0);
   }
   this->EndModify(oldModify);
+  return rolePostfix;
 }
 
 //----------------------------------------------------------------------------
@@ -528,6 +537,12 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   {
     // Add reference to the sequence node
     rolePostfix=AddSynchronizedSequenceNodeID(sequenceNode->GetID());
+  }
+
+  // Save base name (proxy node name may be overwritten later)
+  if (sourceProxyNode->GetAttribute("Sequences.BaseName") == NULL)
+  {
+    sourceProxyNode->SetAttribute("Sequences.BaseName", sourceProxyNode->GetName());
   }
 
   // Add copy of the data node
@@ -697,6 +712,11 @@ std::string vtkMRMLSequenceBrowserNode::AddSynchronizedSequenceNodeID(const char
     return rolePostfix;
   }
   rolePostfix = this->GenerateSynchronizationPostfix();
+  if (this->SynchronizationPostfixes.empty())
+  {
+    // first sequence, initialize selected item number
+    this->SetSelectedItemNumber(0);
+  }
   this->SynchronizationPostfixes.push_back(rolePostfix);
   std::string sequenceNodeReferenceRole = SEQUENCE_NODE_REFERENCE_ROLE_BASE + rolePostfix;
   this->SetAndObserveNodeReferenceID(sequenceNodeReferenceRole.c_str(), synchronizedSequenceNodeId);
@@ -795,8 +815,9 @@ void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
   {
     std::stringstream timeString;
     timeString << this->GetMasterSequenceNode()->GetNthIndexValue( this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1 );
-    double timeValue; timeString >> timeValue;
-    this->InitialTime = this->InitialTime - timeValue;
+    double timeValue = 0;
+    timeString >> timeValue;
+    this->InitialTime -= timeValue;
   }
   if (this->RecordingActive!=recording)
   {

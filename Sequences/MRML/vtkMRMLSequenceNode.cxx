@@ -66,6 +66,7 @@ void vtkMRMLSequenceNode::RemoveAllDataNodes()
   this->IndexEntries.clear();
   this->SequenceScene->Delete();
   this->SequenceScene=vtkMRMLScene::New();
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -171,8 +172,14 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
 {
-  this->IndexEntries.clear();
+  bool modified = false;
 
+  if (!this->IndexEntries.empty())
+  {
+    this->IndexEntries.clear();
+    modified = true;
+  }
+  
   std::stringstream ss(indexText);
   std::string nodeId_indexValue;
   while (std::getline(ss, nodeId_indexValue, ';'))
@@ -189,7 +196,13 @@ void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
       indexEntry.DataNodeID=nodeId;
       indexEntry.DataNode=NULL;
       this->IndexEntries.push_back(indexEntry);
+      modified = true;
     }
+  }
+
+  if (modified)
+  {
+    this->Modified();
   }
 }
 
@@ -241,7 +254,8 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
       }
     }
     this->IndexEntries.push_back(seqItem);
-  }  
+  }
+  this->Modified();
 
   this->EndModify(wasModified);
 }
@@ -289,7 +303,16 @@ bool vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const std::st
     vtkDebugMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, indexValue not found");
     return false;
   }
+  std::string originalName = (nodeToBeUpdated->GetName() ? nodeToBeUpdated->GetName() : "");
   vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(node)->CopyNode(node, nodeToBeUpdated, shallowCopy);
+  if (!originalName.empty())
+  {
+    // Restore original name to prevent changing of node name in the sequence node
+    // (proxy node may always have the same name or have the index value in it,
+    // none of which is preferable in the sequence scene).
+    nodeToBeUpdated->SetName(originalName.c_str());
+  }
+  this->Modified();
   return true;
 }
 
@@ -337,6 +360,7 @@ vtkMRMLNode* vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const st
   }
   this->IndexEntries[seqItemIndex].DataNode = newNode;
   this->IndexEntries[seqItemIndex].DataNodeID.clear();
+  this->Modified();
   return newNode;
 }
 
@@ -352,6 +376,7 @@ void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const std::string& indexValue)
   // TODO: remove associated nodes as well (such as storage node)?
   this->SequenceScene->RemoveNode(this->IndexEntries[seqItemIndex].DataNode);
   this->IndexEntries.erase(this->IndexEntries.begin()+seqItemIndex);
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -460,6 +485,7 @@ bool vtkMRMLSequenceNode::UpdateIndexValue(const std::string& oldIndexValue, con
     int insertPosition = this->GetInsertPosition(newIndexValue);
     this->IndexEntries.insert(this->IndexEntries.begin() + insertPosition, movingEntry);
   }
+  this->Modified();
   return true;
 }
 

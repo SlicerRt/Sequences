@@ -967,7 +967,17 @@ void qSlicerSequenceBrowserModuleWidget::onProxyNodeChanged(vtkMRMLNode* newProx
   if (newProxyNode && newProxyNode->GetName() != NULL
     && synchronizedNode && d->activeBrowserNode()->GetOverwriteProxyName(synchronizedNode))
   {
-    std::string proxyNodeName = std::string(newProxyNode->GetName()) + " sequence";
+    std::string baseName = "Data";
+    if (newProxyNode->GetAttribute("Sequences.BaseName") != 0)
+    {
+      baseName = newProxyNode->GetAttribute("Sequences.BaseName");
+    }
+    else if (newProxyNode->GetName() != 0)
+    {
+      baseName = newProxyNode->GetName();
+    }
+    baseName += " sequence";
+    std::string proxyNodeName = this->mrmlScene()->GetUniqueNameByString(baseName.c_str());
     synchronizedNode->SetName(proxyNodeName.c_str());
   }
 

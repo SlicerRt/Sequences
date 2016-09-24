@@ -27,6 +27,7 @@
 
 class qSlicerSequencesModuleWidgetPrivate;
 class vtkMRMLNode;
+class vtkMRMLSequenceNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class Q_SLICER_QTMODULES_SEQUENCES_EXPORT qSlicerSequencesModuleWidget :
@@ -47,14 +48,15 @@ public:
 
 public slots:
 
+  void setActiveSequenceNode(vtkMRMLSequenceNode* newActiveSequenceNode);
   void onSequenceNodeSelectionChanged();
+  void onSequenceNodeModified();
 
   void onIndexNameEdited();
   void onIndexUnitEdited();
   void onIndexTypeEdited(QString indexTypeString);
 
   void onDataNodeEdited( int row, int column );
-  void onHideDataNodeClicked( int row, int column );
 
   void onAddDataNodeButtonClicked();
   void onRemoveDataNodeButtonClicked();
@@ -76,10 +78,8 @@ protected:
 
 protected slots:
 
-  void UpdateSequenceNode();
-  void UpdateCandidateNodes();
-
-  void CreateVisItem( QTableWidgetItem*, bool );
+  void updateSequenceItemWidgetFromMRML();
+  void updateCandidateNodesWidgetFromMRML(bool forceUpdate = false);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSequencesModuleWidget);

@@ -18,6 +18,7 @@
 // Qt includes
 #include <QtPlugin>
 #include <QDebug>
+#include <QListWidgetItem>
 
 // SlicerQt includes
 #include "qSlicerSequencesModuleWidget.h"
@@ -63,23 +64,27 @@ public:
   
   /// Get a list of MLRML nodes that are in the scene but not added to the sequences data node at the chosen index value
   void GetDataNodeCandidates(vtkCollection* foundNodes, vtkMRMLSequenceNode* sequenceNode);
+
+  vtkWeakPointer<vtkMRMLSequenceNode> ActiveSequenceNode;
+  QString DataNodeCandidatesClassName; // data node class name that was used for populating the candidate node list
 };
 
 //-----------------------------------------------------------------------------
 // qSlicerSequencesModuleWidgetPrivate methods
 
 //-----------------------------------------------------------------------------
-qSlicerSequencesModuleWidgetPrivate::qSlicerSequencesModuleWidgetPrivate( qSlicerSequencesModuleWidget& object ) : q_ptr(&object)
+qSlicerSequencesModuleWidgetPrivate::qSlicerSequencesModuleWidgetPrivate( qSlicerSequencesModuleWidget& object )
+: q_ptr(&object)
+, DataNodeCandidatesClassName("(uninitialized)") // this will force an initial update
 {
 }
 
 //-----------------------------------------------------------------------------
-
 qSlicerSequencesModuleWidgetPrivate::~qSlicerSequencesModuleWidgetPrivate()
 {
 }
 
-
+//-----------------------------------------------------------------------------
 vtkSlicerSequencesLogic* qSlicerSequencesModuleWidgetPrivate::logic() const
 {
   Q_Q( const qSlicerSequencesModuleWidget );
@@ -206,7 +211,8 @@ void qSlicerSequencesModuleWidget::enter()
       this, SLOT(onMRMLSceneEndCloseEvent()));
     this->qvtkConnect(this->mrmlScene(), vtkMRMLScene::EndRestoreEvent,
       this, SLOT(onMRMLSceneEndRestoreEvent()));
-    UpdateCandidateNodes();
+    this->setActiveSequenceNode(vtkMRMLSequenceNode::SafeDownCast(d->MRMLNodeComboBox_Sequence->currentNode()));
+    this->updateCandidateNodesWidgetFromMRML(true);
   }
   else
   {
@@ -219,11 +225,13 @@ void qSlicerSequencesModuleWidget::enter()
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::exit()
 {
+  Q_D(qSlicerSequencesModuleWidget);
   this->Superclass::exit();
 
   // remove mrml scene observations, don't need to update the GUI while the
   // module is not showing
   this->qvtkDisconnectAll();
+  d->ActiveSequenceNode = NULL;
 } 
 
 //-----------------------------------------------------------------------------
@@ -234,7 +242,7 @@ void qSlicerSequencesModuleWidget::onNodeAddedEvent(vtkObject*, vtkObject* node)
   {
     return;
   }
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 }
 
 //-----------------------------------------------------------------------------
@@ -246,19 +254,19 @@ void qSlicerSequencesModuleWidget::onNodeRemovedEvent(vtkObject* scene, vtkObjec
     {
     return;
     }
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onMRMLSceneEndImportEvent()
 {
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onMRMLSceneEndRestoreEvent()
 {
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 }
 
 //-----------------------------------------------------------------------------
@@ -268,7 +276,7 @@ void qSlicerSequencesModuleWidget::onMRMLSceneEndBatchProcessEvent()
     {
     return;
     }
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 }
 
 //-----------------------------------------------------------------------------
@@ -278,17 +286,23 @@ void qSlicerSequencesModuleWidget::onMRMLSceneEndCloseEvent()
     {
     return;
     }
-  UpdateCandidateNodes();
+  this->updateCandidateNodesWidgetFromMRML(true);
 } 
-
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onSequenceNodeSelectionChanged()
 {
   Q_D(qSlicerSequencesModuleWidget);
   d->LineEdit_NewDataNodeIndexValue->setText("0");
-  this->UpdateSequenceNode();
-  this->UpdateCandidateNodes();
+  this->setActiveSequenceNode(vtkMRMLSequenceNode::SafeDownCast(d->MRMLNodeComboBox_Sequence->currentNode()));
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequencesModuleWidget::onSequenceNodeModified()
+{
+  Q_D(qSlicerSequencesModuleWidget);
+  this->updateSequenceItemWidgetFromMRML();
+  this->updateCandidateNodesWidgetFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -303,11 +317,7 @@ void qSlicerSequencesModuleWidget::onIndexNameEdited()
   }
 
   currentSequence->SetIndexName(d->LineEdit_IndexName->text().toLatin1().constData());
-
-  this->UpdateSequenceNode();
 }
-
-
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onIndexUnitEdited()
@@ -321,8 +331,6 @@ void qSlicerSequencesModuleWidget::onIndexUnitEdited()
   }
 
   currentSequence->SetIndexUnit( d->LineEdit_IndexUnit->text().toLatin1().constData() );
-
-  this->UpdateSequenceNode();
 }
 
 //-----------------------------------------------------------------------------
@@ -337,8 +345,6 @@ void qSlicerSequencesModuleWidget::onIndexTypeEdited(QString indexTypeString)
   }
 
   currentSequence->SetIndexTypeFromString( indexTypeString.toLatin1().constData() );
-
-  this->UpdateSequenceNode();
 }
 
 //-----------------------------------------------------------------------------
@@ -384,7 +390,7 @@ void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
     currentDataNode->SetName( qText.toLatin1().constData() );
   }
 
-  this->UpdateSequenceNode();
+  this->updateSequenceItemWidgetFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -406,12 +412,21 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
   }
 
   // Get the selected node
-  vtkNew<vtkCollection> candidateNodes;
-  d->GetDataNodeCandidates( candidateNodes.GetPointer(), currentSequence );
+  QListWidgetItem* currentItem = d->ListWidget_CandidateDataNodes->currentItem();
+  if (currentItem == 0)
+  {
+    qCritical() << "Cannot add new data node, as current data item selection is invalid";
+    return;
+  }
 
-  int row = d->ListWidget_CandidateDataNodes->currentRow();
-  vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( row ) );
-
+  QString currentCandidateNodeId = currentItem->data(Qt::UserRole).toString();
+  vtkMRMLNode* currentCandidateNode = currentSequence->GetScene()->GetNodeByID(currentCandidateNodeId.toLatin1().constData());
+  if (currentCandidateNode == 0)
+  {
+    qCritical() << "Cannot add new data node, as current data item is invalid";
+    return;
+  }
+  int wasModified = currentSequence->StartModify();
   currentSequence->SetDataNodeAtValue(currentCandidateNode, currentIndexValue.c_str() );
 
   // Auto-increment the Index value in the new data textbox
@@ -425,9 +440,7 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
     QString newIndexValue=QString::number(oldIndexNumber+incrementValue);
     d->LineEdit_NewDataNodeIndexValue->setText(newIndexValue);
   }
-
-  this->UpdateSequenceNode();
-  this->UpdateCandidateNodes();
+  currentSequence->EndModify(wasModified);
 
   // Restore candidate node selection / auto-advance to the next node
   int selectionOffset=0; // can be 0 or 1, the selection in the data nodes list moves forward by this number of elements
@@ -435,11 +448,10 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
   {
     selectionOffset=1;
   }
-  d->GetDataNodeCandidates( candidateNodes.GetPointer(), currentSequence );
-  for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
+  for ( int i = 0; i < d->ListWidget_CandidateDataNodes->count(); i++ )
   {
-    vtkMRMLNode* selectedCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
-    if (selectedCandidateNode==currentCandidateNode)
+    QListWidgetItem * item = d->ListWidget_CandidateDataNodes->item(i);
+    if (item->data(Qt::UserRole).toString() == currentCandidateNodeId)
     {      
       if (i+selectionOffset<d->ListWidget_CandidateDataNodes->count())
       {
@@ -456,7 +468,6 @@ void qSlicerSequencesModuleWidget::onAddDataNodeButtonClicked()
     }
   }
 }
-
 
 //-----------------------------------------------------------------------------
 void qSlicerSequencesModuleWidget::onRemoveDataNodeButtonClicked()
@@ -475,62 +486,34 @@ void qSlicerSequencesModuleWidget::onRemoveDataNodeButtonClicked()
     return;
   }
   currentSequence->RemoveDataNodeAtValue( currentIndexValue.c_str() );  
+}
 
-  this->UpdateSequenceNode();
-
-  // If the data node list have become empty then refresh the candidate nodes list, as we now accept any kind of nodes
-  if (d->TableWidget_DataNodes->rowCount()==0)
+// --------------------------------------------------------------------------
+void qSlicerSequencesModuleWidget::setActiveSequenceNode(vtkMRMLSequenceNode* sequenceNode)
+{
+  Q_D(qSlicerSequencesModuleWidget);
+  if (d->ActiveSequenceNode == sequenceNode)
   {
-    this->UpdateCandidateNodes();
+    return; // no change
   }
+  if (d->ActiveSequenceNode != sequenceNode)
+  {
+    // Reconnect the input node's Modified() event observer
+    this->qvtkReconnect(d->ActiveSequenceNode, sequenceNode, vtkCommand::ModifiedEvent,
+      this, SLOT(onSequenceNodeModified()));
+    d->ActiveSequenceNode = sequenceNode;
+  }
+
+  this->updateSequenceItemWidgetFromMRML();
+  this->updateCandidateNodesWidgetFromMRML();
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::onHideDataNodeClicked( int row, int column )
+void qSlicerSequencesModuleWidget::updateSequenceItemWidgetFromMRML()
 {
   Q_D(qSlicerSequencesModuleWidget);
 
-  // TODO: find/create a browser node and show/hide the node
-  
-  /*
-
-  vtkMRMLSequenceNode* currentSequence = vtkMRMLSequenceNode::SafeDownCast( d->MRMLNodeComboBox_Sequence->currentNode() );
-  if ( currentSequence == NULL )
-  {
-    return;
-  }
-
-  std::string currentIndexValue = currentSequence->GetNthIndexValue( d->TableWidget_DataNodes->currentRow() );
-  if ( currentIndexValue.empty() )
-  {
-    return;
-  }
-
-  if ( column != DATA_NODE_VIS_COLUMN )
-  {
-    return;
-  }
-
-  // Get the selected nodes
-
-  d->logic()->SetDataNodesHiddenAtValue( currentSequence, ! d->logic()->GetDataNodesHiddenAtValue( currentSequence, currentIndexValue.c_str() ), currentIndexValue.c_str() );
-
-  // Change the eye for the current sequence node
-  QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-  this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentSequence, currentIndexValue.c_str() ) );
-  d->TableWidget_DataNodes->setItem( row, DATA_NODE_VIS_COLUMN, visItem ); // This changes current item to NULL
-  d->TableWidget_DataNodes->setCurrentCell( row, column ); // Reset the current cell so updating the sequence node works
-
-  this->UpdateSequenceNode();
-  */
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::UpdateSequenceNode()
-{
-  Q_D(qSlicerSequencesModuleWidget);
-
-  vtkMRMLSequenceNode* currentSequence = vtkMRMLSequenceNode::SafeDownCast( d->MRMLNodeComboBox_Sequence->currentNode() );
+  vtkMRMLSequenceNode* currentSequence = d->ActiveSequenceNode;
 
   if ( currentSequence == NULL )
   {
@@ -577,20 +560,15 @@ void qSlicerSequencesModuleWidget::UpdateSequenceNode()
 
     if (currentDataNode==NULL)
     {
-      qCritical() << "qSlicerSequencesModuleWidget::UpdateSequenceNode invalid data node";
+      qCritical() << "qSlicerSequencesModuleWidget::updateSequenceItemWidgetFromMRML invalid data node";
       continue;
     }
-
-    // Display the data node information
-    //QTableWidgetItem* visItem = new QTableWidgetItem( QString( "" ) );
-    //this->CreateVisItem( visItem, d->logic()->GetDataNodesHiddenAtValue( currentSequence, currentValue.c_str() ) );
 
     QTableWidgetItem* valueItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentValue.c_str() ) );
     valueItem->setTextAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
 
     QTableWidgetItem* nameItem = new QTableWidgetItem( FROM_STD_STRING_SAFE( currentDataNode->GetName() ) );
 
-    //d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_VIS_COLUMN, visItem );
     d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_VALUE_COLUMN, valueItem );
     d->TableWidget_DataNodes->setItem( dataNodeIndex, DATA_NODE_NAME_COLUMN, nameItem );
   }
@@ -604,23 +582,10 @@ void qSlicerSequencesModuleWidget::UpdateSequenceNode()
   {
     d->ExpandButton_DataNodes->setChecked(true);
   }
-
-  /*
-  if ( d->logic()->GetDataNodesHiddenAtValue( currentSequence, currentValue ) )
-  {
-    d->CheckBox_HideDataNodes->setCheckState( Qt::Checked );
-  }
-  else
-  {
-    d->CheckBox_HideDataNodes->setCheckState( Qt::Unchecked );
-  }
-  */
-
 }
 
-
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::UpdateCandidateNodes()
+void qSlicerSequencesModuleWidget::updateCandidateNodesWidgetFromMRML(bool forceUpdate /* =false */)
 {
   Q_D(qSlicerSequencesModuleWidget);
 
@@ -629,7 +594,15 @@ void qSlicerSequencesModuleWidget::UpdateCandidateNodes()
   {
     d->ListWidget_CandidateDataNodes->clear();
     return;
-  }  
+  }
+
+  QString currentDataNodeCandidatesClassName(currentSequence->GetDataNodeClassName().c_str());
+  if (!forceUpdate && d->DataNodeCandidatesClassName == currentDataNodeCandidatesClassName)
+  {
+    // already up-to-date
+    return;
+  }
+  d->DataNodeCandidatesClassName = currentDataNodeCandidatesClassName;
 
   // Display the candidate data nodes
   vtkNew<vtkCollection> candidateNodes;
@@ -640,26 +613,11 @@ void qSlicerSequencesModuleWidget::UpdateCandidateNodes()
   for ( int i = 0; i < candidateNodes->GetNumberOfItems(); i++ )
   {
     vtkMRMLNode* currentCandidateNode = vtkMRMLNode::SafeDownCast( candidateNodes->GetItemAsObject( i ));
-    d->ListWidget_CandidateDataNodes->addItem( QString::fromStdString( currentCandidateNode->GetName() ) );
+    QListWidgetItem *qlwi = new QListWidgetItem();
+    qlwi->setText(currentCandidateNode->GetName());
+    qlwi->setData(Qt::UserRole, QString(currentCandidateNode->GetID()));
+    d->ListWidget_CandidateDataNodes->addItem(qlwi);
   }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::CreateVisItem( QTableWidgetItem* visItem, bool hidden )
-{
-  Q_D(qSlicerSequencesModuleWidget);
-
-  // Display the "hiddenness" of the data nodes
-  visItem->setFlags( visItem->flags() & ~Qt::ItemIsEditable );
-  if ( hidden )
-  {
-    visItem->setIcon( QIcon( ":/Icons/DataNodeHidden.png" ) );
-  }
-  else
-  {
-    visItem->setIcon( QIcon( ":/Icons/DataNodeUnhidden.png" ) );
-  }
-
 }
 
 //-----------------------------------------------------------------------------

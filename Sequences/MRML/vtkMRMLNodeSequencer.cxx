@@ -99,7 +99,16 @@ vtkMRMLNode* vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(vtkMRMLNod
     vtkGenericWarningMacro("NodeSequencer::CopyNode failed, invalid node");
     return NULL;
   }
-  std::string newNodeName = scene->GetUniqueNameByString(source->GetName() ? source->GetName() : "Sequence");
+  std::string baseName = "Data";
+  if (source->GetAttribute("Sequences.BaseName") != 0)
+  {
+    baseName = source->GetAttribute("Sequences.BaseName");
+  }
+  else if (source->GetName() != 0)
+  {
+    baseName = source->GetName();
+  }
+  std::string newNodeName = scene->GetUniqueNameByString(baseName.c_str());
 
   vtkSmartPointer<vtkMRMLNode> target = vtkSmartPointer<vtkMRMLNode>::Take(source->CreateNodeInstance());
   this->CopyNode(source, target, false);
@@ -107,6 +116,7 @@ vtkMRMLNode* vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(vtkMRMLNod
   // Make sure all the node names in the sequence's scene are unique for saving purposes
   // TODO: it would be better to make sure all names are unique when saving the data?
   target->SetName(newNodeName.c_str());
+  target->SetAttribute("Sequences.BaseName", baseName.c_str());
 
   vtkMRMLNode* addedTargetNode = scene->AddNode(target);
   return addedTargetNode;
