@@ -31,8 +31,10 @@
 #include <vtkMRMLMarkupsFiducialNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLSliceNode.h>
 #include <vtkMRMLSegmentationNode.h>
 #include <vtkMRMLTransformNode.h>
+#include <vtkMRMLViewNode.h>
 #include <vtkMRMLVolumeNode.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -356,6 +358,75 @@ public:
 };
 
 //----------------------------------------------------------------------------
+
+class SliceNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  SliceNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLSliceNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLAbstractViewNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    vtkMRMLSliceNode* targetSliceNode = vtkMRMLSliceNode::SafeDownCast(target);
+    vtkMRMLSliceNode* sourceSliceNode = vtkMRMLSliceNode::SafeDownCast(source);
+    int disabledModify = targetSliceNode->StartModify();
+    targetSliceNode->SetSliceVisible(sourceSliceNode->GetSliceVisible());
+    targetSliceNode->GetSliceToRAS()->DeepCopy(sourceSliceNode->GetSliceToRAS());
+    double* doubleVector = sourceSliceNode->GetFieldOfView();
+    targetSliceNode->SetFieldOfView(doubleVector[0], doubleVector[1], doubleVector[2]);
+    int* intVector = sourceSliceNode->GetDimensions();
+    targetSliceNode->SetDimensions(intVector[0], intVector[1], intVector[2]);
+    doubleVector = sourceSliceNode->GetXYZOrigin();
+    targetSliceNode->SetXYZOrigin(doubleVector[0], doubleVector[1], doubleVector[2]);
+    intVector = sourceSliceNode->GetUVWDimensions();
+    targetSliceNode->SetUVWDimensions(intVector[0], intVector[1], intVector[2]);
+    intVector = sourceSliceNode->GetUVWMaximumDimensions();
+    targetSliceNode->SetUVWMaximumDimensions(intVector[0], intVector[1], intVector[2]);
+    doubleVector = sourceSliceNode->GetUVWExtents();
+    targetSliceNode->SetUVWExtents(doubleVector[0], doubleVector[1], doubleVector[2]);
+    doubleVector = sourceSliceNode->GetUVWOrigin();
+    targetSliceNode->SetUVWOrigin(doubleVector[0], doubleVector[1], doubleVector[2]);
+    doubleVector = sourceSliceNode->GetPrescribedSliceSpacing();
+    targetSliceNode->SetPrescribedSliceSpacing(doubleVector[0], doubleVector[1], doubleVector[2]);
+    targetSliceNode->UpdateMatrices();
+    targetSliceNode->EndModify(disabledModify);
+  }
+};
+
+//----------------------------------------------------------------------------
+
+class ViewNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  ViewNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLViewNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLAbstractViewNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    vtkMRMLViewNode* targetNode = vtkMRMLViewNode::SafeDownCast(target);
+    vtkMRMLViewNode* sourceNode = vtkMRMLViewNode::SafeDownCast(source);
+    int disabledModify = targetNode->StartModify();
+    targetNode->SetBoxVisible(sourceNode->GetBoxVisible());
+    targetNode->SetAxisLabelsVisible(sourceNode->GetAxisLabelsVisible());
+    targetNode->SetAxisLabelsCameraDependent(sourceNode->GetAxisLabelsCameraDependent());
+    targetNode->SetLetterSize(sourceNode->GetLetterSize());
+    targetNode->SetStereoType(sourceNode->GetStereoType());
+    targetNode->SetRenderMode(sourceNode->GetRenderMode());
+    targetNode->SetUseDepthPeeling(sourceNode->GetUseDepthPeeling());
+    targetNode->SetFPSVisible(sourceNode->GetFPSVisible());
+    targetNode->EndModify(disabledModify);
+  }
+};
+
+//----------------------------------------------------------------------------
 // Needed when we don't use the vtkStandardNewMacro.
 vtkInstantiatorNewMacro(vtkMRMLNodeSequencer);
 
@@ -399,8 +470,9 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new ModelNodeSequencer());
   this->RegisterNodeSequencer(new CameraNodeSequencer());
   this->RegisterNodeSequencer(new SegmentationNodeSequencer());
-  // TODO: fix link error
-  //this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
+  this->RegisterNodeSequencer(new SliceNodeSequencer());
+  this->RegisterNodeSequencer(new ViewNodeSequencer());
+  this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
 }
 
 //----------------------------------------------------------------------------

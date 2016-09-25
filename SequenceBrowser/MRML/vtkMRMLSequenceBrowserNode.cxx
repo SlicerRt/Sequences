@@ -750,6 +750,9 @@ void vtkMRMLSequenceBrowserNode::RemoveSynchronizedSequenceNode(const char* node
     }
     if (strcmp(foundNodeId,nodeId)==0)
     {
+      // This might have been the last node that was being replayed or recorded
+      this->SetPlaybackActive(false);
+      this->SetRecordingActive(false);
       // the iterator will become invalid, so make a copy of its content
       std::string rolePostfix=(*rolePostfixIt);
       bool oldModify=this->StartModify();

@@ -60,7 +60,11 @@ public:
 
   protected:
     vtkSmartPointer< vtkIntArray > RecordingEvents;
+    // Name of the MRML node class that this sequencer supports.
+    // It may be an abstract class.
     std::string SupportedNodeClassName;
+    // Names of parent classes of SupportedNodeClass.
+    // They are used for determining what is the most specific sequences for a node class.
     std::vector< std::string > SupportedNodeParentClassNames;
   };
 

@@ -26,6 +26,7 @@ set(${KIT}_TARGET_LIBRARIES
   ${MRML_LIBRARIES}
   SlicerBaseLogic
   qSlicerBaseQTCLI
+  vtkSlicerMarkupsModuleMRML
   )
 
 #-----------------------------------------------------------------------------

@@ -318,11 +318,6 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     
     // Update the target node with the contents of the source node    
 
-    // Slice browser is updated when there is a rename, but we want to avoid update, because
-    // the source node may be hidden from editors and it would result in removing the target node
-    // from the slicer browser. To avoid update of the slice browser, we set the name in advance.
-    // targetProxyNode->SetName(sourceDataNode->GetName()); // TODO: This is no longer needed because the ShallowCopy function does not change node visibility?
-
     // Mostly it is a shallow copy (for example for volumes, models)
     std::pair<vtkMRMLNode*, int> nodeModifiedState(targetProxyNode, targetProxyNode->StartModify());
     nodeModifiedStates.push_back(nodeModifiedState);
@@ -331,6 +326,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     // (otherwise parent transform, display node, etc. would be lost)
     vtkSmartPointer<vtkMRMLNode> proxyOriginalReferenceStorage = vtkSmartPointer<vtkMRMLNode>::Take(targetProxyNode->NewInstance());
     proxyOriginalReferenceStorage->CopyReferences(targetProxyNode);
+    std::string proxyOriginalName = (targetProxyNode->GetName() ? targetProxyNode->GetName() : "");
 
     // TODO: if we really want to force non-mutable nodes in the sequence then we have to deep-copy, but that's slow.
     // Make sure that by default/most of the time shallow-copy is used.
@@ -340,21 +336,21 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     // Restore node references
     targetProxyNode->CopyReferences(proxyOriginalReferenceStorage);
 
-    // Generation of target proxy node name: sequence node name (IndexName = IndexValue IndexUnit)
-    if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
+    if (targetProxyNode->GetSingletonTag())
     {
-      std::string sequenceName=synchronizedSequenceNode->GetName();
+      // Singleton nodes must not be renamed, as they are often expected to exist by a specific name
+      targetProxyNode->SetName(proxyOriginalName.c_str());
+    }
+    else if (browserNode->GetOverwriteProxyName(synchronizedSequenceNode))
+    {
+      // Generation of target proxy node name: base node name [IndexName = IndexValue IndexUnit]
       std::string indexName = synchronizedSequenceNode->GetIndexName();
       std::string unit = synchronizedSequenceNode->GetIndexUnit();
-      std::string targetProxyNodeName;
-      if (!sequenceName.empty())
+      if (!targetProxyNode->GetAttribute("Sequences.BaseName"))
       {
-        targetProxyNodeName += sequenceName;
+        targetProxyNode->SetAttribute("Sequences.BaseName", (targetProxyNode->GetName() ? targetProxyNode->GetName() : "Data"));
       }
-      else
-      {
-        targetProxyNodeName += "Sequence";
-      }
+      std::string targetProxyNodeName = targetProxyNode->GetAttribute("Sequences.BaseName");
       targetProxyNodeName+=" [";
       if (!indexName.empty())
       {
@@ -474,6 +470,10 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
     vtkWarningMacro("vtkSlicerSequenceBrowserLogic::AddSynchronizedNode failed: browser node is invalid");
     return;
   }
+
+  // Be consistent with removing synchronized sequence node - stop playback/recording
+  browserNode->SetPlaybackActive(false);
+  browserNode->SetRecordingActive(false);
 
   // Create an empty sequence node if the sequence node is NULL
   if (sequenceNode==NULL)
