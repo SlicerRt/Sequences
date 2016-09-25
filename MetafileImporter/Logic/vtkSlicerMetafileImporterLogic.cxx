@@ -332,7 +332,7 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::s
       transform->SetHideFromEditors(false);
       // Generating a unique name is important because that will be used to generate the filename by default
       std::ostringstream nameStr;
-      nameStr << transform->GetName() << std::setw(4) << std::setfill('0') << currentFrameNumber << std::ends; 
+      nameStr << transform->GetName() << "_" << std::setw(4) << std::setfill('0') << currentFrameNumber << std::ends; 
       transform->SetName( nameStr.str().c_str() );
       transformsSequenceNode->SetDataNodeAtValue(transform, paramValueString.c_str() );
       transform->Delete(); // ownership transferred to the sequence node

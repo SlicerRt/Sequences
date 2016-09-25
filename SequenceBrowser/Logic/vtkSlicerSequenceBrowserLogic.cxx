@@ -346,11 +346,9 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       // Generation of target proxy node name: base node name [IndexName = IndexValue IndexUnit]
       std::string indexName = synchronizedSequenceNode->GetIndexName();
       std::string unit = synchronizedSequenceNode->GetIndexUnit();
-      if (!targetProxyNode->GetAttribute("Sequences.BaseName"))
-      {
-        targetProxyNode->SetAttribute("Sequences.BaseName", (targetProxyNode->GetName() ? targetProxyNode->GetName() : "Data"));
-      }
-      std::string targetProxyNodeName = targetProxyNode->GetAttribute("Sequences.BaseName");
+      // Save the base name (without the index name and value)
+      targetProxyNode->SetAttribute("Sequences.BaseName", synchronizedSequenceNode->GetName());
+      std::string targetProxyNodeName = synchronizedSequenceNode->GetName();
       targetProxyNodeName+=" [";
       if (!indexName.empty())
       {

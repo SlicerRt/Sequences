@@ -133,7 +133,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     indexStr << frameIndex << std::ends; 
     
     std::ostringstream nameStr;
-    nameStr << refNode->GetName() << std::setw(4) << std::setfill('0') << frameIndex << std::ends; 
+    nameStr << refNode->GetName() << "_" << std::setw(4) << std::setfill('0') << frameIndex << std::ends;
     frameVolume->SetName( nameStr.str().c_str() );
     volSequenceNode->SetDataNodeAtValue(frameVolume.GetPointer(), indexStr.str().c_str() );
   }
