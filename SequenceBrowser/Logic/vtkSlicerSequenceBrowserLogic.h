@@ -70,7 +70,10 @@ public:
   }
 
   /// Add a synchronized sequence node and virtual output node pair to the browser node for playback/recording
-  void AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode);
+  /// \param sequenceNode Sequence node to add. If NULL, then a new node is created.
+  /// \param proxyNode Proxy node to use to represent selected item in the scene. May be NULL.
+  /// Returns the added/created sequence node, NULL on error.
+  vtkMRMLSequenceNode* AddSynchronizedNode(vtkMRMLNode* sequenceNode, vtkMRMLNode* proxyNode, vtkMRMLNode* browserNode);
 
   void GetCompatibleNodesFromScene(vtkCollection* compatibleNodes, vtkMRMLSequenceNode* sequenceNode);
 

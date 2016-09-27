@@ -689,13 +689,6 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
       // Master node is an image.
       // If save changes are allowed then proxy nodes are updated using shallow copy, which is much faster for images.
       sequenceBrowserNode->SetSaveChanges(masterNode, true);
-      masterProxyVolumeNode->CreateDefaultDisplayNodes();
-      vtkMRMLScalarVolumeDisplayNode* displayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(masterProxyVolumeNode->GetDisplayNode());
-      if (displayNode)
-      {
-        // for performance optimization
-        displayNode->AutoWindowLevelOff();
-      }
       vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
       vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
       if (selectionNode)
@@ -846,13 +839,6 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   vtkMRMLVolumeNode* masterProxyNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(volumeSequenceNode.GetPointer()));
   if (masterProxyNode)
   {
-    masterProxyNode->CreateDefaultDisplayNodes();
-    vtkMRMLScalarVolumeDisplayNode* displayNode = vtkMRMLScalarVolumeDisplayNode::SafeDownCast(masterProxyNode->GetDisplayNode());
-    if (displayNode)
-    {
-      // for performance optimization
-      displayNode->AutoWindowLevelOff();
-    }
     vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
     vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
     if (selectionNode)

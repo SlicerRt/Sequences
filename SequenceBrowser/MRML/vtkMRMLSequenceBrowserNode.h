@@ -90,6 +90,9 @@ public:
   void GetSynchronizedSequenceNodes(std::vector< vtkMRMLSequenceNode* > &synchronizedDataNodes, bool includeMasterNode=false);
   void GetSynchronizedSequenceNodes(vtkCollection* synchronizedDataNodes, bool includeMasterNode=false);
 
+  /// Returns number of synchronized sequence nodes
+  int GetNumberOfSynchronizedSequenceNodes(bool includeMasterNode = false);
+
   /// Deprecated. Use IsSynchronizedSequenceNodeID instead.
   bool IsSynchronizedSequenceNode(const char* sequenceNodeId, bool includeMasterNode = false);
 

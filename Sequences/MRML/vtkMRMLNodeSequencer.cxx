@@ -171,7 +171,7 @@ public:
 
   virtual void AddDefaultDisplayNodes(vtkMRMLNode* node)
   {
-    vtkMRMLDisplayableNode* displayableNode = vtkMRMLDisplayableNode::SafeDownCast(node);
+    vtkMRMLVolumeNode* displayableNode = vtkMRMLVolumeNode::SafeDownCast(node);
     if (displayableNode == NULL)
     {
       // not a displayable node, there is nothing to do
@@ -502,18 +502,36 @@ void vtkMRMLNodeSequencer::RegisterNodeSequencer(NodeSequencer* sequencer)
   }
 
   // Insert sequencer just before a more generic sequencer
+  bool inserted = false;
   for (std::list< NodeSequencer* >::iterator sequencerIt = this->NodeSequencers.begin();
     sequencerIt != this->NodeSequencers.end(); ++sequencerIt)
   {
     if (sequencer->IsNodeSupported((*sequencerIt)->GetSupportedNodeClassName()))
     {
       this->NodeSequencers.insert(sequencerIt, sequencer);
-      return;
+      inserted = true;
+      break;
     }
   }
+  if (!inserted)
+  {
+    // it's the most generic sequencer, insert at the end
+    this->NodeSequencers.insert(this->NodeSequencers.end(), sequencer);
+  }
 
-  // default sequencer
-  this->NodeSequencers.insert(this->NodeSequencers.end(), sequencer);
+  // Update cached SupportedNodeClassNames list
+  this->SupportedNodeClassNames.clear();
+  for (std::list< NodeSequencer* >::iterator sequencerIt = this->NodeSequencers.begin();
+    sequencerIt != this->NodeSequencers.end(); ++sequencerIt)
+  {
+    if ((*sequencerIt)->GetSupportedNodeClassName() == "vtkMRMLNode")
+    {
+      // We want to make the list usable for filtering supported node types
+      // therefore we don't include the generic vtkMRMLNode type.
+      continue;
+    }
+    this->SupportedNodeClassNames.push_back((*sequencerIt)->GetSupportedNodeClassName());
+  }
 }
 
 //-----------------------------------------------------------
@@ -533,6 +551,10 @@ vtkMRMLNodeSequencer::NodeSequencer* vtkMRMLNodeSequencer::GetNodeSequencer(vtkM
   return this->NodeSequencers.back();
 }
 
+//-----------------------------------------------------------
+const std::vector< std::string > & vtkMRMLNodeSequencer::GetSupportedNodeClassNames()
+{
+  return this->SupportedNodeClassNames;
+}
 
 VTK_SINGLETON_CXX(vtkMRMLNodeSequencer);
-

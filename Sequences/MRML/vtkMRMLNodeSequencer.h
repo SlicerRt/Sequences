@@ -88,6 +88,9 @@ public:
   /// (the sequencer most specific to a node is returned by GetNodeSequencer).
   void RegisterNodeSequencer(NodeSequencer* sequencer);
 
+  /// Returns list of supported node class names, except generic vtkMRMLNode.
+  const std::vector< std::string > & GetSupportedNodeClassNames();
+
 protected:
 
   vtkMRMLNodeSequencer();
@@ -98,6 +101,9 @@ protected:
   /// Map from node class name to sequencer information
   /// NodeSequencers owns the NodeSequencer pointer and deletes the pointer when the class is destroyed.
   std::list< NodeSequencer* > NodeSequencers;
+
+  /// Cached list of supported node class names, except generic vtkMRMLNode.
+  std::vector< std::string > SupportedNodeClassNames;
 
 private:
 

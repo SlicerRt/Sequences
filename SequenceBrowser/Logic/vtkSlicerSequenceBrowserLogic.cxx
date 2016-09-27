@@ -303,11 +303,12 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       }
     }
 
+    bool newTargetProxyNodeWasCreated = false;
     if (targetProxyNode==NULL)
     {
       // Create the proxy node (and display nodes) if they don't exist yet
       targetProxyNode=browserNode->AddProxyNode(sourceDataNode, synchronizedSequenceNode);
-      vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->AddDefaultDisplayNodes(targetProxyNode);
+      newTargetProxyNodeWasCreated = true;
     }
 
     if (targetProxyNode==NULL)
@@ -364,6 +365,10 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
       targetProxyNode->SetName(targetProxyNodeName.c_str());
     }
 
+    if (newTargetProxyNodeWasCreated)
+    {
+      vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->AddDefaultDisplayNodes(targetProxyNode);
+    }
   }
 
   // Finalize modifications, all at once. These will fire the node modified events and update renderers.
@@ -458,7 +463,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateSequencesFromProxyNodes(vtkMRMLSequenc
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode)
+vtkMRMLSequenceNode* vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkMRMLNode* proxyNode, vtkMRMLNode* bNode)
 {
   vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(sNode);
   vtkMRMLSequenceBrowserNode* browserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(bNode);
@@ -466,7 +471,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
   if (browserNode==NULL)
   {
     vtkWarningMacro("vtkSlicerSequenceBrowserLogic::AddSynchronizedNode failed: browser node is invalid");
-    return;
+    return NULL;
   }
 
   // Be consistent with removing synchronized sequence node - stop playback/recording
@@ -498,7 +503,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
     && !IsNodeCompatibleForBrowsing(browserNode->GetMasterSequenceNode(), sequenceNode) )
   {
     vtkWarningMacro("vtkSlicerSequenceBrowserLogic::AddSynchronizedNode failed: incompatible index name or unit");
-    return; // Not compatible - exit
+    return NULL; // Not compatible - exit
   }
 
   if (!browserNode->IsSynchronizedSequenceNodeID(sequenceNode->GetID(), true))
@@ -510,7 +515,7 @@ void vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLNode* sNode, vtkM
     browserNode->AddProxyNode(proxyNode, sequenceNode, false);
     vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->AddDefaultDisplayNodes(proxyNode);
   }
-
+  return sequenceNode;
 }
 
 //---------------------------------------------------------------------------
