@@ -117,25 +117,24 @@ vtkMRMLNodeNewMacro(vtkMRMLSequenceBrowserNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
+: SelectedItemNumber(-1)
+, LastPostfixIndex(0)
+, PlaybackActive(false)
+, PlaybackRateFps(10.0)
+, PlaybackItemSkippingEnabled(true)
+, PlaybackLooped(true)
+, RecordMasterOnly(false)
+, RecordingSamplingMode(vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
+, RecordingActive(false)
 {
   this->SetHideFromEditors(false);
-  this->PlaybackActive = false;
-  this->PlaybackRateFps = 10.0;
-  this->PlaybackItemSkippingEnabled = true;
-  this->PlaybackLooped = true;
-  this->SelectedItemNumber = -1;
-
-  this->RecordMasterOnly = false;
-  this->RecordingActive = false;
-  this->InitialTime = vtkTimerLog::GetUniversalTime();
-
-  this->LastPostfixIndex = 0;
+  this->RecordingTimeOffsetSec = vtkTimerLog::GetUniversalTime();
+  this->LastSaveProxyNodesStateTimeSec = vtkTimerLog::GetUniversalTime();
 }
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceBrowserNode::~vtkMRMLSequenceBrowserNode()
 {
- 
 }
 
 //----------------------------------------------------------------------------
@@ -151,6 +150,12 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
   of << indent << " recordingActive=\"" << (this->RecordingActive ? "true" : "false") << "\"";
   of << indent << " recordOnMasterModifiedOnly=\"" << (this->RecordMasterOnly ? "true" : "false") << "\"";
+
+  std::string recordingSamplingModeString = this->GetRecordingSamplingModeAsString();
+  if (!recordingSamplingModeString.empty())
+  {
+    of << indent << " recordingSamplingMode=\"" << recordingSamplingModeString << "\"";
+  }
 
   of << indent << " virtualNodePostfixes=\""; // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
   for(std::vector< std::string >::iterator roleNameIt=this->SynchronizationPostfixes.begin();
@@ -256,6 +261,16 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetRecordMasterOnly(0);
       }
     }
+    else if (!strcmp(attName, "recordingSamplingMode"))
+    {
+      int recordingSamplingMode = this->GetRecordingSamplingModeFromString(attValue);
+      if (recordingSamplingMode<0 || recordingSamplingMode >= vtkMRMLSequenceBrowserNode::NumberOfRecordingSamplingModes)
+      {
+        vtkErrorMacro("Invalid recording sampling mode: " << (attValue ? attValue : "(empty). Assuming LimitedToPlaybackFrameRate."));
+        recordingSamplingMode = vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate;
+      }
+      SetRecordingSamplingMode(recordingSamplingMode);
+    }
     else if (!strcmp(attName, "virtualNodePostfixes")) // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
     {
       this->SynchronizationPostfixes.clear();
@@ -303,7 +318,8 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   // Note: node references are copied by the superclass
   this->SynchronizationPostfixes = node->SynchronizationPostfixes;
   this->SynchronizationPropertiesMap = node->SynchronizationPropertiesMap;
-  this->InitialTime = node->InitialTime;
+  this->RecordingTimeOffsetSec = node->RecordingTimeOffsetSec;
+  this->LastSaveProxyNodesStateTimeSec = node->LastSaveProxyNodesStateTimeSec;
   this->LastPostfixIndex = node->LastPostfixIndex;
   this->SetHideFromEditors(node->GetHideFromEditors());
   this->SetPlaybackActive(node->GetPlaybackActive());
@@ -311,6 +327,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   this->SetPlaybackItemSkippingEnabled(node->GetPlaybackItemSkippingEnabled());
   this->SetPlaybackLooped(node->GetPlaybackLooped());
   this->SetRecordMasterOnly(node->GetRecordMasterOnly());
+  this->SetRecordingSamplingMode(node->GetRecordingSamplingMode());
   this->SetRecordingActive(node->GetRecordingActive());
 
   this->SetSelectedItemNumber(node->GetSelectedItemNumber());
@@ -330,6 +347,8 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Selected item number: " << this->SelectedItemNumber << '\n';
   os << indent << " Recording active: " << (this->RecordingActive ? "true" : "false") << '\n';
   os << indent << " Recording on master modified only: " << (this->RecordMasterOnly ? "true" : "false") << '\n';
+  os << indent << " Recording sampling mode: " << this->GetRecordingSamplingModeAsString() << "\n";
+
   os << indent << " Sequence nodes:\n";
   if (this->SynchronizationPostfixes.empty())
   {
@@ -873,7 +892,7 @@ void vtkMRMLSequenceBrowserNode::GetSynchronizedSequenceNodes(vtkCollection* syn
 void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
 {
   // Before activating the recording, set the initial timestamp to be correct
-  this->InitialTime = vtkTimerLog::GetUniversalTime();
+  this->RecordingTimeOffsetSec = vtkTimerLog::GetUniversalTime();
   if (this->GetMasterSequenceNode()!=NULL 
     && this->GetMasterSequenceNode()->GetNumberOfDataNodes()>0
     && this->GetMasterSequenceNode()->GetIndexType()==vtkMRMLSequenceNode::NumericIndex)
@@ -882,7 +901,7 @@ void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
     timeString << this->GetMasterSequenceNode()->GetNthIndexValue( this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1 );
     double timeValue = 0;
     timeString >> timeValue;
-    this->InitialTime -= timeValue;
+    this->RecordingTimeOffsetSec -= timeValue;
   }
   if (this->RecordingActive!=recording)
   {
@@ -990,7 +1009,18 @@ void vtkMRMLSequenceBrowserNode::SaveProxyNodesState()
   {
     // Continuous recording.
     // To maintain syncing, we need to record for all sequences at every given timestamp.
-    currTime << (vtkTimerLog::GetUniversalTime() - this->InitialTime);
+    double currentTime = vtkTimerLog::GetUniversalTime();
+    double timeElapsedSinceLastSave = currentTime - this->LastSaveProxyNodesStateTimeSec;
+    if (this->RecordingSamplingMode == vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
+    {
+      if (this->GetPlaybackRateFps() > 0 && (timeElapsedSinceLastSave < 1.0 / this->GetPlaybackRateFps()))
+      {
+        // this state is too close in time to the previous saved state, don't record it
+        return;
+      }
+    }
+    this->LastSaveProxyNodesStateTimeSec = currentTime;
+    currTime << (currentTime - this->RecordingTimeOffsetSec);
   }
   else
   {
@@ -1284,4 +1314,43 @@ void vtkMRMLSequenceBrowserNode::SetSaveChanges(vtkMRMLSequenceNode* sequenceNod
   {
     this->Modified();
   }
+}
+
+//-----------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SetRecordingSamplingModeFromString(const char *recordingSamplingModeString)
+{
+  int recordingSamplingMode = GetRecordingSamplingModeFromString(recordingSamplingModeString);
+  this->SetRecordingSamplingMode(recordingSamplingMode);
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeAsString()
+{
+  return vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeAsString(this->RecordingSamplingMode);
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeAsString(int recordingSamplingMode)
+{
+  switch (recordingSamplingMode)
+  {
+  case vtkMRMLSequenceBrowserNode::SamplingAll: return "all";
+  case vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate: return "limitedToPlaybackFrameRate";
+  default:
+    return "";
+  }
+}
+
+//-----------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeFromString(const std::string& recordingSamplingModeString)
+{
+  for (int i = 0; i<vtkMRMLSequenceBrowserNode::NumberOfRecordingSamplingModes; i++)
+  {
+    if (recordingSamplingModeString == GetRecordingSamplingModeAsString(i))
+    {
+      // found it
+      return i;
+    }
+  }
+  return -1;
 }

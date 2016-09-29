@@ -382,14 +382,15 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   
   d->init();
 
-  connect( d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)) );
-  connect( d->MRMLNodeComboBox_MasterSequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)) );
-  connect( d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)) );
-  connect( d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)) );
-  connect( d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()) );
-  connect( d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()) );
-  d->pushButton_AddSequenceNode->setIcon( QIcon( ":/Icons/Add.png" ) );
-  d->pushButton_RemoveSequenceNode->setIcon( QIcon( ":/Icons/Remove.png" ) );
+  connect(d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)));
+  connect(d->MRMLNodeComboBox_MasterSequence, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(sequenceNodeChanged(vtkMRMLNode*)));
+  connect(d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)));
+  connect(d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)));
+  connect(d->comboBox_RecordingSamplingMode, SIGNAL(currentIndexChanged(int)), this, SLOT(recordingSamplingModeChanged(int)));
+  connect(d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()));
+  connect(d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()));
+  d->pushButton_AddSequenceNode->setIcon( QIcon(":/Icons/Add.png" ));
+  d->pushButton_RemoveSequenceNode->setIcon(QIcon(":/Icons/Remove.png"));
 
   
   qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
@@ -551,6 +552,17 @@ void qSlicerSequenceBrowserModuleWidget::recordMasterOnlyChanged(bool enabled)
     return; // no active node, nothing to update
   }
   d->ActiveBrowserNode->SetRecordMasterOnly(enabled);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::recordingSamplingModeChanged(int index)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->ActiveBrowserNode == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->ActiveBrowserNode->SetRecordingSamplingMode(index);
 }
 
 //-----------------------------------------------------------------------------
@@ -716,6 +728,10 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   wasBlocked = d->checkBox_RecordMasterOnly->blockSignals(true);
   d->checkBox_RecordMasterOnly->setChecked(d->ActiveBrowserNode->GetRecordMasterOnly());
   d->checkBox_RecordMasterOnly->blockSignals(wasBlocked);
+
+  wasBlocked = d->comboBox_RecordingSamplingMode->blockSignals(true);
+  d->comboBox_RecordingSamplingMode->setCurrentIndex(d->ActiveBrowserNode->GetRecordingSamplingMode());
+  d->comboBox_RecordingSamplingMode->blockSignals(wasBlocked);
 
   this->refreshSynchronizedSequenceNodesTable();
 }

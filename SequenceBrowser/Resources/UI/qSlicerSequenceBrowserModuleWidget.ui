@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>428</width>
-    <height>810</height>
+    <width>586</width>
+    <height>803</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -248,10 +248,10 @@
       <string>Advanced</string>
      </property>
      <property name="checked">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="collapsed">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -292,7 +292,7 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QLabel" name="label_SequenceInput">
+       <widget class="QLabel" name="label_MasterSequence">
         <property name="text">
          <string>Master node</string>
         </property>
@@ -319,6 +319,27 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_RecordingFrameRate">
+        <property name="text">
+         <string>Recording sampling mode:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="comboBox_RecordingSamplingMode">
+        <item>
+         <property name="text">
+          <string extracomment="Record all node changes">Maximum</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string extracomment="Limit recording frame rate to playback frame rate">Limited to playback rate</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -343,6 +364,17 @@
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>ctkVTKChartView</class>
+   <extends>QWidget</extends>
+   <header>ctkVTKChartView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ctkCollapsibleButton</class>
+   <extends>QWidget</extends>
+   <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>qMRMLSequenceBrowserPlayWidget</class>
    <extends>qMRMLWidget</extends>
    <header>qMRMLSequenceBrowserPlayWidget.h</header>
@@ -352,17 +384,6 @@
    <class>qMRMLSequenceBrowserSeekWidget</class>
    <extends>qMRMLWidget</extends>
    <header>qMRMLSequenceBrowserSeekWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ctkVTKChartView</class>
-   <extends>QWidget</extends>
-   <header>ctkVTKChartView.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ctkCollapsibleButton</class>
-   <extends>QWidget</extends>
-   <header>ctkCollapsibleButton.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

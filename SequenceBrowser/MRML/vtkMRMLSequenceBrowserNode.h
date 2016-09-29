@@ -50,6 +50,16 @@ public:
     ProxyNodeModifiedEvent = 21001
   };
 
+  /// Modes for determining recording frame rate.
+  // Enum is used so that in the future more modes can be added (e.g., fixed frame rate,
+  // fixed frame rate matching playback frame rate, etc).
+  enum RecordingSamplingModeType
+  {
+    SamplingAll = 0,
+    SamplingLimitedToPlaybackFrameRate,
+    NumberOfRecordingSamplingModes // this line must be the last one
+  };
+
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
 
@@ -132,6 +142,17 @@ public:
   vtkGetMacro(RecordMasterOnly, bool);
   vtkSetMacro(RecordMasterOnly, bool);
   vtkBooleanMacro(RecordMasterOnly, bool);
+
+  /// Set the recording sampling mode
+  vtkSetMacro(RecordingSamplingMode, int);
+  void SetRecordingSamplingModeFromString(const char *recordingSamplingModeString);
+  /// Get the recording sampling mode
+  vtkGetMacro(RecordingSamplingMode, int);
+  virtual std::string GetRecordingSamplingModeAsString();
+
+  /// Helper functions for converting between string and code representation of recording sampling modes
+  static std::string GetRecordingSamplingModeAsString(int recordingSamplingMode);
+  static int GetRecordingSamplingModeFromString(const std::string &recordingSamplingModeString);
 
   /// Selects the next sequence item for display, returns current selected item number
   int SelectNextItem(int selectionIncrement=1);
@@ -260,8 +281,10 @@ protected:
   int SelectedItemNumber;
   
   bool RecordingActive;
-  double InitialTime;
+  double RecordingTimeOffsetSec; // difference between universal time and index value
+  double LastSaveProxyNodesStateTimeSec;
   bool RecordMasterOnly;
+  int RecordingSamplingMode;
 
   // Unique postfixes for storing references to sequence nodes, proxy nodes, and properties
   // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix
