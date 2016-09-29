@@ -67,6 +67,7 @@ void vtkMRMLSequenceNode::RemoveAllDataNodes()
   this->SequenceScene->Delete();
   this->SequenceScene=vtkMRMLScene::New();
   this->Modified();
+  this->StorableModifiedTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -256,6 +257,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
     this->IndexEntries.push_back(seqItem);
   }
   this->Modified();
+  this->StorableModifiedTime.Modified();
 
   this->EndModify(wasModified);
 }
@@ -313,6 +315,7 @@ bool vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const std::st
     nodeToBeUpdated->SetName(originalName.c_str());
   }
   this->Modified();
+  this->StorableModifiedTime.Modified();
   return true;
 }
 
@@ -361,6 +364,7 @@ vtkMRMLNode* vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const st
   this->IndexEntries[seqItemIndex].DataNode = newNode;
   this->IndexEntries[seqItemIndex].DataNodeID.clear();
   this->Modified();
+  this->StorableModifiedTime.Modified();
   return newNode;
 }
 
@@ -377,6 +381,7 @@ void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const std::string& indexValue)
   this->SequenceScene->RemoveNode(this->IndexEntries[seqItemIndex].DataNode);
   this->IndexEntries.erase(this->IndexEntries.begin()+seqItemIndex);
   this->Modified();
+  this->StorableModifiedTime.Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -486,6 +491,7 @@ bool vtkMRMLSequenceNode::UpdateIndexValue(const std::string& oldIndexValue, con
     this->IndexEntries.insert(this->IndexEntries.begin() + insertPosition, movingEntry);
   }
   this->Modified();
+  this->StorableModifiedTime.Modified();
   return true;
 }
 
