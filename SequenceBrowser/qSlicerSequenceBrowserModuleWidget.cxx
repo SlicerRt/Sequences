@@ -871,6 +871,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     proxyNodeComboBox->setRemoveEnabled(true);
     proxyNodeComboBox->setRenameEnabled(true);
     proxyNodeComboBox->setShowChildNodeTypes(true);
+    proxyNodeComboBox->setShowHidden(true); // display nodes are hidden by default
     proxyNodeComboBox->setMRMLScene(this->mrmlScene());
     proxyNodeComboBox->setCurrentNode(proxyNode);
     proxyNodeComboBox->setProperty("MRMLNodeID", QString(syncedNode->GetID()));

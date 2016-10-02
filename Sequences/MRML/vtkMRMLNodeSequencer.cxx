@@ -31,6 +31,7 @@
 #include <vtkMRMLMarkupsFiducialNode.h>
 #include <vtkMRMLModelNode.h>
 #include <vtkMRMLScalarVolumeDisplayNode.h>
+#include <vtkMRMLSliceCompositeNode.h>
 #include <vtkMRMLSliceNode.h>
 #include <vtkMRMLSegmentationNode.h>
 #include <vtkMRMLTransformNode.h>
@@ -297,6 +298,47 @@ public:
 
 //----------------------------------------------------------------------------
 
+class SliceCompositeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  SliceCompositeNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLSliceCompositeNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    // Singleton node, therefore we cannot use the default Copy() method
+    vtkMRMLSliceCompositeNode* targetNode = vtkMRMLSliceCompositeNode::SafeDownCast(target);
+    vtkMRMLSliceCompositeNode* sourceNode = vtkMRMLSliceCompositeNode::SafeDownCast(source);
+    int disabledModify = targetNode->StartModify();
+    targetNode->SetBackgroundVolumeID(sourceNode->GetBackgroundVolumeID());
+    targetNode->SetForegroundVolumeID(sourceNode->GetForegroundVolumeID());
+    targetNode->SetLabelVolumeID(sourceNode->GetLabelVolumeID());
+    targetNode->SetCompositing(sourceNode->GetCompositing());
+    targetNode->SetForegroundOpacity(sourceNode->GetForegroundOpacity());
+    targetNode->SetLabelOpacity(sourceNode->GetLabelOpacity());
+    targetNode->SetLinkedControl(sourceNode->GetLinkedControl());
+    targetNode->SetHotLinkedControl(sourceNode->GetHotLinkedControl());
+    targetNode->SetDoPropagateVolumeSelection(sourceNode->GetDoPropagateVolumeSelection());
+    targetNode->EndModify(disabledModify);
+  }
+};
+
+//----------------------------------------------------------------------------
+
+class DisplayNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  DisplayNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLDisplayNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+};
+
+//----------------------------------------------------------------------------
+
 class MarkupsFiducialNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 {
 public:
@@ -371,6 +413,7 @@ public:
 
   virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
   {
+    // Singleton node, therefore we cannot use the default Copy() method
     vtkMRMLSliceNode* targetSliceNode = vtkMRMLSliceNode::SafeDownCast(target);
     vtkMRMLSliceNode* sourceSliceNode = vtkMRMLSliceNode::SafeDownCast(source);
     int disabledModify = targetSliceNode->StartModify();
@@ -465,12 +508,14 @@ vtkMRMLNodeSequencer* vtkMRMLNodeSequencer::GetInstance()
 vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
 {
   this->NodeSequencers.push_back(new NodeSequencer());
+  this->RegisterNodeSequencer(new DisplayNodeSequencer());
   this->RegisterNodeSequencer(new ScalarVolumeNodeSequencer());
   this->RegisterNodeSequencer(new TransformNodeSequencer());
   this->RegisterNodeSequencer(new ModelNodeSequencer());
   this->RegisterNodeSequencer(new CameraNodeSequencer());
   this->RegisterNodeSequencer(new SegmentationNodeSequencer());
   this->RegisterNodeSequencer(new SliceNodeSequencer());
+  this->RegisterNodeSequencer(new SliceCompositeNodeSequencer());
   this->RegisterNodeSequencer(new ViewNodeSequencer());
   this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
 }
