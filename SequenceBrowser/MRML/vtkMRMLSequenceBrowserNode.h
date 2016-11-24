@@ -76,8 +76,9 @@ public:
   virtual const char* GetNodeTagName() {return "SequenceBrowser";};
 
   /// Set the sequence data node.
+  /// If proxyNode is specified then that will be used as proxy node (it must be added to the scene before calling this method)
   /// Returns the new proxy node postfix.
-  std::string SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID);
+  std::string SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID, vtkMRMLNode* proxyNode=NULL);
   /// Get the sequence data node
   vtkMRMLSequenceNode* GetMasterSequenceNode();
   
@@ -238,7 +239,7 @@ public:
   /// Returns true if any of the sequence node is allowed to record
   bool IsAnySequenceNodeRecording();
 
-  /// Get the synchrnization properties for the given sequence/proxy tuple
+  /// Get the synchronization properties for the given sequence/proxy tuple
   bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
   bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
   bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);

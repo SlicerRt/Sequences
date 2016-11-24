@@ -43,6 +43,7 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
+#include <vtksys/SystemTools.hxx>
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
 #include "vtkTimerLog.h"
@@ -162,7 +163,7 @@ static std::string SEQMETA_FIELD_IMG_STATUS = "ImageStatus";
 //----------------------------------------------------------------------------
 bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::string& fileName,
   const std::string &baseNodeName, std::deque< vtkMRMLSequenceNode* > &createdNodes,
-  std::map< int, std::string >& frameNumberToIndexValueMap)
+  std::map< int, std::string >& frameNumberToIndexValueMap, std::map< std::string, std::string > &imageMetaData)
 {
   // Open in binary mode because we determine the start of the image buffer also during this read
   const char* flags = "rb";
@@ -209,12 +210,19 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::s
       // this is the last field of the header
       break;
     }
-    
 
     // Only consider the Seq_Frame
     if ( name.compare( 0, SEQMETA_FIELD_FRAME_FIELD_PREFIX.size(), SEQMETA_FIELD_FRAME_FIELD_PREFIX ) != 0 )
     {
-      // not a frame field, ignore it
+      // not a frame field
+      if (name.compare("UltrasoundImageOrientation") == NULL)
+      {
+        imageMetaData["UltrasoundImageOrientation"] = value;
+      }
+      else if (name.compare("UltrasoundImageType") == NULL)
+      {
+        imageMetaData["UltrasoundImageType"] = value;
+      }
       continue;
     }
 
@@ -305,7 +313,18 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::s
         this->GetMRMLScene()->AddNode(transformsSequenceNode);
         transformsSequenceNode->SetIndexName("time");
         transformsSequenceNode->SetIndexUnit("s");
-        std::string transformsSequenceName=baseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();        
+        std::string baseName = transform->GetName();
+        // Strip "Transform" from the end of the transform name
+        std::string transformPostfix = "Transform";
+        if (baseName.length() > transformPostfix.length() &&
+          baseName.compare(baseName.length() - transformPostfix.length(),
+          transformPostfix.length(), transformPostfix) == 0)
+        {
+          // ends with "Transform"
+          baseName.erase(baseName.length() - transformPostfix.length(), transformPostfix.length());
+        }
+        transformsSequenceNode->SetAttribute("Sequences.BaseName", baseName.c_str());
+        std::string transformsSequenceName=baseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();
         transformsSequenceNode->SetName( transformsSequenceName.c_str() );
 
         // Create storage node
@@ -457,7 +476,7 @@ vtkMRMLSequenceNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages(
 
 
 //----------------------------------------------------------------------------
-void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::string& fileName, std::deque< vtkMRMLSequenceNode* > &transformSequenceNodes, vtkMRMLSequenceNode* masterNode, vtkMRMLSequenceNode* imageNode)
+void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::string& fileName, std::deque< vtkMRMLSequenceNode* > &transformSequenceNodes, std::deque< std::string > &transformNames, vtkMRMLSequenceNode* masterNode, vtkMRMLSequenceNode* imageNode)
 {
   vtkMRMLSequenceNode* masterSequenceNode = vtkMRMLSequenceNode::SafeDownCast(masterNode);
   if ( masterSequenceNode == NULL )
@@ -489,20 +508,35 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::
   std::ofstream headerOutStream( fileName.c_str(), std::ios_base::binary );
   headerOutStream << defaultHeaderOutStream.str();
 
-  // Add the necessary header header stuff
-  headerOutStream << "UltrasoundImageOrientation = ??" << std::endl;
-  headerOutStream << "UltrasoundImageType = ??" << std::endl;
-  // Other stuff is already taken care of by the vtkMetaImageWriter
+  // Add the necessary image metadata to header.
+  // Other fields are already taken care of by the vtkMetaImageWriter.
+  std::string ultrasoundImageOrientation = "??";
+  std::string ultrasoundImageType = "BRIGHTNESS";
+  if (imageNode)
+  {
+    if (imageNode->GetAttribute("Sequences.UltrasoundImageOrientation"))
+    {
+      ultrasoundImageOrientation = imageNode->GetAttribute("Sequences.UltrasoundImageOrientation");
+    }
+    if (imageNode->GetAttribute("Sequences.UltrasoundImageType"))
+    {
+      ultrasoundImageType = imageNode->GetAttribute("Sequences.UltrasoundImageType");
+    }
+  }
+  headerOutStream << "UltrasoundImageOrientation = " << ultrasoundImageOrientation << std::endl;
+  headerOutStream << "UltrasoundImageType = BRIGHTNESS" << ultrasoundImageType << std::endl;
 
   headerOutStream << std::setfill( '0' );
   // Iterate over everything in the master sequence node
+  int numberOfTransforms = transformSequenceNodes.size();
   for ( int frameNumber = 0; frameNumber < masterSequenceNode->GetNumberOfDataNodes(); frameNumber++ )
   {
     std::string indexValue = masterSequenceNode->GetNthIndexValue( frameNumber );
     // Put all the transforms in the header
-    for (std::deque< vtkMRMLSequenceNode* >::iterator itr = transformSequenceNodes.begin(); itr != transformSequenceNodes.end(); itr++)
+    for (int transformIndex = 0; transformIndex < numberOfTransforms; transformIndex++)
     {
-      vtkMRMLSequenceNode* currSequenceNode = vtkMRMLSequenceNode::SafeDownCast( *itr );
+      vtkMRMLSequenceNode* currSequenceNode = vtkMRMLSequenceNode::SafeDownCast(transformSequenceNodes[transformIndex]);
+      std::string currTransformName = transformNames[transformIndex];
 
       std::string transformValue = "1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"; // Identity
       std::string transformStatus = "INVALID";
@@ -516,9 +550,9 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileTransforms(const std::
       }
 
       headerOutStream << SEQMETA_FIELD_FRAME_FIELD_PREFIX << std::setw( 4 ) << frameNumber << std::setw( 0 );
-      headerOutStream << "_" << currSequenceNode->GetName() << "Transform =" << transformValue << std::endl; // TODO: Find a better way to grab the transform name
+      headerOutStream << "_" << currTransformName << "Transform =" << transformValue << std::endl;
       headerOutStream << SEQMETA_FIELD_FRAME_FIELD_PREFIX << std::setw( 4 ) << frameNumber << std::setw( 0 );
-      headerOutStream << "_" << currSequenceNode->GetName() << "TransformStatus = " << transformStatus << std::endl;
+      headerOutStream << "_" << currTransformName << "TransformStatus = " << transformStatus << std::endl;
     }
 
     // The timestamp information
@@ -627,16 +661,36 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   // Map the frame numbers to timestamps
   std::map< int, std::string > frameNumberToIndexValueMap;
 
-  int dotFound = fileName.find_last_of( "." );
-  int slashFound = fileName.find_last_of( "/" );
-  std::string baseNodeName=fileName.substr( slashFound + 1, dotFound - slashFound - 1 );
+  std::string fileNameName = vtksys::SystemTools::GetFilenameName(fileName);
+  std::string fileNameNameLowercase = vtksys::SystemTools::LowerCase(fileNameName);
+
+  std::string baseNodeName = fileNameName;
+  // strip known file extensions from filename to get base name
+  std::vector<std::string> recognizedExtensions;
+  recognizedExtensions.push_back(".seq.mha");
+  recognizedExtensions.push_back(".seq.mhd");
+  recognizedExtensions.push_back(".mhd");
+  recognizedExtensions.push_back(".mha");
+  for (std::vector<std::string>::iterator recognizedExtensionIt = recognizedExtensions.begin();
+    recognizedExtensionIt != recognizedExtensions.end(); ++recognizedExtensionIt)
+  {
+    if (fileNameNameLowercase.length() > recognizedExtensionIt->length() &&
+      fileNameNameLowercase.compare(fileNameNameLowercase.length() - recognizedExtensionIt->length(),
+      recognizedExtensionIt->length(), *recognizedExtensionIt) == 0)
+    {
+      baseNodeName.erase(baseNodeName.size() - recognizedExtensionIt->length(), recognizedExtensionIt->length());
+      break;
+    }
+  }
+
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkNew<vtkTimerLog> timer;
   timer->StartTimer();
 #endif
   std::deque< vtkMRMLSequenceNode* > createdTransformNodes;
-  if (!this->ReadSequenceMetafileTransforms(fileName, baseNodeName, createdTransformNodes, frameNumberToIndexValueMap))
+  std::map< std::string, std::string > imageMetaData;
+  if (!this->ReadSequenceMetafileTransforms(fileName, baseNodeName, createdTransformNodes, frameNumberToIndexValueMap, imageMetaData))
   {
     // error is logged in ReadTransforms
     return false;
@@ -652,6 +706,18 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   vtkInfoMacro("ReadImages time: " << timer->GetElapsedTime() << "sec\n");
 #endif
 
+  // Save image metadata into node attributes
+  if (createdImageNode)
+  {
+    for (std::map< std::string, std::string >::iterator imageMetaDataIt = imageMetaData.begin(); imageMetaDataIt != imageMetaData.end(); ++imageMetaDataIt)
+    {
+      std::string attributeName = "Sequences.";
+      attributeName += imageMetaDataIt->first;
+      createdImageNode->SetAttribute(attributeName.c_str(), imageMetaDataIt->second.c_str());
+    }
+    createdImageNode->SetAttribute("Sequences.BaseName", "Image");
+  }
+
   // For the user's convenience, create a browser node that contains the image as master node
   // (the first transform node, if no image in the file) and the transforms as synchronized nodes
   vtkMRMLSequenceNode* masterNode=createdImageNode;
@@ -664,43 +730,74 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
     }
   }
 
+  if (masterNode == NULL)
+  {
+    vtkWarningMacro("No readable nodes found in sequence metafile");
+    return false;
+  }
+
   // Add a browser node and show the volume in the slice viewer for user convenience
-  if (masterNode!=NULL)
-  { 
-    vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
-    if (createdBrowserNodePtr != NULL)
-    {
-      *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
-    }
-    sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(baseNodeName).c_str());
-    this->GetMRMLScene()->AddNode(sequenceBrowserNode);
-    sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(masterNode->GetID());
-    for (std::deque< vtkMRMLSequenceNode* > ::iterator synchronizedNodesIt = createdTransformNodes.begin();
-      synchronizedNodesIt != createdTransformNodes.end(); ++synchronizedNodesIt)
-    {
-      sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
-      // Prevent accidental overwriting of transforms
-      sequenceBrowserNode->SetSaveChanges(*synchronizedNodesIt, false);
-    }
-    // Show output volume in the slice viewer
+  vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode=vtkSmartPointer<vtkMRMLSequenceBrowserNode>::New();
+  if (createdBrowserNodePtr != NULL)
+  {
+    *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
+  }
+  sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(baseNodeName).c_str());
+  this->GetMRMLScene()->AddNode(sequenceBrowserNode);
+
+  // Reuse existing proxy nodes (so that we can update the same image node from different sequences)
+  vtkMRMLVolumeNode* existingProxyNode = vtkMRMLVolumeNode::SafeDownCast(
+    this->GetMRMLScene()->GetNodesByClassByName("vtkMRMLVolumeNode", masterNode->GetAttribute("Sequences.BaseName")));
+  if (existingProxyNode)
+  {
+    // Reuse existing proxy node
+    sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(masterNode->GetID(), existingProxyNode);
+  }
+  else
+  {
+    // It's a new proxy node, show it in the slice viewers
     vtkMRMLVolumeNode* masterProxyVolumeNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(masterNode));
-    if (masterProxyVolumeNode)
+    vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
+    vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
+    if (selectionNode && masterProxyVolumeNode)
     {
-      // Master node is an image.
-      // If save changes are allowed then proxy nodes are updated using shallow copy, which is much faster for images.
-      sequenceBrowserNode->SetSaveChanges(masterNode, true);
-      vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
-      vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
-      if (selectionNode)
+      selectionNode->SetReferenceActiveVolumeID(masterProxyVolumeNode->GetID());
+      if (appLogic)
       {
-        selectionNode->SetReferenceActiveVolumeID(masterProxyVolumeNode->GetID());
-        if (appLogic)
-        {
-          appLogic->PropagateVolumeSelection();
-          appLogic->FitSliceToAll();
-        }
+        appLogic->PropagateVolumeSelection();
+        appLogic->FitSliceToAll();
       }
     }
+  }
+
+
+  for (std::deque< vtkMRMLSequenceNode* > ::iterator synchronizedNodesIt = createdTransformNodes.begin();
+    synchronizedNodesIt != createdTransformNodes.end(); ++synchronizedNodesIt)
+  {
+    sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
+    // Prevent accidental overwriting of transforms
+    sequenceBrowserNode->SetSaveChanges(*synchronizedNodesIt, false);
+    // Keep original name of proxy node (don't attach timestamp)
+    sequenceBrowserNode->SetOverwriteProxyName(*synchronizedNodesIt, false);
+    // Reuse existing proxy nodes (so that we can update the same transform node from different sequences)
+    vtkMRMLLinearTransformNode* existingProxyNode = vtkMRMLLinearTransformNode::SafeDownCast(
+      this->GetMRMLScene()->GetNodesByClassByName("vtkMRMLLinearTransformNode", (*synchronizedNodesIt)->GetAttribute("Sequences.BaseName")));
+    if (existingProxyNode)
+    {
+      sequenceBrowserNode->AddProxyNode(existingProxyNode, (*synchronizedNodesIt), false);
+    }
+  }
+  if (masterNode == createdImageNode)
+  {
+    // Master node is an image.
+    /*
+    // If save changes are allowed then proxy nodes are updated using shallow copy, which is much faster for images.
+    sequenceBrowserNode->SetSaveChanges(masterNode, true);
+    */
+    // Prevent overwriting nodes in the sequence
+    sequenceBrowserNode->SetSaveChanges(masterNode, false);
+    // Keep original name of proxy node (don't attach timestamp)
+    sequenceBrowserNode->SetOverwriteProxyName(masterNode, false);
   }
 
   return true;
@@ -750,7 +847,8 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
 
   // Find all of the transform nodes
   std::deque< vtkMRMLSequenceNode* > transformNodes;
-  for ( int i = 0; i < sequenceNodes->GetNumberOfItems(); i++ )
+  std::deque< std::string > transformNames;
+  for (int i = 0; i < sequenceNodes->GetNumberOfItems(); i++)
   {
     vtkMRMLSequenceNode* currSequenceNode = vtkMRMLSequenceNode::SafeDownCast( sequenceNodes->GetItemAsObject( i ) );
     if ( currSequenceNode == NULL )
@@ -763,12 +861,35 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
       continue;
     }
     transformNodes.push_back( currSequenceNode );
+    vtkMRMLNode* proxyNode = (*createdBrowserNodePtr)->GetProxyNode(currSequenceNode);
+    if (proxyNode)
+    {
+      const char* baseName = currSequenceNode->GetAttribute("Sequences.BaseName");
+      if (baseName == NULL)
+      {
+        baseName = proxyNode->GetAttribute("Sequences.BaseName");
+      }
+      if (baseName)
+      {
+        std::string transformName = std::string(baseName) + "Transform";
+        transformNames.push_back(transformName);
+      }
+      else
+      {
+        transformNames.push_back(proxyNode->GetName());
+      }
+    }
+    else
+    {
+      transformNames.push_back(currSequenceNode->GetName());
+    }
+    
   }
 
   // Need to write the images first so the header file is generated by the vtkMetaImageWriter
   // Then, we can append the transforms to the header
   this->WriteSequenceMetafileImages(fileName, imageNode, masterSequenceNode);
-  this->WriteSequenceMetafileTransforms(fileName, transformNodes, masterSequenceNode, imageNode);
+  this->WriteSequenceMetafileTransforms(fileName, transformNodes, transformNames, masterSequenceNode, imageNode);
 
   return true;
 }

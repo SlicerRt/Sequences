@@ -82,7 +82,7 @@ qSlicerIO::IOFileType qSlicerMetafileImporterIO::fileType() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileImporterIO::extensions() const
 {
-  return QStringList() << "Sequence Metafile (*.mha *.mhd)";
+  return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd)";
 }
 
 //-----------------------------------------------------------------------------
