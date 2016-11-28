@@ -313,27 +313,29 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafileTransforms(const std::s
         this->GetMRMLScene()->AddNode(transformsSequenceNode);
         transformsSequenceNode->SetIndexName("time");
         transformsSequenceNode->SetIndexUnit("s");
-        std::string baseName = transform->GetName();
+        std::string transformName = transform->GetName();
         // Strip "Transform" from the end of the transform name
         std::string transformPostfix = "Transform";
-        if (baseName.length() > transformPostfix.length() &&
-          baseName.compare(baseName.length() - transformPostfix.length(),
+        if (transformName.length() > transformPostfix.length() &&
+          transformName.compare(transformName.length() - transformPostfix.length(),
           transformPostfix.length(), transformPostfix) == 0)
         {
-          // ends with "Transform"
-          baseName.erase(baseName.length() - transformPostfix.length(), transformPostfix.length());
+          // ends with "Transform" (SomethingToSomethingElseTransform),
+          // remove it (to have SomethingToSomethingElse)
+          transformName.erase(transformName.length() - transformPostfix.length(), transformPostfix.length());
         }
-        transformsSequenceNode->SetAttribute("Sequences.BaseName", baseName.c_str());
-        std::string transformsSequenceName=baseNodeName+NODE_BASE_NAME_SEPARATOR+transform->GetName();
+        // Save transform name to Sequences.Source attribute so that modules can
+        // find a transform by matching the original the transform name.
+        transformsSequenceNode->SetAttribute("Sequences.Source", transformName.c_str());
+        std::string transformsSequenceName = baseNodeName
+          + NODE_BASE_NAME_SEPARATOR + transformName
+          + NODE_BASE_NAME_SEPARATOR + "Seq";
         transformsSequenceNode->SetName( transformsSequenceName.c_str() );
 
         // Create storage node
-        vtkMRMLStorageNode *storageNode = transformsSequenceNode->CreateDefaultStorageNode();    
-        if (storageNode)
+        transformsSequenceNode->AddDefaultStorageNode();
+        if (transformsSequenceNode->GetStorageNode())
         {
-          this->GetMRMLScene()->AddNode(storageNode);
-          storageNode->Delete(); // now the scene owns the storage node
-          transformsSequenceNode->SetAndObserveStorageNodeID(storageNode->GetID());
           transformsSequenceNode->StorableModified(); // marks as modified, so the volume will be written to file on save
         }
         else
@@ -407,22 +409,10 @@ vtkMRMLSequenceNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages(
   this->GetMRMLScene()->AddNode(imagesSequenceNode);
   imagesSequenceNode->SetIndexName("time");
   imagesSequenceNode->SetIndexUnit("s");
-  std::string imagesSequenceName=baseNodeName+NODE_BASE_NAME_SEPARATOR+"Image";
+  std::string imagesSequenceName = baseNodeName
+    + NODE_BASE_NAME_SEPARATOR + "Image"
+    + NODE_BASE_NAME_SEPARATOR + "Seq";
   imagesSequenceNode->SetName( this->GetMRMLScene()->GenerateUniqueName(imagesSequenceName).c_str() );
-
-  // Create storage node
-  vtkMRMLStorageNode *storageNode = imagesSequenceNode->CreateDefaultStorageNode();    
-  if (storageNode)
-  {
-    this->GetMRMLScene()->AddNode(storageNode);
-    storageNode->Delete(); // now the scene owns the storage node
-    imagesSequenceNode->SetAndObserveStorageNodeID(storageNode->GetID());
-    imagesSequenceNode->StorableModified(); // marks as modified, so the volume will be written to file on save
-  }
-  else
-  {
-    vtkErrorMacro("Failed to create storage node for the imported image sequence");
-  }
 
   int imagesSequenceNodeDisableModify = imagesSequenceNode->StartModify();
 
@@ -467,6 +457,17 @@ vtkMRMLSequenceNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafileImages(
     std::string paramValueString = frameNumberToIndexValueMap[frameNumber];
     slice->SetHideFromEditors(false);
     imagesSequenceNode->SetDataNodeAtValue(slice, paramValueString.c_str() );
+  }
+
+  // Create storage node
+  imagesSequenceNode->AddDefaultStorageNode();
+  if (imagesSequenceNode->GetStorageNode())
+  {
+    imagesSequenceNode->StorableModified(); // marks as modified, so the volume will be written to file on save
+  }
+  else
+  {
+    vtkErrorMacro("Failed to create storage node for the imported image sequence");
   }
 
   imagesSequenceNode->EndModify(imagesSequenceNodeDisableModify);
@@ -715,7 +716,7 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
       attributeName += imageMetaDataIt->first;
       createdImageNode->SetAttribute(attributeName.c_str(), imageMetaDataIt->second.c_str());
     }
-    createdImageNode->SetAttribute("Sequences.BaseName", "Image");
+    createdImageNode->SetAttribute("Sequences.Source", "Image");
   }
 
   // For the user's convenience, create a browser node that contains the image as master node
@@ -744,58 +745,41 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   }
   sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(baseNodeName).c_str());
   this->GetMRMLScene()->AddNode(sequenceBrowserNode);
+  sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(masterNode->GetID());
 
-  // Reuse existing proxy nodes (so that we can update the same image node from different sequences)
-  vtkMRMLVolumeNode* existingProxyNode = vtkMRMLVolumeNode::SafeDownCast(
-    this->GetMRMLScene()->GetNodesByClassByName("vtkMRMLVolumeNode", masterNode->GetAttribute("Sequences.BaseName")));
-  if (existingProxyNode)
+  // Show image in slice viewers
+  vtkMRMLVolumeNode* masterProxyVolumeNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(masterNode));
+  if (masterProxyVolumeNode)
   {
-    // Reuse existing proxy node
-    sequenceBrowserNode->SetAndObserveMasterSequenceNodeID(masterNode->GetID(), existingProxyNode);
-  }
-  else
-  {
-    // It's a new proxy node, show it in the slice viewers
-    vtkMRMLVolumeNode* masterProxyVolumeNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(masterNode));
     vtkSlicerApplicationLogic* appLogic = this->GetApplicationLogic();
     vtkMRMLSelectionNode* selectionNode = appLogic ? appLogic->GetSelectionNode() : 0;
-    if (selectionNode && masterProxyVolumeNode)
+    if (appLogic && selectionNode)
     {
       selectionNode->SetReferenceActiveVolumeID(masterProxyVolumeNode->GetID());
-      if (appLogic)
-      {
-        appLogic->PropagateVolumeSelection();
-        appLogic->FitSliceToAll();
-      }
+      appLogic->PropagateVolumeSelection();
+      appLogic->FitSliceToAll();
     }
   }
-
 
   for (std::deque< vtkMRMLSequenceNode* > ::iterator synchronizedNodesIt = createdTransformNodes.begin();
     synchronizedNodesIt != createdTransformNodes.end(); ++synchronizedNodesIt)
   {
+    if ( (*synchronizedNodesIt) == masterNode)
+    {
+      // already added
+      continue;
+    }
     sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
     // Prevent accidental overwriting of transforms
     sequenceBrowserNode->SetSaveChanges(*synchronizedNodesIt, false);
     // Keep original name of proxy node (don't attach timestamp)
     sequenceBrowserNode->SetOverwriteProxyName(*synchronizedNodesIt, false);
-    // Reuse existing proxy nodes (so that we can update the same transform node from different sequences)
-    vtkMRMLLinearTransformNode* existingProxyNode = vtkMRMLLinearTransformNode::SafeDownCast(
-      this->GetMRMLScene()->GetNodesByClassByName("vtkMRMLLinearTransformNode", (*synchronizedNodesIt)->GetAttribute("Sequences.BaseName")));
-    if (existingProxyNode)
-    {
-      sequenceBrowserNode->AddProxyNode(existingProxyNode, (*synchronizedNodesIt), false);
-    }
   }
   if (masterNode == createdImageNode)
   {
     // Master node is an image.
-    /*
     // If save changes are allowed then proxy nodes are updated using shallow copy, which is much faster for images.
     sequenceBrowserNode->SetSaveChanges(masterNode, true);
-    */
-    // Prevent overwriting nodes in the sequence
-    sequenceBrowserNode->SetSaveChanges(masterNode, false);
     // Keep original name of proxy node (don't attach timestamp)
     sequenceBrowserNode->SetOverwriteProxyName(masterNode, false);
   }
@@ -864,20 +848,16 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
     vtkMRMLNode* proxyNode = (*createdBrowserNodePtr)->GetProxyNode(currSequenceNode);
     if (proxyNode)
     {
-      const char* baseName = currSequenceNode->GetAttribute("Sequences.BaseName");
-      if (baseName == NULL)
+      const char* transformName = currSequenceNode->GetAttribute("Sequences.Source");
+      if (transformName == NULL)
       {
-        baseName = proxyNode->GetAttribute("Sequences.BaseName");
+        transformName = proxyNode->GetAttribute("Sequences.BaseName");
       }
-      if (baseName)
+      if (transformName == NULL)
       {
-        std::string transformName = std::string(baseName) + "Transform";
-        transformNames.push_back(transformName);
+        transformName = proxyNode->GetName();
       }
-      else
-      {
-        transformNames.push_back(proxyNode->GetName());
-      }
+      transformNames.push_back(transformName ? transformName : "");
     }
     else
     {

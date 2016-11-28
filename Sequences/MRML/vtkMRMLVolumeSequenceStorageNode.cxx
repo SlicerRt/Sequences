@@ -96,15 +96,36 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // Read the volume
   reader->Update();
 
-  // Add key-value pairs to sequence node
+  // Read index information and custom attributes
+  std::vector< std::string > indexValues;
   typedef std::vector<std::string> KeyVector;
   KeyVector keys = reader->GetHeaderKeysVector();
   for ( KeyVector::iterator kit = keys.begin(); kit != keys.end(); ++kit)
   {
-    volSequenceNode->SetAttribute((*kit).c_str(), reader->GetHeaderValue((*kit).c_str()));
+    if (*kit == "axis 0 index type")
+    {
+      volSequenceNode->SetIndexTypeFromString(reader->GetHeaderValue((*kit).c_str()));
+    }
+    else if (*kit == "axis 0 index values")
+    {
+      std::string indexValue;
+      for (std::istringstream indexValueList(reader->GetHeaderValue((*kit).c_str()));
+        indexValueList >> indexValue;)
+      {
+        // Encode string to make sure there are no spaces in the serialized index value (space is used as separator)
+        indexValues.push_back(vtkMRMLNode::URLDecodeString(indexValue.c_str()));
+      }
+    }
+    else
+    {
+      volSequenceNode->SetAttribute((*kit).c_str(), reader->GetHeaderValue((*kit).c_str()));
+    }
   }
-  volSequenceNode->SetIndexName("frame");
-  volSequenceNode->SetIndexUnit("");
+
+  const char* sequenceAxisLabel = reader->GetAxisLabel(0);
+  volSequenceNode->SetIndexName(sequenceAxisLabel ? sequenceAxisLabel : "frame");
+  const char* sequenceAxisUnit = reader->GetAxisUnit(0);
+  volSequenceNode->SetIndexUnit(sequenceAxisUnit ? sequenceAxisUnit : "");
 
   // Copy image data to sequence of volume nodes
   vtkImageData* imageData = reader->GetOutput();
@@ -130,7 +151,14 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     frameVolume->SetRASToIJKMatrix(reader->GetRasToIjkMatrix());
 
     std::ostringstream indexStr;
-    indexStr << frameIndex << std::ends; 
+    if (indexValues.size() > frameIndex)
+    {
+      indexStr << indexValues[frameIndex] << std::ends;
+    }
+    else
+    {
+      indexStr << frameIndex << std::ends;
+    }
     
     std::ostringstream nameStr;
     nameStr << refNode->GetName() << "_" << std::setw(4) << std::setfill('0') << frameIndex << std::ends;
@@ -305,6 +333,34 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   writer->SetIJKToRASMatrix(ijkToRas.GetPointer());
   //writer->SetMeasurementFrameMatrix(mf.GetPointer());
 
+  // Write index information
+  if (!volSequenceNode->GetIndexName().empty())
+  {
+    writer->SetAxisLabel(0, volSequenceNode->GetIndexName().c_str());
+  }
+  if (!volSequenceNode->GetIndexUnit().empty())
+  {
+    writer->SetAxisUnit(0, volSequenceNode->GetIndexUnit().c_str());
+  }
+  if (!volSequenceNode->GetIndexTypeAsString().empty())
+  {
+    writer->SetAttribute("axis 0 index type", volSequenceNode->GetIndexTypeAsString());
+  }
+  if (numberOfFrameVolumes > 0)
+  {
+    std::stringstream ssIndexValues;
+    for (int frameIndex = 0; frameIndex < numberOfFrameVolumes; frameIndex++)
+    {
+      if (frameIndex > 0)
+      {
+        ssIndexValues << " ";
+      }
+      // Encode string to make sure there are no spaces in the serialized index value (space is used as separator)
+      ssIndexValues << vtkMRMLNode::URLEncodeString(volSequenceNode->GetNthIndexValue(frameIndex).c_str());
+    }
+    writer->SetAttribute("axis 0 index values", ssIndexValues.str());
+  }
+  
   // pass down all MRML attributes to NRRD
   std::vector<std::string> attributeNames = volSequenceNode->GetAttributeNames();
   std::vector<std::string>::iterator ait = attributeNames.begin();

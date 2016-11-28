@@ -76,9 +76,8 @@ public:
   virtual const char* GetNodeTagName() {return "SequenceBrowser";};
 
   /// Set the sequence data node.
-  /// If proxyNode is specified then that will be used as proxy node (it must be added to the scene before calling this method)
   /// Returns the new proxy node postfix.
-  std::string SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID, vtkMRMLNode* proxyNode=NULL);
+  std::string SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID);
   /// Get the sequence data node
   vtkMRMLSequenceNode* GetMasterSequenceNode();
   

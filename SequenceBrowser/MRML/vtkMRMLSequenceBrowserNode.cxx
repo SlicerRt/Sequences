@@ -57,8 +57,8 @@ struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
   SynchronizationProperties():
     Playback(true),
     Recording(false), // to only show recording controls if it's explicitly asked by the user
-    OverwriteProxyName(false), // make sure not accidentally overwritten
-    SaveChanges(false) // slower but safer
+    OverwriteProxyName(false), // make sure proxy node names are not accidentally overwritten
+    SaveChanges(true) // for performance reasons (shallow-copy is possible)
   {
   }
   
@@ -415,7 +415,7 @@ std::string vtkMRMLSequenceBrowserNode::GenerateSynchronizationPostfix()
 }
 
 //----------------------------------------------------------------------------
-std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID, vtkMRMLNode* proxyNode /*=NULL*/)
+std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const char *sequenceNodeID)
 {
   if (!sequenceNodeID)
   {
@@ -430,11 +430,6 @@ std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const 
     // no change
     if (!this->SynchronizationPostfixes.empty())
     {
-      if (proxyNode)
-      {
-        //use the specified proxy node
-        this->AddProxyNode(proxyNode, this->GetMasterSequenceNode(), false);
-      }
       return this->SynchronizationPostfixes.front();
     }
     else
@@ -450,11 +445,6 @@ std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const 
     this->RemoveAllSequenceNodes();
     // Master is the first element in the postfixes vector.
     std::string rolePostfix = this->AddSynchronizedSequenceNodeID(sequenceNodeID);
-    if (proxyNode)
-    {
-      //use the specified proxy node
-      this->AddProxyNode(proxyNode, this->GetMasterSequenceNode(), false);
-    }
     this->SetSelectedItemNumber(0);
     this->EndModify(oldModify);
     return rolePostfix;
@@ -466,11 +456,6 @@ std::string vtkMRMLSequenceBrowserNode::SetAndObserveMasterSequenceNodeID(const 
   std::vector< std::string >::iterator oldMasterPostfixPosition = std::find(this->SynchronizationPostfixes.begin(), this->SynchronizationPostfixes.end(), masterPostfix);
   iter_swap(oldMasterPostfixPosition, this->SynchronizationPostfixes.begin());
   std::string rolePostfix = this->SynchronizationPostfixes.front();
-  if (proxyNode)
-  {
-    //use the specified proxy node
-    this->AddProxyNode(proxyNode, this->GetMasterSequenceNode(), false);
-  }
   this->Modified();
   // Select the closest selected item index in the new master node
   vtkMRMLSequenceNode* newMasterNode = (this->Scene ? vtkMRMLSequenceNode::SafeDownCast(this->Scene->GetNodeByID(sequenceNodeID)) : NULL);
@@ -633,11 +618,13 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   if ( copy )
   {
     proxyNode = sourceProxyNode->CreateNodeInstance();
-    const char* sequenceBaseName = sequenceNode->GetAttribute("Sequences.BaseName");
+    std::string proxyNodeName = sequenceNode->GetName();
+    const char* sequenceBaseName = sequenceNode->GetAttribute("Sequences.Source");
     if (sequenceBaseName != NULL)
     {
-      proxyNode->SetName(sequenceBaseName);
+      proxyNodeName = std::string(this->GetName())+"-"+sequenceBaseName;
     }
+    proxyNode->SetName(proxyNodeName.c_str());
     this->Scene->AddNode(proxyNode);
     proxyNode->SetAttribute(PROXY_NODE_COPY_ATTRIBUTE_NAME,"true"); // Indicate that this is a copy
     proxyNode->Delete(); // ownership transferred to the scene, so we can release the pointer
