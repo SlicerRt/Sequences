@@ -13,12 +13,12 @@
 #ifndef __vtkMRMLVolumeSequenceStorageNode_h
 #define __vtkMRMLVolumeSequenceStorageNode_h
 
-// MultiVolumeExplorer includes
 #include "vtkSlicerSequencesModuleMRMLExport.h"
 
 #include "vtkMRMLNRRDStorageNode.h"
+#include <string>
 
-/// \ingroup Slicer_QtModules_MultiVolumeNode
+/// \ingroup Slicer_QtModules_Sequences
 class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode : public vtkMRMLNRRDStorageNode
 {
   public:

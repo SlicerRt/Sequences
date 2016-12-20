@@ -36,6 +36,10 @@ limitations under the License.
 #include <QMessageBox>
 #include <QPixmap> 
 
+#include <vtksys/SystemTools.hxx>
+
+static const char NODE_BASE_NAME_SEPARATOR[] = "-";
+
 //----------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLSequenceStorageNode);
 
@@ -324,4 +328,56 @@ bool vtkMRMLSequenceStorageNode::ReadFromMRB(const char* fullName, vtkMRMLScene 
 
   qDebug() << "Loaded bundle from " << unpackPath;
   return res;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLSequenceStorageNode::GetSequenceBaseName(const std::string& fileNameName, const std::string& itemName)
+{
+  std::string baseNodeName = fileNameName;
+  std::string fileNameNameLowercase = vtksys::SystemTools::LowerCase(fileNameName);
+
+  // strip known file extensions from filename to get base name
+  std::vector<std::string> recognizedExtensions;
+  if (!itemName.empty())
+  {
+    recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.mha");
+    recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.mhd");
+    recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.nrrd");
+    recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.nhdr");
+  }
+  recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.mha");
+  recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.mhd");
+  recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.nrrd");
+  recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.nhdr");
+  recognizedExtensions.push_back(".seq.mha");
+  recognizedExtensions.push_back(".seq.mhd");
+  recognizedExtensions.push_back(".seq.nrrd");
+  recognizedExtensions.push_back(".seq.nhdr");
+  recognizedExtensions.push_back(".mhd");
+  recognizedExtensions.push_back(".mha");
+  recognizedExtensions.push_back(".nrrd");
+  recognizedExtensions.push_back(".nhdr");
+  for (std::vector<std::string>::iterator recognizedExtensionIt = recognizedExtensions.begin();
+    recognizedExtensionIt != recognizedExtensions.end(); ++recognizedExtensionIt)
+  {
+    std::string recognizedExtensionLowercase = vtksys::SystemTools::LowerCase(*recognizedExtensionIt);
+    if (fileNameNameLowercase.length() > recognizedExtensionLowercase.length() &&
+      fileNameNameLowercase.compare(fileNameNameLowercase.length() - recognizedExtensionLowercase.length(),
+      recognizedExtensionLowercase.length(), recognizedExtensionLowercase) == 0)
+    {
+      baseNodeName.erase(baseNodeName.size() - recognizedExtensionLowercase.length(), recognizedExtensionLowercase.length());
+      break;
+    }
+  }
+
+  return baseNodeName;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLSequenceStorageNode::GetSequenceNodeName(const std::string& baseName, const std::string& itemName)
+{
+  std::string fullName = baseName
+    + NODE_BASE_NAME_SEPARATOR + itemName
+    + NODE_BASE_NAME_SEPARATOR + "Seq";
+  return fullName;
 }

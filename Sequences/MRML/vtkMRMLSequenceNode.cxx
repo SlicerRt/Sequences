@@ -16,6 +16,7 @@
 ==============================================================================*/
 
 // MRMLSequence includes
+#include "vtkMRMLLinearTransformSequenceStorageNode.h"
 #include "vtkMRMLNodeSequencer.h"
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
@@ -563,20 +564,22 @@ vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
 std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* filename /* =NULL */)
 {
   // Use specific volume sequence storage node, if possible
-  vtkNew<vtkMRMLVolumeSequenceStorageNode> volumeSequenceStorageNode;
-  bool volumeSequenceStorageNodeCompatibleFilename = true;
-  if (filename)
+  std::vector< vtkSmartPointer<vtkMRMLStorageNode> > specializedStorageNodes;
+  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
+  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());
+  for (std::vector< vtkSmartPointer<vtkMRMLStorageNode> >::iterator specializedStorageNodeIt = specializedStorageNodes.begin();
+    specializedStorageNodeIt != specializedStorageNodes.end(); ++specializedStorageNodeIt)
+  {
+    if (filename && (*specializedStorageNodeIt)->GetSupportedFileExtension(filename, false, true).empty())
     {
-    if (volumeSequenceStorageNode->GetSupportedFileExtension(filename, false, true).empty())
-      {
-      volumeSequenceStorageNodeCompatibleFilename = false;
-      }
+      // cannot write into the required file extension
+      continue;
     }
-  if (volumeSequenceStorageNodeCompatibleFilename && volumeSequenceStorageNode->CanWriteFromReferenceNode(this))
+    if ((*specializedStorageNodeIt)->CanWriteFromReferenceNode(this))
     {
-    return "vtkMRMLVolumeSequenceStorageNode";
+      return (*specializedStorageNodeIt)->GetClassName();
     }
-  // Use generic storage node
+  } // Use generic storage node
   return "vtkMRMLSequenceStorageNode";
 }
 

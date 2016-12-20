@@ -130,7 +130,8 @@ public:
 
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
-  /// Returns vtkMRMLVolumeSequenceStorageNode if applicable (sequence contains volumes with the same type and geometry)
+  /// Returns vtkMRMLVolumeSequenceStorageNode or vtkMRMLLinearTransformSequenceStorageNode if applicable
+  // (sequence contains volumes with the same type and geometry; or a list of linear transforms)
   /// and generic vtkMRMLSequenceStorageNode otherwise.
   virtual std::string GetDefaultStorageNodeClassName(const char* filename = NULL);
 

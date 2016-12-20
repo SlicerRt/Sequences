@@ -368,6 +368,12 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     if (newTargetProxyNodeWasCreated)
     {
       vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->AddDefaultDisplayNodes(targetProxyNode);
+      // Add default storage node now to avoid proxy node update when "Add data" dialog is invoked
+      vtkMRMLStorableNode* storableNode = vtkMRMLStorableNode::SafeDownCast(targetProxyNode);
+      if (storableNode)
+      {
+        storableNode->AddDefaultStorageNode();
+      }
     }
   }
 

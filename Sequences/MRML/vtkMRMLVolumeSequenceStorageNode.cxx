@@ -90,9 +90,6 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // MRML Node
   reader->UpdateInformation();
   
-  // prepare volume node
-  vtkNew<vtkMRMLVectorVolumeNode> vectorVolNode;
-
   // Read the volume
   reader->Update();
 

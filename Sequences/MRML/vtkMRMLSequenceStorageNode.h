@@ -43,6 +43,16 @@ public:
   /// Return true if the reference node can be read in
   virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
 
+  // filename: fCal_Test_Validation_3NWires_fCal2.0-ProbeToTracker-Seq.seq.mha
+  // itemname: ProbeToTracker
+  // return: fCal_Test_Validation_3NWires_fCal2.0
+  static std::string GetSequenceBaseName(const std::string& fileNameName, const std::string& itemName);
+
+  // baseName: fCal_Test_Validation_3NWires_fCal2.0
+  // itemName: Image
+  // return: fCal_Test_Validation_3NWires_fCal2.0-Image-Seq
+  static std::string GetSequenceNodeName(const std::string& baseName, const std::string& itemName);
+
 protected:
   vtkMRMLSequenceStorageNode();
   ~vtkMRMLSequenceStorageNode();
