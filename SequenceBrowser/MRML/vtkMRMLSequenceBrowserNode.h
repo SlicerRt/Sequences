@@ -241,7 +241,13 @@ public:
   /// Get the synchronization properties for the given sequence/proxy tuple
   bool GetRecording(vtkMRMLSequenceNode* sequenceNode);
   bool GetPlayback(vtkMRMLSequenceNode* sequenceNode);
+  /// Overwrite proxy node name with name automatically generated from sequence base name and current item index.
   bool GetOverwriteProxyName(vtkMRMLSequenceNode* sequenceNode);
+  /// Enable saving of current proxy node state into the sequence.
+  /// If saving is enabled then data is copied from the sequence to into the proxy node using shallow-copy,
+  /// which is faster than deep-copy (that is used when save changes disabled).
+  /// However, if save changes enabled, proxy node changes are stored in the sequence, therefore users
+  /// may accidentally change sequence node content by modifying proxy nodes.
   bool GetSaveChanges(vtkMRMLSequenceNode* sequenceNode);
 
   /// Set the synchrnization properties for the given sequence/proxy tuple

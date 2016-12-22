@@ -58,7 +58,7 @@ struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
     Playback(true),
     Recording(false), // to only show recording controls if it's explicitly asked by the user
     OverwriteProxyName(false), // make sure proxy node names are not accidentally overwritten
-    SaveChanges(true) // for performance reasons (shallow-copy is possible)
+    SaveChanges(false) // to prevent accidental sequence node changes by default
   {
   }
   
