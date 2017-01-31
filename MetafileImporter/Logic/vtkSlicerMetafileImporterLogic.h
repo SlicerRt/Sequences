@@ -73,15 +73,20 @@ private:
 
 public:
 
-  /*! Read sequence metafile contents into the object */
-  bool ReadSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
+  /*!
+    Read sequence metafile contents into the object.
+    Returns the created browser node on success, NULL on failure.
+  */
+  vtkMRMLSequenceBrowserNode* ReadSequenceMetafile(const std::string& fileName);
 
   /*! Write sequence metafile contents to the file */
-  bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
-  bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* createdBrowserNodePtr = NULL); // TESTING: Allow saving from Python interactor
+  bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* browserNode);
 
-  /*! Read volume sequence from NRRD file. Returns true on success. */
-  bool ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr = NULL);
+  /*!
+    Read volume sequence from NRRD file.
+    Returns the created browser node on success, NULL on failure.
+  */
+  vtkMRMLSequenceBrowserNode* ReadVolumeSequence(const std::string& fileName);
 
 
 protected:

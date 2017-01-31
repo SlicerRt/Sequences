@@ -293,13 +293,8 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
+vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName)
 {
-  if (createdBrowserNodePtr != NULL)
-    {
-      *createdBrowserNodePtr = NULL;
-    }
-
   // Map the frame numbers to timestamps
   std::map< int, std::string > frameNumberToIndexValueMap;
 
@@ -316,7 +311,7 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
     frameNumberToIndexValueMap, imageMetaData) == 0)
   {
     // error is logged in ReadTransforms
-    return false;
+    return NULL;
   }
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
@@ -348,7 +343,7 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
   if (createdSequenceNodes.empty())
   {
     vtkWarningMacro("No readable nodes found in sequence metafile");
-    return false;
+    return NULL;
   }
 
   // Get the shortest base name for all nodes
@@ -383,10 +378,6 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
     sequenceBrowserNode->SetName(this->GetMRMLScene()->GenerateUniqueName(shortestBaseNodeName).c_str());
     this->GetMRMLScene()->AddNode(sequenceBrowserNode);
   }
-  if (createdBrowserNodePtr != NULL)
-  {
-    *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
-  }
 
   for (std::deque< vtkSmartPointer<vtkMRMLSequenceNode> > ::iterator synchronizedNodesIt = createdSequenceNodes.begin();
     synchronizedNodesIt != createdSequenceNodes.end(); ++synchronizedNodesIt)
@@ -418,25 +409,18 @@ bool vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fil
       sequenceBrowserNode->SetSaveChanges(*synchronizedNodesIt, false);
     }
   }
-  return true;
-}
-
-
-//----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* createdBrowserNodePtr /* = NULL */)
-{
-  return this->WriteSequenceMetafile( fileName, &createdBrowserNodePtr );
+  return sequenceBrowserNode.GetPointer();
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
+bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* browserNode)
 {
-  if (*createdBrowserNodePtr == NULL)
+  if (browserNode == NULL)
   {
     vtkWarningMacro( "vtkSlicerMetafileImporterLogic::WriteSequenceMetafile: Could not write to file, browser node not specified.");
     return false;
   }
-  vtkMRMLSequenceNode* masterSequenceNode = (*createdBrowserNodePtr)->GetMasterSequenceNode();
+  vtkMRMLSequenceNode* masterSequenceNode = browserNode->GetMasterSequenceNode();
   if (masterSequenceNode == NULL)
   {
     vtkWarningMacro( "vtkSlicerMetafileImporterLogic::WriteSequenceMetafile: Could not write to file, browser node has no master node.");
@@ -444,7 +428,7 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
   }
 
   vtkNew< vtkCollection > sequenceNodes;
-  (*createdBrowserNodePtr)->GetSynchronizedSequenceNodes(sequenceNodes.GetPointer(), true); // Include the master node (since it is probably the image sequence)
+  browserNode->GetSynchronizedSequenceNodes(sequenceNodes.GetPointer(), true); // Include the master node (since it is probably the image sequence)
 
   // Find the image sequence node
   vtkMRMLSequenceNode* imageNode = NULL;
@@ -479,7 +463,7 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
       continue;
     }
     transformNodes.push_back( currSequenceNode );
-    vtkMRMLNode* proxyNode = (*createdBrowserNodePtr)->GetProxyNode(currSequenceNode);
+    vtkMRMLNode* proxyNode = browserNode->GetProxyNode(currSequenceNode);
     if (proxyNode)
     {
       const char* transformName = currSequenceNode->GetAttribute("Sequences.Source");
@@ -510,18 +494,13 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
 
 
 //----------------------------------------------------------------------------
-bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName, vtkMRMLSequenceBrowserNode** createdBrowserNodePtr /* = NULL */)
+vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName)
 {
-  if (createdBrowserNodePtr != NULL)
-  {
-    *createdBrowserNodePtr = NULL;
-  }
-
   vtkMRMLScene* scene = this->GetMRMLScene();
   if (scene == NULL)
   {
     vtkErrorMacro("vtkSlicerMetafileImporterLogic::ReadVolumeSequence failed: scene is invalid");
-    return false;
+    return NULL;
   }
 
   vtkNew<vtkMRMLVolumeSequenceStorageNode> storageNode;
@@ -553,7 +532,7 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   {
     scene->RemoveNode(storageNode.GetPointer());
     scene->RemoveNode(volumeSequenceNode.GetPointer());
-    return false;
+    return NULL;
   }
   
 
@@ -586,11 +565,6 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
   // If save changes are allowed then proxy nodes are updated using shallow copy, which is much faster for images
   sequenceBrowserNode->SetSaveChanges(volumeSequenceNode.GetPointer(), true);
 
-  if (createdBrowserNodePtr != NULL)
-  {
-    *createdBrowserNodePtr = sequenceBrowserNode.GetPointer();
-  }
-
   // Show output volume in the slice viewer
   vtkMRMLVolumeNode* volumeProxyNode = vtkMRMLVolumeNode::SafeDownCast(sequenceBrowserNode->GetProxyNode(volumeSequenceNode.GetPointer()));
   if (volumeProxyNode)
@@ -608,5 +582,5 @@ bool vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileN
     }
   }
 
-  return true;
+  return sequenceBrowserNode.GetPointer();
 }
