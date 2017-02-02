@@ -42,12 +42,11 @@ if(NOT Slicer_SOURCE_DIR)
   # For a build tree
   set(Sequences_SOURCE_DIR ${CMAKE_SOURCE_DIR})
   set(Sequences_BINARY_DIR ${CMAKE_BINARY_DIR})
-  set(Sequences_LIBRARY_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   configure_package_config_file(
       CMake/${PROJECT_NAME}Config.cmake.in
       "${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
       INSTALL_DESTINATION ${CMAKE_BINARY_DIR}
-      PATH_VARS Sequences_SOURCE_DIR Sequences_BINARY_DIR Sequences_LIBRARY_DIR
+      PATH_VARS Sequences_SOURCE_DIR Sequences_BINARY_DIR
       NO_CHECK_REQUIRED_COMPONENTS_MACRO
   )
 endif()
