@@ -35,6 +35,7 @@
 #include <vtkMRMLSliceNode.h>
 #include <vtkMRMLSegmentationNode.h>
 #include <vtkMRMLTransformNode.h>
+#include <vtkMRMLVectorVolumeDisplayNode.h>
 #include <vtkMRMLViewNode.h>
 #include <vtkMRMLVolumeNode.h>
 #include <vtkNew.h>
@@ -144,7 +145,8 @@ public:
   ScalarVolumeNodeSequencer()
   {
     this->RecordingEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
-    this->SupportedNodeClassName = "vtkMRMLVolumeNode";
+    this->SupportedNodeClassName = "vtkMRMLScalarVolumeNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLVolumeNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
@@ -190,6 +192,66 @@ public:
     if (scalarVolumeDisplayNode)
     {
       scalarVolumeDisplayNode->AutoWindowLevelOff();
+    }
+  }
+
+};
+
+//----------------------------------------------------------------------------
+
+class VectorVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  VectorVolumeNodeSequencer()
+  {
+    this->RecordingEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
+    this->SupportedNodeClassName = "vtkMRMLVectorVolumeNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLVolumeNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLVolumeNode* targetVolumeNode = vtkMRMLVolumeNode::SafeDownCast(target);
+    vtkMRMLVolumeNode* sourceVolumeNode = vtkMRMLVolumeNode::SafeDownCast(source);
+    // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
+    vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+    sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
+    targetVolumeNode->SetIJKToRASMatrix(ijkToRasmatrix);
+    vtkSmartPointer<vtkImageData> targetImageData = sourceVolumeNode->GetImageData();
+    if (!shallowCopy && targetImageData.GetPointer() != NULL)
+    {
+      targetImageData = vtkSmartPointer<vtkImageData>::Take(sourceVolumeNode->GetImageData()->NewInstance());
+      targetImageData->DeepCopy(sourceVolumeNode->GetImageData());
+    }
+    targetVolumeNode->SetAndObserveImageData(targetImageData); // invokes vtkMRMLVolumeNode::ImageDataModifiedEvent, which is not masked by StartModify
+    target->EndModify(oldModified);
+  }
+
+  virtual void AddDefaultDisplayNodes(vtkMRMLNode* node)
+  {
+    vtkMRMLVolumeNode* displayableNode = vtkMRMLVolumeNode::SafeDownCast(node);
+    if (displayableNode == NULL)
+    {
+      // not a displayable node, there is nothing to do
+      return;
+    }
+    if (displayableNode->GetDisplayNode())
+    {
+      // there is a display node already
+      return;
+    }
+    displayableNode->CreateDefaultDisplayNodes();
+
+    // Turn off auto window/level for scalar volumes (it is costly to compute recommended ww/wl and image would appear to be flickering)
+    vtkMRMLVectorVolumeDisplayNode* vectorVolumeDisplayNode = vtkMRMLVectorVolumeDisplayNode::SafeDownCast(displayableNode->GetDisplayNode());
+    if (vectorVolumeDisplayNode)
+    {
+      vectorVolumeDisplayNode->AutoWindowLevelOff();
     }
   }
 
