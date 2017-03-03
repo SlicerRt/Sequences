@@ -27,6 +27,7 @@
 #include <vtkImageData.h>
 #include <vtkIntArray.h>
 #include <vtkMatrix4x4.h>
+#include <vtkDoubleArray.h>
 #include <vtkMRMLCameraNode.h>
 #include <vtkMRMLMarkupsFiducialNode.h>
 #include <vtkMRMLModelNode.h>
@@ -37,6 +38,7 @@
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLViewNode.h>
 #include <vtkMRMLVolumeNode.h>
+#include <vtkMRMLDoubleArrayNode.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
@@ -470,6 +472,36 @@ public:
 };
 
 //----------------------------------------------------------------------------
+
+class DoubleArrayNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  DoubleArrayNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLDoubleArrayNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLDoubleArrayNode* targetDoubleArrayNode = vtkMRMLDoubleArrayNode::SafeDownCast(target);
+    vtkMRMLDoubleArrayNode* sourceDoubleArrayNode = vtkMRMLDoubleArrayNode::SafeDownCast(source);
+    targetDoubleArrayNode->CopyWithoutModifiedEvent(sourceDoubleArrayNode); // Copies the attributes, etc.
+    vtkDoubleArray* targetDoubleArray = sourceDoubleArrayNode->GetArray();
+    if (!shallowCopy && targetDoubleArray!=NULL)
+    {
+      targetDoubleArray = sourceDoubleArrayNode->GetArray()->NewInstance();
+      targetDoubleArray->DeepCopy(sourceDoubleArrayNode->GetArray());
+    }
+    targetDoubleArrayNode->SetArray(targetDoubleArray);
+    target->EndModify(oldModified);
+  }
+
+};
+
+//----------------------------------------------------------------------------
 // Needed when we don't use the vtkStandardNewMacro.
 vtkInstantiatorNewMacro(vtkMRMLNodeSequencer);
 
@@ -518,6 +550,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new SliceCompositeNodeSequencer());
   this->RegisterNodeSequencer(new ViewNodeSequencer());
   this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
+  this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
 }
 
 //----------------------------------------------------------------------------
