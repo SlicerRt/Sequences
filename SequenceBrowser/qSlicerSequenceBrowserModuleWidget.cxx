@@ -682,21 +682,19 @@ void qSlicerSequenceBrowserModuleWidget::onRemoveSequenceNodesButtonClicked()
   Q_D(qSlicerSequenceBrowserModuleWidget);
   // First, grab all of the selected rows
   QModelIndexList modelIndexList = d->tableWidget_SynchronizedSequenceNodes->selectionModel()->selectedIndexes();
-  std::vector<bool> selectedRows = std::vector<bool>(d->tableWidget_SynchronizedSequenceNodes->rowCount(), false);
+  std::vector<std::string> selectedSequenceIDs;
   for (QModelIndexList::iterator index = modelIndexList.begin(); index!=modelIndexList.end(); index++)
   {
-    selectedRows.at((*index).row()) = true;
+    QWidget* proxyNodeComboBox = d->tableWidget_SynchronizedSequenceNodes->cellWidget((*index).row(), SYNCH_NODES_PROXY_COLUMN);
+    std::string currSelectedSequenceID = proxyNodeComboBox->property("MRMLNodeID").toString().toLatin1().constData();
+	selectedSequenceIDs.push_back(currSelectedSequenceID);
+    disconnect(proxyNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(onProxyNodeChanged(vtkMRMLNode*))); // No need to reconnect - the entire row is going to be removed
   }
   // Now, use the MRML ID stored by the proxy node combo box to determine the sequence nodes to remove from the browser
-  for (int i=0; i<selectedRows.size(); i++)
+  std::vector<std::string>::iterator sequenceIDItr;
+  for (sequenceIDItr = selectedSequenceIDs.begin(); sequenceIDItr != selectedSequenceIDs.end(); sequenceIDItr++)
   {
-    if (selectedRows.at(i))
-    {
-      QWidget* proxyNodeComboBox = d->tableWidget_SynchronizedSequenceNodes->cellWidget(i, SYNCH_NODES_PROXY_COLUMN);
-      std::string synchronizedNodeID = proxyNodeComboBox->property("MRMLNodeID").toString().toLatin1().constData();
-      disconnect(proxyNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(onProxyNodeChanged(vtkMRMLNode*))); // No need to reconnect - the entire row is going to be removed
-      d->ActiveBrowserNode->RemoveSynchronizedSequenceNode(synchronizedNodeID.c_str());
-    }
+    d->ActiveBrowserNode->RemoveSynchronizedSequenceNode((*sequenceIDItr).c_str());
   }
 }
 
