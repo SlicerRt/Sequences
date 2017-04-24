@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+
+set_and_check(Sequences_SOURCE_DIR "@PACKAGE_Sequences_SOURCE_DIR@")
+set_and_check(Sequences_BINARY_DIR "@PACKAGE_Sequences_BINARY_DIR@")
