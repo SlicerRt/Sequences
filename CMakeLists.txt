@@ -31,4 +31,5 @@ if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
 endif()
 
 #-----------------------------------------------------------------------------
+include(${Slicer_EXTENSION_GENERATE_CONFIG})
 include(${Slicer_EXTENSION_CPACK})
