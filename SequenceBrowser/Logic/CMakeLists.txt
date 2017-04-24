@@ -24,3 +24,6 @@ SlicerMacroBuildModuleLogic(
   SRCS ${${KIT}_SRCS}
   TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
   )
+
+target_include_directories(${KIT} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+export(TARGETS ${KIT} ${KIT}Python ${KIT}PythonD FILE "${KIT}Targets.cmake")

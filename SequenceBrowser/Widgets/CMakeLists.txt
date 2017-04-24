@@ -58,3 +58,6 @@ add_subdirectory(DesignerPlugins)
 if(BUILD_TESTING)
   add_subdirectory(Testing)
 endif()
+
+target_include_directories(${KIT} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+export(TARGETS ${KIT} ${KIT}PythonQt FILE "${KIT}Targets.cmake")
