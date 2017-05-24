@@ -132,7 +132,6 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
 
   const char* sequenceNodeId = sequenceNode->GetID() ? sequenceNode->GetID() : "(none)";
   d->label_IndexName->setText(sequenceNode->GetIndexName().c_str());
-  d->label_IndexUnit->setText(sequenceNode->GetIndexUnit().c_str());
 
   // Setting the min/max could trigger an index change (if current index is out of the new range),
   // therefore we have to block signals.
@@ -153,22 +152,34 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
   int selectedItemNumber=d->SequenceBrowserNode->GetSelectedItemNumber();
   if (selectedItemNumber>=0)
   {
-    std::string indexValue=sequenceNode->GetNthIndexValue(selectedItemNumber);
-    if (!indexValue.empty())
+    if (d->SequenceBrowserNode->GetIndexDisplayMode() == vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue)
     {
-      d->label_IndexValue->setText(indexValue.c_str());
-      d->slider_IndexValue->setValue(selectedItemNumber);
+      // display as index value (12.34sec)
+      std::string indexValue = sequenceNode->GetNthIndexValue(selectedItemNumber);
+      if (!indexValue.empty())
+      {
+        d->label_IndexValue->setText(indexValue.c_str());
+        d->label_IndexUnit->setText(sequenceNode->GetIndexUnit().c_str());
+      }
+      else
+      {
+        qWarning() << "Item " << selectedItemNumber << " has no index value defined";
+        d->label_IndexValue->setText("");
+        d->label_IndexUnit->setText("");
+      }
     }
     else
     {
-      qWarning() << "Item "<<selectedItemNumber<<" has no index value defined";
-      d->label_IndexValue->setText("");
-      d->slider_IndexValue->setValue(0);
-    }  
+      // display index as item index number (23/37)
+      d->label_IndexValue->setText(QString::number(selectedItemNumber + 1) + "/" + QString::number(sequenceNode->GetNumberOfDataNodes()));
+      d->label_IndexUnit->setText("");
+    }
+    d->slider_IndexValue->setValue(selectedItemNumber);
   }
   else
   {
     d->label_IndexValue->setText("");
+    d->label_IndexUnit->setText("");
     d->slider_IndexValue->setValue(0);
   }  
 }

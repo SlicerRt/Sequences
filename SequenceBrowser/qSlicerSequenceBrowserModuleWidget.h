@@ -52,6 +52,7 @@ protected slots:
   void playbackItemSkippingEnabledChanged(bool enabled);
   void recordMasterOnlyChanged(bool enabled);
   void recordingSamplingModeChanged(int index);
+  void indexDisplayModeChanged(int index);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void updateChart();

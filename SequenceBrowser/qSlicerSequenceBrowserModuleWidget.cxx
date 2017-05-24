@@ -387,6 +387,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect(d->checkBox_PlaybackItemSkippingEnabled, SIGNAL(toggled(bool)), this, SLOT(playbackItemSkippingEnabledChanged(bool)));
   connect(d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)));
   connect(d->comboBox_RecordingSamplingMode, SIGNAL(currentIndexChanged(int)), this, SLOT(recordingSamplingModeChanged(int)));
+  connect(d->comboBox_IndexDisplayMode, SIGNAL(currentIndexChanged(int)), this, SLOT(indexDisplayModeChanged(int)));
   connect(d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()));
   connect(d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()));
   d->pushButton_AddSequenceNode->setIcon( QIcon(":/Icons/Add.png" ));
@@ -566,6 +567,17 @@ void qSlicerSequenceBrowserModuleWidget::recordingSamplingModeChanged(int index)
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::indexDisplayModeChanged(int index)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->ActiveBrowserNode == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->ActiveBrowserNode->SetIndexDisplayMode(index);
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
   this->updateWidgetFromMRML();
@@ -730,6 +742,10 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   wasBlocked = d->comboBox_RecordingSamplingMode->blockSignals(true);
   d->comboBox_RecordingSamplingMode->setCurrentIndex(d->ActiveBrowserNode->GetRecordingSamplingMode());
   d->comboBox_RecordingSamplingMode->blockSignals(wasBlocked);
+
+  wasBlocked = d->comboBox_IndexDisplayMode->blockSignals(true);
+  d->comboBox_IndexDisplayMode->setCurrentIndex(d->ActiveBrowserNode->GetIndexDisplayMode());
+  d->comboBox_IndexDisplayMode->blockSignals(wasBlocked);
 
   this->refreshSynchronizedSequenceNodesTable();
 }

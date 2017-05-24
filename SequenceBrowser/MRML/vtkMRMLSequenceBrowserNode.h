@@ -60,6 +60,14 @@ public:
     NumberOfRecordingSamplingModes // this line must be the last one
   };
 
+  /// Modes displaying index for the user
+  enum IndexDisplayModeType
+  {
+    IndexDisplayAsIndex = 0,
+    IndexDisplayAsIndexValue,
+    NumberOfIndexDisplayModes // this line must be the last one
+  };
+
   /// Create instance of a GAD node. 
   virtual vtkMRMLNode* CreateNodeInstance();
 
@@ -153,6 +161,17 @@ public:
   /// Helper functions for converting between string and code representation of recording sampling modes
   static std::string GetRecordingSamplingModeAsString(int recordingSamplingMode);
   static int GetRecordingSamplingModeFromString(const std::string &recordingSamplingModeString);
+
+  /// Set index display mode
+  vtkSetMacro(IndexDisplayMode, int);
+  void SetIndexDisplayModeFromString(const char *indexDisplayModeString);
+  /// Get index display mode
+  vtkGetMacro(IndexDisplayMode, int);
+  virtual std::string GetIndexDisplayModeAsString();
+
+  /// Helper functions for converting between string and code representation of index display modes
+  static std::string GetIndexDisplayModeAsString(int indexDisplayMode);
+  static int GetIndexDisplayModeFromString(const std::string &indexDisplayModeString);
 
   /// Selects the next sequence item for display, returns current selected item number
   int SelectNextItem(int selectionIncrement=1);
@@ -291,6 +310,7 @@ protected:
   double LastSaveProxyNodesStateTimeSec;
   bool RecordMasterOnly;
   int RecordingSamplingMode;
+  int IndexDisplayMode;
 
   // Unique postfixes for storing references to sequence nodes, proxy nodes, and properties
   // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix

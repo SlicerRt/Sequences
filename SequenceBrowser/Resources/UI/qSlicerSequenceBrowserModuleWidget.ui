@@ -294,7 +294,7 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_MasterSequence">
         <property name="text">
-         <string>Master node</string>
+         <string>Master node:</string>
         </property>
        </widget>
       </item>
@@ -336,6 +336,27 @@
         <item>
          <property name="text">
           <string extracomment="Limit recording frame rate to playback frame rate">Limited to playback rate</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_IndexDisplayMode">
+        <property name="text">
+         <string>Index display:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="comboBox_IndexDisplayMode">
+        <item>
+         <property name="text">
+          <string extracomment="Display item index of master node">Index</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string extracomment="Display index value of selected item">Index value</string>
          </property>
         </item>
        </widget>

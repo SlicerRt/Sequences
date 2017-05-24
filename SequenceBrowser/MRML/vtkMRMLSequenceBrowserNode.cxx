@@ -125,6 +125,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 , PlaybackLooped(true)
 , RecordMasterOnly(false)
 , RecordingSamplingMode(vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
+, IndexDisplayMode(vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue)
 , RecordingActive(false)
 {
   this->SetHideFromEditors(false);
@@ -155,6 +156,12 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   if (!recordingSamplingModeString.empty())
   {
     of << indent << " recordingSamplingMode=\"" << recordingSamplingModeString << "\"";
+  }
+
+  std::string indexDisplayModeString = this->GetIndexDisplayModeAsString();
+  if (!indexDisplayModeString.empty())
+  {
+    of << indent << " indexDisplayMode=\"" << indexDisplayModeString << "\"";
   }
 
   of << indent << " virtualNodePostfixes=\""; // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
@@ -266,10 +273,20 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       int recordingSamplingMode = this->GetRecordingSamplingModeFromString(attValue);
       if (recordingSamplingMode<0 || recordingSamplingMode >= vtkMRMLSequenceBrowserNode::NumberOfRecordingSamplingModes)
       {
-        vtkErrorMacro("Invalid recording sampling mode: " << (attValue ? attValue : "(empty). Assuming LimitedToPlaybackFrameRate."));
+        vtkErrorMacro("Invalid recording sampling mode: " << (attValue ? attValue : "(empty). Using LimitedToPlaybackFrameRate."));
         recordingSamplingMode = vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate;
       }
       SetRecordingSamplingMode(recordingSamplingMode);
+    }
+    else if (!strcmp(attName, "indexDisplayMode"))
+    {
+      int indexDisplayMode = this->GetIndexDisplayModeFromString(attValue);
+      if (indexDisplayMode<0 || indexDisplayMode >= vtkMRMLSequenceBrowserNode::NumberOfIndexDisplayModes)
+      {
+        vtkErrorMacro("Invalid index display mode: " << (attValue ? attValue : "(empty). Using IndexDisplayAsIndexValue."));
+        indexDisplayMode = vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue;
+      }
+      SetIndexDisplayMode(indexDisplayMode);
     }
     else if (!strcmp(attName, "virtualNodePostfixes")) // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
     {
@@ -328,6 +345,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   this->SetPlaybackLooped(node->GetPlaybackLooped());
   this->SetRecordMasterOnly(node->GetRecordMasterOnly());
   this->SetRecordingSamplingMode(node->GetRecordingSamplingMode());
+  this->SetIndexDisplayMode(node->GetIndexDisplayMode());
   this->SetRecordingActive(node->GetRecordingActive());
 
   this->SetSelectedItemNumber(node->GetSelectedItemNumber());
@@ -348,6 +366,7 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Recording active: " << (this->RecordingActive ? "true" : "false") << '\n';
   os << indent << " Recording on master modified only: " << (this->RecordMasterOnly ? "true" : "false") << '\n';
   os << indent << " Recording sampling mode: " << this->GetRecordingSamplingModeAsString() << "\n";
+  os << indent << " Index display mode: " << this->GetIndexDisplayModeAsString() << "\n";
 
   os << indent << " Sequence nodes:\n";
   if (this->SynchronizationPostfixes.empty())
@@ -1354,6 +1373,45 @@ int vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeFromString(const std::st
   for (int i = 0; i<vtkMRMLSequenceBrowserNode::NumberOfRecordingSamplingModes; i++)
   {
     if (recordingSamplingModeString == GetRecordingSamplingModeAsString(i))
+    {
+      // found it
+      return i;
+    }
+  }
+  return -1;
+}
+
+//-----------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SetIndexDisplayModeFromString(const char *indexDisplayModeString)
+{
+  int indexDisplayMode = GetIndexDisplayModeFromString(indexDisplayModeString);
+  this->SetIndexDisplayMode(indexDisplayMode);
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetIndexDisplayModeAsString()
+{
+  return vtkMRMLSequenceBrowserNode::GetIndexDisplayModeAsString(this->IndexDisplayMode);
+}
+
+//-----------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetIndexDisplayModeAsString(int indexDisplayMode)
+{
+  switch (indexDisplayMode)
+  {
+  case vtkMRMLSequenceBrowserNode::IndexDisplayAsIndex: return "[index]";
+  case vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue: return "[indexValue]";
+  default:
+    return "";
+  }
+}
+
+//-----------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::GetIndexDisplayModeFromString(const std::string& indexDisplayModeString)
+{
+  for (int i = 0; i<vtkMRMLSequenceBrowserNode::NumberOfIndexDisplayModes; i++)
+  {
+    if (indexDisplayModeString == GetIndexDisplayModeAsString(i))
     {
       // found it
       return i;
