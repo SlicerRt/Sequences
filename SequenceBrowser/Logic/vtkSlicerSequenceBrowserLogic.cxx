@@ -544,8 +544,8 @@ void vtkSlicerSequenceBrowserLogic::ProcessMRMLNodesEvents(vtkObject *caller, un
     // because the saved proxy node might be obsolete (for example, not saved when the scene was saved).
     // It might be useful to update all proxy nodes on SceneEndImport/Restore to make sure the state is consistent.
     if (this->GetMRMLScene() &&
-      (!this->GetMRMLScene()->IsImporting() ||
-      !this->GetMRMLScene()->IsRestoring()))
+      !this->GetMRMLScene()->IsImporting() &&
+      !this->GetMRMLScene()->IsRestoring())
     {
       // One of the proxy nodes changed, update the sequence as needed
       this->UpdateSequencesFromProxyNodes(browserNode, vtkMRMLNode::SafeDownCast((vtkObject*)callData));
