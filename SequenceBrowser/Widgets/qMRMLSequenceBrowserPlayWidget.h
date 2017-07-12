@@ -49,6 +49,15 @@ public:
   qMRMLSequenceBrowserPlayWidget(QWidget *newParent = 0);
   virtual ~qMRMLSequenceBrowserPlayWidget();
 
+  /// Add a keyboard shortcut for play/pause button
+  void setPlayPauseShortcut(QString keySequence);
+
+  /// Add a keyboard shortcut for previous frame button
+  void setPreviousFrameShortcut(QString keySequence);
+
+  /// Add a keyboard shortcut for next frame button
+  void setNextFrameShortcut(QString keySequence);
+
 public slots:
   void setMRMLSequenceBrowserNode(vtkMRMLSequenceBrowserNode* browserNode);
   void setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode);
@@ -60,6 +69,7 @@ public slots:
   void onVcrPrevious();
   void onVcrNext();
   void onVcrLast();
+  void onVcrPlayPause();
   void onRecordSnapshot();
 
 protected slots:

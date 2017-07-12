@@ -22,6 +22,9 @@
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
     <widget class="QPushButton" name="pushButton_VcrFirst">
+     <property name="toolTip">
+      <string>First frame</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -33,6 +36,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="pushButton_VcrPrevious">
+     <property name="toolTip">
+      <string>Previous frame</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -44,6 +50,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="pushButton_VcrPlayPause">
+     <property name="toolTip">
+      <string>Play/Pause</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -59,6 +68,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="pushButton_VcrNext">
+     <property name="toolTip">
+      <string>Next frame</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -70,6 +82,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="pushButton_VcrLast">
+     <property name="toolTip">
+      <string>Last frame</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -103,6 +118,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="pushButton_VcrLoop">
+     <property name="toolTip">
+      <string>Loop playback</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -118,7 +136,7 @@
    <item>
     <widget class="QPushButton" name="pushButton_VcrRecord">
      <property name="toolTip">
-      <string>Enable continuous recording of proxy nodes modifications</string>
+      <string>Record proxy nodes modifications continuously</string>
      </property>
      <property name="text">
       <string/>
@@ -135,7 +153,7 @@
    <item>
     <widget class="QPushButton" name="pushButton_Snapshot">
      <property name="toolTip">
-      <string>Add a snapshot of current state of all proxy nodes</string>
+      <string>Record snapshot of current state of all proxy nodes</string>
      </property>
      <property name="text">
       <string/>
