@@ -114,6 +114,7 @@ public:
   std::string GetNthIndexValue(int itemNumber);
 
   /// If exact match is not required and index is numeric then the best matching data node is returned.
+  /// If the sequences has numeric index, uses data node just before the index value in the case of non-exact match
   int GetItemNumberFromIndexValue(const std::string& indexValue, bool exactMatchRequired = true);
 
   bool UpdateIndexValue(const std::string& oldIndexValue, const std::string& newIndexValue);
