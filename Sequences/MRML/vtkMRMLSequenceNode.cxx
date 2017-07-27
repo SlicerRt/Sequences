@@ -326,16 +326,16 @@ int vtkMRMLSequenceNode::GetInsertPosition(const std::string& indexValue)
   int insertPosition = this->IndexEntries.size();
   if (this->IndexType == vtkMRMLSequenceNode::NumericIndex && !this->IndexEntries.empty())
   {
+    int itemNumber = this->GetItemNumberFromIndexValue(indexValue, false);
     double numericIndexValue = atof(indexValue.c_str());
-    int numberOfSeqItems = this->IndexEntries.size();
-    for (int i = 0; i < numberOfSeqItems; i++)
+    double foundNumericIndexValue = atof(this->IndexEntries[itemNumber].IndexValue.c_str());
+    if (numericIndexValue < foundNumericIndexValue) // Deals with case of index value being smaller than any in the sequence and numeric tolerances
     {
-      double foundNumericIndexValue = atof(this->IndexEntries[i].IndexValue.c_str());
-      if (foundNumericIndexValue > numericIndexValue)
-      {
-        insertPosition = i;
-        break;
-      }
+      insertPosition = itemNumber;
+    }
+    else
+    {
+      insertPosition = itemNumber + 1;
     }
   }
   return insertPosition;
@@ -385,7 +385,7 @@ void vtkMRMLSequenceNode::RemoveDataNodeAtValue(const std::string& indexValue)
   this->StorableModifiedTime.Modified();
 }
 
-//----------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 int vtkMRMLSequenceNode::GetItemNumberFromIndexValue(const std::string& indexValue, bool exactMatchRequired /* =true */)
 {
   int numberOfSeqItems=this->IndexEntries.size();
@@ -393,6 +393,65 @@ int vtkMRMLSequenceNode::GetItemNumberFromIndexValue(const std::string& indexVal
   {
     return -1;
   }
+
+  // Binary search will be faster for numeric index
+  if (this->IndexType == NumericIndex)
+  {
+    int lowerBound = 0;
+    int upperBound = numberOfSeqItems-1;
+
+    // Deal with index values not within the range of index values in the Sequence
+    double numericIndexValue = atof(indexValue.c_str());
+    double lowerNumericIndexValue = atof(this->IndexEntries[lowerBound].IndexValue.c_str());
+    double upperNumericIndexValue = atof(this->IndexEntries[upperBound].IndexValue.c_str());
+    if (numericIndexValue <= lowerNumericIndexValue + this->NumericIndexValueTolerance)
+    {
+      if (numericIndexValue < lowerNumericIndexValue - this->NumericIndexValueTolerance && exactMatchRequired)
+      {
+        return -1;
+      }
+      else
+      {
+        return lowerBound;
+      }
+    }
+    if (numericIndexValue >= upperNumericIndexValue - this->NumericIndexValueTolerance)
+    {
+      if (numericIndexValue > upperNumericIndexValue + this->NumericIndexValueTolerance && exactMatchRequired)
+      {
+        return -1;
+      }
+      else
+      {
+        return upperBound;
+      }
+    }
+
+    while (upperBound - lowerBound > 1)
+    {
+      // Note that if middle is equal to either lowerBound or upperBound then upperBound - lowerBound <= 1
+      int middle = int((lowerBound + upperBound)/2);
+      double middleNumericIndexValue = atof(this->IndexEntries[middle].IndexValue.c_str());
+      if (fabs(numericIndexValue - middleNumericIndexValue) <= this->NumericIndexValueTolerance)
+      {
+        return middle;
+      }
+      if (numericIndexValue > middleNumericIndexValue)
+      {
+        lowerBound = middle;
+      }
+      if (numericIndexValue < middleNumericIndexValue)
+      {
+        upperBound = middle;
+      }
+    }
+    if (!exactMatchRequired)
+    {
+      return lowerBound;
+    }
+  }
+
+  // Need linear search for non-numeric index
   for (int i=0; i<numberOfSeqItems; i++)
   {
     if (this->IndexEntries[i].IndexValue.compare(indexValue)==0)
@@ -400,30 +459,7 @@ int vtkMRMLSequenceNode::GetItemNumberFromIndexValue(const std::string& indexVal
       return i;
     }
   }
-  if (this->IndexType == NumericIndex)
-  {
-    // find index value right before the requested one
-    double numericIndexValue = atof(indexValue.c_str());
-    int i = 0;
-    for (; i < numberOfSeqItems; i++)
-    {
-      double foundNumericIndexValue = atof(this->IndexEntries[i].IndexValue.c_str());
-      if (fabs(foundNumericIndexValue - numericIndexValue) <= this->NumericIndexValueTolerance)
-      {
-        // found an exact match
-        return i;
-      }
-      if (foundNumericIndexValue > numericIndexValue)
-      {
-        break;
-      }
-    }
-    if (exactMatchRequired)
-    {
-      return -1;
-    }
-    return (i == 0) ? 0 : i - 1;
-  }
+
   return -1;
 }
 
