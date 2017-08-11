@@ -21,6 +21,7 @@ OPTION(SEQUENCES_ENABLE_EXPERIMENTAL_MODULES "Enable the building of work-in-pro
 add_subdirectory(Sequences)
 add_subdirectory(SequenceBrowser)
 add_subdirectory(MetafileImporter)
+add_subdirectory(SequenceSampleData)
 
 if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
   # In development
