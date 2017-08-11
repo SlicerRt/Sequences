@@ -93,11 +93,25 @@ bool qSlicerVolumeSequenceImporterIO::load(const IOProperties& properties)
   }
   QString fileName = properties["fileName"].toString();
 
-  vtkMRMLSequenceBrowserNode* browserNode = d->MetafileImporterLogic->ReadVolumeSequence( fileName.toStdString() );
+  vtkNew<vtkCollection> loadedSequenceNodes;  
+  vtkMRMLSequenceBrowserNode* browserNode = d->MetafileImporterLogic->ReadVolumeSequence(fileName.toStdString(), loadedSequenceNodes.GetPointer());
   if (browserNode == NULL)
   {
     return false;
   }
+
+  QStringList loadedNodes;
+  loadedNodes << QString(browserNode->GetID());
+  for (int i = 0; i < loadedSequenceNodes->GetNumberOfItems(); i++)
+  {
+    vtkMRMLNode* loadedNode = vtkMRMLNode::SafeDownCast(loadedSequenceNodes->GetItemAsObject(i));
+    if (loadedNode == NULL)
+    {
+      continue;
+    }
+    loadedNodes << QString(loadedNode->GetID());
+  } 
+  this->setLoadedNodes(loadedNodes);
 
   qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
   return true;

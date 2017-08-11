@@ -293,12 +293,17 @@ void vtkSlicerMetafileImporterLogic::WriteSequenceMetafileImages(const std::stri
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName)
+vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafile(const std::string& fileName, vtkCollection* addedSequenceNodes/*=NULL*/)
 {
   // Map the frame numbers to timestamps
   std::map< int, std::string > frameNumberToIndexValueMap;
 
   std::string fileNameName = vtksys::SystemTools::GetFilenameName(fileName);
+
+  if (addedSequenceNodes)
+  {
+    addedSequenceNodes->RemoveAllItems();
+  }
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
   vtkNew<vtkTimerLog> timer;
@@ -382,6 +387,10 @@ vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafile
   for (std::deque< vtkSmartPointer<vtkMRMLSequenceNode> > ::iterator synchronizedNodesIt = createdSequenceNodes.begin();
     synchronizedNodesIt != createdSequenceNodes.end(); ++synchronizedNodesIt)
   {
+    if (addedSequenceNodes)
+    {
+      addedSequenceNodes->AddItem(*synchronizedNodesIt);
+    }
     sequenceBrowserNode->AddSynchronizedSequenceNode((*synchronizedNodesIt)->GetID());
     if (vtkMRMLVolumeNode::SafeDownCast((*synchronizedNodesIt)->GetNthDataNode(0)))
     {
@@ -494,8 +503,13 @@ bool vtkSlicerMetafileImporterLogic::WriteSequenceMetafile(const std::string& fi
 
 
 //----------------------------------------------------------------------------
-vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName)
+vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadVolumeSequence(const std::string& fileName, vtkCollection* addedSequenceNodes/*=NULL*/)
 {
+  if (addedSequenceNodes)
+  {
+    addedSequenceNodes->RemoveAllItems();
+  }
+
   vtkMRMLScene* scene = this->GetMRMLScene();
   if (scene == NULL)
   {
@@ -509,6 +523,10 @@ vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadVolumeSequence(c
   std::string volumeName = storageNode->GetFileNameWithoutExtension(fileName.c_str());
   volumeSequenceNode->SetName(scene->GenerateUniqueName(volumeName).c_str());
   scene->AddNode(volumeSequenceNode.GetPointer());
+  if (addedSequenceNodes)
+  {
+    addedSequenceNodes->AddItem(volumeSequenceNode.GetPointer());
+  }
 
   //storageNode->SetCenterImage(options & vtkSlicerVolumesLogic::CenterImage);
   scene->AddNode(storageNode.GetPointer());

@@ -75,18 +75,20 @@ public:
 
   /*!
     Read sequence metafile contents into the object.
+    \param addedNodes if not NULL then returns sequence nodes that are added to the scene.
     Returns the created browser node on success, NULL on failure.
   */
-  vtkMRMLSequenceBrowserNode* ReadSequenceMetafile(const std::string& fileName);
+  vtkMRMLSequenceBrowserNode* ReadSequenceMetafile(const std::string& fileName, vtkCollection* addedSequenceNodes=NULL);
 
   /*! Write sequence metafile contents to the file */
   bool WriteSequenceMetafile(const std::string& fileName, vtkMRMLSequenceBrowserNode* browserNode);
 
   /*!
     Read volume sequence from NRRD file.
+    \param addedNodes if not NULL then returns sequence nodes that are added to the scene.
     Returns the created browser node on success, NULL on failure.
   */
-  vtkMRMLSequenceBrowserNode* ReadVolumeSequence(const std::string& fileName);
+  vtkMRMLSequenceBrowserNode* ReadVolumeSequence(const std::string& fileName, vtkCollection* addedSequenceNodes=NULL);
 
 
 protected:
