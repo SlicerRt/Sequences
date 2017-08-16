@@ -311,13 +311,33 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLTransformNode* targetTransformNode = vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode = vtkMRMLTransformNode::SafeDownCast(source);
-    vtkSmartPointer<vtkAbstractTransform> targetAbstractTransform = sourceTransformNode->GetTransformToParent();
-    if (!shallowCopy && targetAbstractTransform.GetPointer()!=NULL)
+    vtkAbstractTransform* sourceTransform;
+    if (sourceTransformNode->GetReadAsTransformToParent())
     {
-      targetAbstractTransform = vtkSmartPointer<vtkAbstractTransform>::Take(sourceTransformNode->GetTransformToParent()->NewInstance());
-      targetAbstractTransform->DeepCopy(sourceTransformNode->GetTransformToParent());
+      sourceTransform = sourceTransformNode->GetTransformToParent();
     }
-    targetTransformNode->SetAndObserveTransformToParent(targetAbstractTransform);
+    else
+    {
+      sourceTransform = sourceTransformNode->GetTransformFromParent();
+    }
+    vtkSmartPointer<vtkAbstractTransform> targetTransform;
+    if (shallowCopy || sourceTransform == NULL)
+    {
+      targetTransform = sourceTransform;
+    }
+    else
+    {
+      targetTransform = vtkSmartPointer<vtkAbstractTransform>::Take(sourceTransform->NewInstance());
+      targetTransform->DeepCopy(sourceTransform);
+    }
+    if (sourceTransformNode->GetReadAsTransformToParent())
+    {
+      targetTransformNode->SetAndObserveTransformToParent(targetTransform);
+    }
+    else
+    {
+      targetTransformNode->SetAndObserveTransformFromParent(targetTransform);
+    }
     target->EndModify(oldModified);
   }
 
