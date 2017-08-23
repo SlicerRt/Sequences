@@ -287,6 +287,7 @@ void qSlicerSequencesModuleWidget::onMRMLSceneEndCloseEvent()
     return;
     }
   this->updateCandidateNodesWidgetFromMRML(true);
+  this->updateSequenceItemWidgetFromMRML();
 } 
 
 //-----------------------------------------------------------------------------
@@ -376,7 +377,7 @@ void qSlicerSequencesModuleWidget::onDataNodeEdited( int row, int column )
     return;
   }
 
-  // Grab the tex from the modified item
+  // Grab the text from the modified item
   QTableWidgetItem* qItem = d->TableWidget_DataNodes->item( row, column );
   QString qText = qItem->text();
 
