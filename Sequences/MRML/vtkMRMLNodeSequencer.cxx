@@ -312,7 +312,8 @@ public:
     vtkMRMLTransformNode* targetTransformNode = vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode = vtkMRMLTransformNode::SafeDownCast(source);
     vtkAbstractTransform* sourceTransform;
-    if (sourceTransformNode->GetReadAsTransformToParent())
+    bool setAsTransformToParent = vtkMRMLTransformNode::IsAbstractTransformComputedFromInverse(sourceTransformNode->GetTransformFromParent());
+    if (setAsTransformToParent)
     {
       sourceTransform = sourceTransformNode->GetTransformToParent();
     }
@@ -328,9 +329,11 @@ public:
     else
     {
       targetTransform = vtkSmartPointer<vtkAbstractTransform>::Take(sourceTransform->NewInstance());
-      targetTransform->DeepCopy(sourceTransform);
+      // vtkAbstractTransform's DeepCopy does not do a full deep copy, therefore
+      // we need to use vtkMRMLTransformNode's utility method instead.
+      vtkMRMLTransformNode::DeepCopyTransform(targetTransform, sourceTransform);
     }
-    if (sourceTransformNode->GetReadAsTransformToParent())
+    if (setAsTransformToParent)
     {
       targetTransformNode->SetAndObserveTransformToParent(targetTransform);
     }
