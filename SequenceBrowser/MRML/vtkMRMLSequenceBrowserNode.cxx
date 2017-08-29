@@ -649,8 +649,12 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
     proxyNode->Delete(); // ownership transferred to the scene, so we can release the pointer
   }
 
-  this->RemoveProxyNode(rolePostfix); // This will also remove the proxy node from the scene if necessary
-  this->SetAndObserveNodeReferenceID(proxyNodeRef.c_str(), proxyNode->GetID(), vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->GetRecordingEvents());
+  vtkMRMLNode* oldProxyNode=this->GetNodeReference(proxyNodeRef.c_str());
+  if (proxyNode!=oldProxyNode)
+  {
+    this->RemoveProxyNode(rolePostfix); // This will also remove the proxy node from the scene if necessary
+    this->SetAndObserveNodeReferenceID(proxyNodeRef.c_str(), proxyNode->GetID(), vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->GetRecordingEvents());
+  }
 
   this->EndModify(oldModify);
   return proxyNode;
