@@ -650,6 +650,9 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   }
 
   vtkMRMLNode* oldProxyNode=this->GetNodeReference(proxyNodeRef.c_str());
+  // Remove the old proxy node and refer to the new one
+  // It must not be done if the new proxy node is the same as the old one,
+  // as it would remove the proxy node from the scene that we still need.
   if (proxyNode!=oldProxyNode)
   {
     this->RemoveProxyNode(rolePostfix); // This will also remove the proxy node from the scene if necessary
