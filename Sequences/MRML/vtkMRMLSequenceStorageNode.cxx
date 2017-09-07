@@ -135,6 +135,7 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   bool success = false;
   if (extension == ".mrb")
   {
+    this->ForceUniqueDataNodeFileNames(sequenceNode);
     vtkMRMLScene *sequenceScene=sequenceNode->GetSequenceScene();
     success = WriteToMRB(fullName.c_str(), sequenceScene);
   }
@@ -380,4 +381,33 @@ std::string vtkMRMLSequenceStorageNode::GetSequenceNodeName(const std::string& b
     + NODE_BASE_NAME_SEPARATOR + itemName
     + NODE_BASE_NAME_SEPARATOR + "Seq";
   return fullName;
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceStorageNode::ForceUniqueDataNodeFileNames(vtkMRMLSequenceNode* sequenceNode)
+{
+  if (sequenceNode == NULL)
+  {
+    return;
+  }
+
+  for (int i = 0; i < sequenceNode->GetNumberOfDataNodes(); i++)
+  {
+    vtkMRMLStorableNode* currStorableNode = vtkMRMLStorableNode::SafeDownCast(sequenceNode->GetNthDataNode(i));
+    if (currStorableNode==NULL)
+    {
+      continue;
+    }
+    vtkMRMLStorageNode* currStorageNode = currStorableNode->GetStorageNode();
+    if (!currStorageNode)
+    {
+      currStorableNode->AddDefaultStorageNode();
+      currStorageNode = currStorableNode->GetStorageNode();
+    }
+    std::stringstream uniqueFileNameStream;
+    uniqueFileNameStream << currStorableNode->GetName(); // Note that special characters are dealt with by the application logic when writing scene
+    uniqueFileNameStream << "_" << i;
+    std::string uniqueFileName = uniqueFileNameStream.str();
+    currStorageNode->SetFileName(uniqueFileName.c_str());
+  }
 }

@@ -114,7 +114,7 @@ vtkMRMLNode* vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(vtkMRMLNod
   {
     baseName = source->GetName();
   }
-  std::string newNodeName = scene->GetUniqueNameByString(baseName.c_str());
+  std::string newNodeName = baseName;
 
   vtkSmartPointer<vtkMRMLNode> target = vtkSmartPointer<vtkMRMLNode>::Take(source->CreateNodeInstance());
   this->CopyNode(source, target, false);

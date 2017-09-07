@@ -20,6 +20,7 @@
 
 #include "vtkSlicerSequencesModuleMRMLExport.h"
 #include "vtkMRMLStorageNode.h"
+#include "vtkMRMLSequenceNode.h"
 
 /// \brief MRML node for model storage on disk.
 ///
@@ -75,6 +76,8 @@ protected:
 
   bool ReadFromMRB(const char* fullName, vtkMRMLScene *scene);
 
+  /// Force each storable node to be saved to a file with a different name, preventing overwriting during saving
+  void ForceUniqueDataNodeFileNames(vtkMRMLSequenceNode* sequenceNode);
 };
 
 #endif
