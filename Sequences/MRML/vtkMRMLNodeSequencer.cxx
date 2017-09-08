@@ -114,13 +114,13 @@ vtkMRMLNode* vtkMRMLNodeSequencer::NodeSequencer::DeepCopyNodeToScene(vtkMRMLNod
   {
     baseName = source->GetName();
   }
-  std::string newNodeName = scene->GetUniqueNameByString(baseName.c_str());
+  std::string newNodeName = baseName;
 
   vtkSmartPointer<vtkMRMLNode> target = vtkSmartPointer<vtkMRMLNode>::Take(source->CreateNodeInstance());
   this->CopyNode(source, target, false);
 
-  // Make sure all the node names in the sequence's scene are unique for saving purposes
-  // TODO: it would be better to make sure all names are unique when saving the data?
+  // Generating unique node names is slow, and makes adding many nodes to a sequence too slow
+  // We will instead ensure that all file names for storable nodes are unique when saving
   target->SetName(newNodeName.c_str());
   target->SetAttribute("Sequences.BaseName", baseName.c_str());
 
