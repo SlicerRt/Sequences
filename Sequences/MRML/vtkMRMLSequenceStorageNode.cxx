@@ -135,7 +135,7 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   bool success = false;
   if (extension == ".mrb")
   {
-    this->ForceUniqueDataNodeFileNames(sequenceNode);
+    this->ForceUniqueDataNodeFileNames(sequenceNode); // Prevents storable nodes' files from being overwritten due to the same node name
     vtkMRMLScene *sequenceScene=sequenceNode->GetSequenceScene();
     success = WriteToMRB(fullName.c_str(), sequenceScene);
   }
@@ -406,7 +406,7 @@ void vtkMRMLSequenceStorageNode::ForceUniqueDataNodeFileNames(vtkMRMLSequenceNod
     }
     std::stringstream uniqueFileNameStream;
     uniqueFileNameStream << currStorableNode->GetName(); // Note that special characters are dealt with by the application logic when writing scene
-    uniqueFileNameStream << "_" << i;
+    uniqueFileNameStream << "_" << i; // All file names are suffixed by the item number, ensuring uniqueness
     std::string uniqueFileName = uniqueFileNameStream.str();
     currStorageNode->SetFileName(uniqueFileName.c_str());
   }
