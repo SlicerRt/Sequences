@@ -18,25 +18,25 @@
 
 ==============================================================================*/
 
-#ifndef __qSlicerMetafileImporterIO_h
-#define __qSlicerMetafileImporterIO_h
+#ifndef __qSlicerMetafileReader_h
+#define __qSlicerMetafileReader_h
 
 // SlicerQt includes
 #include "qSlicerFileReader.h"
-class qSlicerMetafileImporterIOPrivate;
+class qSlicerMetafileReaderPrivate;
 
 // Slicer includes
 class vtkSlicerMetafileImporterLogic;
 
 //-----------------------------------------------------------------------------
-class qSlicerMetafileImporterIO
+class qSlicerMetafileReader
   : public qSlicerFileReader
 {
   Q_OBJECT
 public:
   typedef qSlicerFileReader Superclass;
-  qSlicerMetafileImporterIO( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic = 0, QObject* parent = 0 );
-  virtual ~qSlicerMetafileImporterIO();
+  qSlicerMetafileReader( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic = 0, QObject* parent = 0 );
+  virtual ~qSlicerMetafileReader();
 
   void setMetafileImporterLogic( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic);
   vtkSlicerMetafileImporterLogic* MetafileImporterLogic() const;
@@ -48,11 +48,11 @@ public:
   virtual bool load( const IOProperties& properties );
   
 protected:
-  QScopedPointer< qSlicerMetafileImporterIOPrivate > d_ptr;
+  QScopedPointer< qSlicerMetafileReaderPrivate > d_ptr;
 
 private:
-  Q_DECLARE_PRIVATE( qSlicerMetafileImporterIO );
-  Q_DISABLE_COPY( qSlicerMetafileImporterIO );
+  Q_DECLARE_PRIVATE( qSlicerMetafileReader );
+  Q_DISABLE_COPY( qSlicerMetafileReader );
 };
 
 #endif

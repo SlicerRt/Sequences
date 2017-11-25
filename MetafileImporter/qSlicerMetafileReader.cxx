@@ -22,7 +22,7 @@
 #include <QDebug>
 
 // SlicerQt includes
-#include "qSlicerMetafileImporterIO.h"
+#include "qSlicerMetafileReader.h"
 #include "qSlicerMetafileImporterModule.h"
 
 // Logic includes
@@ -37,64 +37,64 @@
 #include <vtkSmartPointer.h>
 
 //-----------------------------------------------------------------------------
-class qSlicerMetafileImporterIOPrivate
+class qSlicerMetafileReaderPrivate
 {
 public:
   vtkSmartPointer<vtkSlicerMetafileImporterLogic> MetafileImporterLogic;
 };
 
 //-----------------------------------------------------------------------------
-qSlicerMetafileImporterIO::qSlicerMetafileImporterIO( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic, QObject* _parent)
+qSlicerMetafileReader::qSlicerMetafileReader( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic, QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerMetafileImporterIOPrivate)
+  , d_ptr(new qSlicerMetafileReaderPrivate)
 {
   this->setMetafileImporterLogic( newMetafileImporterLogic );
 }
 
 //-----------------------------------------------------------------------------
-qSlicerMetafileImporterIO::~qSlicerMetafileImporterIO()
+qSlicerMetafileReader::~qSlicerMetafileReader()
 {
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerMetafileImporterIO::setMetafileImporterLogic(vtkSlicerMetafileImporterLogic* newMetafileImporterLogic)
+void qSlicerMetafileReader::setMetafileImporterLogic(vtkSlicerMetafileImporterLogic* newMetafileImporterLogic)
 {
-  Q_D(qSlicerMetafileImporterIO);
+  Q_D(qSlicerMetafileReader);
   d->MetafileImporterLogic = newMetafileImporterLogic;
 }
 
 //-----------------------------------------------------------------------------
-vtkSlicerMetafileImporterLogic* qSlicerMetafileImporterIO::MetafileImporterLogic() const
+vtkSlicerMetafileImporterLogic* qSlicerMetafileReader::MetafileImporterLogic() const
 {
-  Q_D(const qSlicerMetafileImporterIO);
+  Q_D(const qSlicerMetafileReader);
   return d->MetafileImporterLogic;
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerMetafileImporterIO::description() const
+QString qSlicerMetafileReader::description() const
 {
   return "Sequence Metafile";
 }
 
 //-----------------------------------------------------------------------------
-qSlicerIO::IOFileType qSlicerMetafileImporterIO::fileType() const
+qSlicerIO::IOFileType qSlicerMetafileReader::fileType() const
 {
   return QString("Sequence Metafile");
 }
 
 //-----------------------------------------------------------------------------
-QStringList qSlicerMetafileImporterIO::extensions() const
+QStringList qSlicerMetafileReader::extensions() const
 {
   return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd)";
 }
 
 //-----------------------------------------------------------------------------
-bool qSlicerMetafileImporterIO::load(const IOProperties& properties)
+bool qSlicerMetafileReader::load(const IOProperties& properties)
 {
-  Q_D(qSlicerMetafileImporterIO);
+  Q_D(qSlicerMetafileReader);
   if (!properties.contains("fileName"))
   {
-    qCritical() << "qSlicerMetafileImporterIO::load did not receive fileName property";
+    qCritical() << "qSlicerMetafileReader::load did not receive fileName property";
   }
   QString fileName = properties["fileName"].toString();
   

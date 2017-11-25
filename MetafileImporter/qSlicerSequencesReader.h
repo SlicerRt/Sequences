@@ -13,43 +13,47 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
+  This file was originally developed by Julien Finet, Kitware Inc.
+  and was partially funded by NIH grant 3P41RR013218-12S1
+
 ==============================================================================*/
 
-#ifndef __qSlicerVolumeSequenceImporterIO_h
-#define __qSlicerVolumeSequenceImporterIO_h
+#ifndef __qSlicerSequencesReader_h
+#define __qSlicerSequencesReader_h
 
 // SlicerQt includes
 #include "qSlicerFileReader.h"
-class qSlicerVolumeSequenceImporterIOPrivate;
+class qSlicerSequencesReaderPrivate;
 
 // Slicer includes
-class vtkSlicerMetafileImporterLogic;
+class vtkSlicerSequencesLogic;
 
 //-----------------------------------------------------------------------------
-class qSlicerVolumeSequenceImporterIO
+/// \ingroup Slicer_QtModules_Sequences
+class qSlicerSequencesReader
   : public qSlicerFileReader
 {
   Q_OBJECT
 public:
   typedef qSlicerFileReader Superclass;
-  qSlicerVolumeSequenceImporterIO( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic = 0, QObject* parent = 0 );
-  virtual ~qSlicerVolumeSequenceImporterIO();
+  qSlicerSequencesReader(vtkSlicerSequencesLogic* sequencesLogic = 0, QObject* parent = 0);
+  virtual ~qSlicerSequencesReader();
 
-  void setMetafileImporterLogic( vtkSlicerMetafileImporterLogic* newMetafileImporterLogic);
-  vtkSlicerMetafileImporterLogic* metafileImporterLogic() const;
+  void setSequencesLogic(vtkSlicerSequencesLogic* sequencesLogic);
+  vtkSlicerSequencesLogic* sequencesLogic()const;
 
-  virtual QString description() const;
-  virtual IOFileType fileType() const;
-  virtual QStringList extensions() const;
+  virtual QString description()const;
+  virtual IOFileType fileType()const;
+  virtual QStringList extensions()const;
 
-  virtual bool load( const IOProperties& properties );
-  
+  virtual bool load(const IOProperties& properties);
+
 protected:
-  QScopedPointer< qSlicerVolumeSequenceImporterIOPrivate > d_ptr;
+  QScopedPointer<qSlicerSequencesReaderPrivate> d_ptr;
 
 private:
-  Q_DECLARE_PRIVATE( qSlicerVolumeSequenceImporterIO );
-  Q_DISABLE_COPY( qSlicerVolumeSequenceImporterIO );
+  Q_DECLARE_PRIVATE(qSlicerSequencesReader);
+  Q_DISABLE_COPY(qSlicerSequencesReader);
 };
 
 #endif

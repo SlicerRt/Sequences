@@ -47,6 +47,12 @@ public:
   vtkTypeMacro(vtkSlicerSequencesLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  ///
+  /// Add into the scene a new mrml sequence node and
+  /// read its data from a specified file
+  /// A storage node is also added into the scene
+  vtkMRMLSequenceNode* AddSequence(const char* filename);
+
 protected:
   vtkSlicerSequencesLogic();
   virtual ~vtkSlicerSequencesLogic();

@@ -25,8 +25,9 @@
 // MetafileImporter includes
 #include "qSlicerMetafileImporterModule.h"
 #include "qSlicerMetafileImporterModuleWidget.h"
-#include "qSlicerMetafileImporterIO.h"
-#include "qSlicerVolumeSequenceImporterIO.h"
+#include "qSlicerMetafileReader.h"
+#include "qSlicerSequencesReader.h"
+#include "qSlicerVolumeSequenceReader.h"
 
 // Slicer includes
 #include "qSlicerAbstractCoreModule.h"
@@ -119,18 +120,22 @@ void qSlicerMetafileImporterModule::setup()
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
   qSlicerAbstractCoreModule* sequenceModule = app->moduleManager()->module( "Sequences" );
+  vtkSlicerSequencesLogic* sequencesLogic = vtkSlicerSequencesLogic::SafeDownCast(sequenceModule->logic());
   if ( sequenceModule )
-  {
-    metafileImporterLogic->SetSequencesLogic(vtkSlicerSequencesLogic::SafeDownCast( sequenceModule->logic() ));
-  }
+    {
+    metafileImporterLogic->SetSequencesLogic(sequencesLogic);
+    }
 
   // Register the IO
-  app->coreIOManager()->registerIO( new qSlicerMetafileImporterIO( metafileImporterLogic, this ) );
+  app->coreIOManager()->registerIO( new qSlicerMetafileReader( metafileImporterLogic, this ) );
   app->coreIOManager()->registerIO( new qSlicerNodeWriter( "MetafileImporter", QString( "SequenceMetafile" ), QStringList(), true, this ) );
 
-  app->coreIOManager()->registerIO( new qSlicerVolumeSequenceImporterIO( metafileImporterLogic, this ) );
+  app->coreIOManager()->registerIO( new qSlicerVolumeSequenceReader( metafileImporterLogic, this ) );
   app->coreIOManager()->registerIO( new qSlicerNodeWriter( "Sequences", QString( "VolumeSequenceFile" ), QStringList() << "vtkMRMLSequenceNode", true, this ) );
-
+  
+  // It would be nicer to implement this reader in Sequences module, but then we would not be able to create a default browser node.
+  // Creating a default browser node is important, because it is a convenience for the user.
+  app->coreIOManager()->registerIO(new qSlicerSequencesReader(sequencesLogic, this));
 }
 
 //-----------------------------------------------------------------------------

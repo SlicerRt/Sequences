@@ -220,6 +220,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
 
   this->SetIndexName(snode->GetIndexName());
   this->SetIndexUnit(snode->GetIndexUnit());
+  this->SetNumericIndexValueTolerance(snode->GetNumericIndexValueTolerance());
 
   // Clear nodes: RemoveAllNodes is not a public method, so it's simpler to just delete and recreate the scene
   this->SequenceScene->Delete();
@@ -241,6 +242,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
   {
     IndexEntryType seqItem;
     seqItem.IndexValue=sourceIndexIt->IndexValue;
+    seqItem.DataNode = NULL;
     if (sourceIndexIt->DataNode!=NULL)
     {
       seqItem.DataNode=this->SequenceScene->GetNodeByID(sourceIndexIt->DataNode->GetID());
@@ -260,6 +262,37 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
   this->Modified();
   this->StorableModifiedTime.Modified();
 
+  this->EndModify(wasModified);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLSequenceNode::CopySequenceIndex(vtkMRMLNode *anode)
+{
+  int wasModified = this->StartModify();
+  vtkMRMLSequenceNode *snode = (vtkMRMLSequenceNode *)anode;
+  this->SetIndexName(snode->GetIndexName());
+  this->SetIndexUnit(snode->GetIndexUnit());
+  this->SetNumericIndexValueTolerance(snode->GetNumericIndexValueTolerance());
+  if (this->IndexEntries.size() > 0 || snode->IndexEntries.size() > 0)
+  {
+    this->IndexEntries.clear();
+    for (std::deque< IndexEntryType >::iterator sourceIndexIt = snode->IndexEntries.begin(); sourceIndexIt != snode->IndexEntries.end(); ++sourceIndexIt)
+    {
+      IndexEntryType seqItem;
+      seqItem.IndexValue = sourceIndexIt->IndexValue;
+      if (sourceIndexIt->DataNode != NULL)
+      {
+        seqItem.DataNodeID = sourceIndexIt->DataNode->GetID();
+      }
+      else
+      {
+        seqItem.DataNodeID = sourceIndexIt->DataNodeID;
+      }
+      seqItem.DataNode = NULL;
+      this->IndexEntries.push_back(seqItem);
+    }
+    this->Modified();
+  }
   this->EndModify(wasModified);
 }
 
@@ -599,6 +632,12 @@ vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
 //-----------------------------------------------------------
 std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* filename /* =NULL */)
 {
+  // No need to create storage node if there are no nodes to store
+  if (this->GetSequenceScene() == NULL || this->GetSequenceScene()->GetNumberOfNodes() == 0)
+  {
+    return "";
+  }
+
   // Use specific volume sequence storage node, if possible
   std::vector< vtkSmartPointer<vtkMRMLStorageNode> > specializedStorageNodes;
   specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
@@ -615,7 +654,9 @@ std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* file
     {
       return (*specializedStorageNodeIt)->GetClassName();
     }
-  } // Use generic storage node
+  }
+  
+  // Use generic storage node
   return "vtkMRMLSequenceStorageNode";
 }
 
@@ -625,12 +666,18 @@ void vtkMRMLSequenceNode::UpdateScene(vtkMRMLScene *scene)
   Superclass::UpdateScene(scene);
 
   // By now the storage node imported the sequence scene, so we can get the pointers to the data nodes
-  for(std::deque< IndexEntryType >::iterator indexIt=this->IndexEntries.begin(); indexIt!=this->IndexEntries.end(); ++indexIt)
+  this->UpdateSequenceIndex();
+}
+
+//-----------------------------------------------------------
+void vtkMRMLSequenceNode::UpdateSequenceIndex()
+{
+  for (std::deque< IndexEntryType >::iterator indexIt = this->IndexEntries.begin(); indexIt != this->IndexEntries.end(); ++indexIt)
   {
-    if (indexIt->DataNode==NULL)
+    if (indexIt->DataNode == NULL)
     {
       indexIt->DataNode = this->SequenceScene->GetNodeByID(indexIt->DataNodeID);
-      if (indexIt->DataNode!=NULL)
+      if (indexIt->DataNode != NULL)
       {
         // clear the ID to remove redundancy in the data
         indexIt->DataNodeID.clear();

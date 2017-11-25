@@ -107,8 +107,31 @@ int vtkMRMLSequenceStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
 
   int success = false;
   if (extension == std::string(".mrb"))
-  {    
-    success = vtkMRMLSequenceStorageNode::ReadFromMRB(fullName.c_str(), sequenceNode->GetSequenceScene());
+  {
+    vtkMRMLScene* sequenceScene = sequenceNode->GetSequenceScene();
+    success = vtkMRMLSequenceStorageNode::ReadFromMRB(fullName.c_str(), sequenceScene);
+    if (success)
+    {
+      // Remove scene view nodes, as they would interfere with re-saving of the embedded scene
+      // It would be better to disable automatic adding of scene view nodes altogether, but there is no API for that in the Slicer core.
+      std::vector<vtkMRMLNode*> sceneViewNodes;
+      sequenceScene->GetNodesByClass("vtkMRMLSceneViewNode", sceneViewNodes);
+      for (std::vector<vtkMRMLNode*>::iterator sceneViewNodeIt = sceneViewNodes.begin(); sceneViewNodeIt != sceneViewNodes.end(); ++sceneViewNodeIt)
+      {
+        sequenceScene->RemoveNode(*sceneViewNodeIt);
+      }
+
+      // Read sequence index information from node embedded in the internal scene
+      vtkMRMLSequenceNode* embeddedSequenceNode = vtkMRMLSequenceNode::SafeDownCast(
+        sequenceScene->GetSingletonNode("SequenceIndex", "vtkMRMLSequenceNode"));
+      if (embeddedSequenceNode)
+      {
+        sequenceNode->CopySequenceIndex(embeddedSequenceNode);
+        // Convert node IDs to node pointers
+        sequenceNode->UpdateSequenceIndex();
+        sequenceScene->RemoveNode(embeddedSequenceNode);
+      }
+    }
   }
   else
   {
@@ -137,7 +160,17 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   {
     this->ForceUniqueDataNodeFileNames(sequenceNode); // Prevents storable nodes' files from being overwritten due to the same node name
     vtkMRMLScene *sequenceScene=sequenceNode->GetSequenceScene();
+
+    // Save sequence index information in the bundle file so that users can load
+    // a sequence just from a .seq.mrb file
+    vtkNew<vtkMRMLSequenceNode> embeddedSequenceNode;
+    embeddedSequenceNode->CopySequenceIndex(sequenceNode);
+    embeddedSequenceNode->SetSingletonTag("SequenceIndex");
+    sequenceScene->AddNode(embeddedSequenceNode.GetPointer());
+
     success = WriteToMRB(fullName.c_str(), sequenceScene);
+
+    sequenceScene->RemoveNode(embeddedSequenceNode.GetPointer());
   }
   else
   {
@@ -150,19 +183,21 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceStorageNode::InitializeSupportedReadFileTypes()
 {
+  this->SupportedReadFileTypes->InsertNextValue("Sequence Bundle (.seq.mrb)");
   this->SupportedReadFileTypes->InsertNextValue("Medical Reality Bundle (.mrb)");
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceStorageNode::InitializeSupportedWriteFileTypes()
 {
+  this->SupportedWriteFileTypes->InsertNextValue("Sequence Bundle (.seq.mrb)");
   this->SupportedWriteFileTypes->InsertNextValue("Medical Reality Bundle (.mrb)");
 }
 
 //----------------------------------------------------------------------------
 const char* vtkMRMLSequenceStorageNode::GetDefaultWriteFileExtension()
 {
-  return "mrb";
+  return "seq.mrb";
 }
 
 //-----------------------------------------------------------------------------
@@ -320,7 +355,7 @@ bool vtkMRMLSequenceStorageNode::ReadFromMRB(const char* fullName, vtkMRMLScene 
 
   scene->SetURL(mrmlFile.c_str());
 
-  int res = scene->Connect();
+  int success = scene->Connect();
 
   if ( !vtksys::SystemTools::RemoveADirectory(unpackPathStd.c_str()) )
   {
@@ -328,7 +363,7 @@ bool vtkMRMLSequenceStorageNode::ReadFromMRB(const char* fullName, vtkMRMLScene 
   }
 
   qDebug() << "Loaded bundle from " << unpackPath;
-  return res;
+  return success;
 }
 
 //----------------------------------------------------------------------------
@@ -341,19 +376,23 @@ std::string vtkMRMLSequenceStorageNode::GetSequenceBaseName(const std::string& f
   std::vector<std::string> recognizedExtensions;
   if (!itemName.empty())
   {
+    recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.mrb");
     recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.mha");
     recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.mhd");
     recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.nrrd");
     recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + itemName + NODE_BASE_NAME_SEPARATOR + "Seq.seq.nhdr");
   }
+  recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.mrb");
   recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.mha");
   recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.mhd");
   recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.nrrd");
   recognizedExtensions.push_back(std::string(NODE_BASE_NAME_SEPARATOR) + "Seq.seq.nhdr");
+  recognizedExtensions.push_back(".seq.mrb"); 
   recognizedExtensions.push_back(".seq.mha");
   recognizedExtensions.push_back(".seq.mhd");
   recognizedExtensions.push_back(".seq.nrrd");
   recognizedExtensions.push_back(".seq.nhdr");
+  recognizedExtensions.push_back(".mrb");
   recognizedExtensions.push_back(".mhd");
   recognizedExtensions.push_back(".mha");
   recognizedExtensions.push_back(".nrrd");

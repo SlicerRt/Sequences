@@ -24,17 +24,20 @@ set(MODULE_SRCS
   qSlicer${MODULE_NAME}Module.h
   qSlicer${MODULE_NAME}ModuleWidget.cxx
   qSlicer${MODULE_NAME}ModuleWidget.h
-  qSlicer${MODULE_NAME}IO.cxx
-  qSlicer${MODULE_NAME}IO.h
-  qSlicerVolumeSequenceImporterIO.cxx
-  qSlicerVolumeSequenceImporterIO.h
+  qSlicerMetafileReader.cxx
+  qSlicerMetafileReader.h
+  qSlicerSequencesReader.cxx
+  qSlicerSequencesReader.h
+  qSlicerVolumeSequenceReader.cxx
+  qSlicerVolumeSequenceReader.h
   )
 
 set(MODULE_MOC_SRCS
   qSlicer${MODULE_NAME}Module.h
   qSlicer${MODULE_NAME}ModuleWidget.h
-  qSlicer${MODULE_NAME}IO.h
-  qSlicerVolumeSequenceImporterIO.h
+  qSlicerMetafileReader.h
+  qSlicerSequencesReader.h
+  qSlicerVolumeSequenceReader.h
   )
 
 set(MODULE_UI_SRCS

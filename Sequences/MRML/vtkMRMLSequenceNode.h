@@ -60,6 +60,13 @@ public:
   /// Copy the node's attributes to this object 
   virtual void Copy(vtkMRMLNode *node);
 
+  /// Copy sequence index information (index name, unit, type, values, etc)
+  /// Does not copy data nodes.
+  virtual void CopySequenceIndex(vtkMRMLNode *node);
+
+  /// Update sequence index to point to nodes
+  void UpdateSequenceIndex();
+
   /// Get unique node XML tag name (like Volume, Model) 
   virtual const char* GetNodeTagName() {return "Sequence";};
 
