@@ -79,20 +79,11 @@ void vtkMRMLSequenceNode::WriteXML(ostream& of, int nIndent)
   // Write all MRML node attributes into output stream
   vtkIndent indent(nIndent);
 
-  if (!this->IndexName.empty())
-  {
-    of << indent << " indexName=\"" << this->IndexName << "\"";
-  }
-  if (!this->IndexUnit.empty())
-  {
-    of << indent << " indexUnit=\"" << this->IndexUnit << "\"";
-  }
+  of << indent << " indexName=\"" << this->IndexName << "\"";
+  of << indent << " indexUnit=\"" << this->IndexUnit << "\"";
 
   std::string indexTypeString=GetIndexTypeAsString();
-  if (!indexTypeString.empty())
-  {    
-    of << indent << " indexType=\"" << indexTypeString << "\"";
-  }
+  of << indent << " indexType=\"" << indexTypeString << "\"";
 
   of << indent << " numericIndexValueTolerance=\"" << this->NumericIndexValueTolerance << "\"";
 
