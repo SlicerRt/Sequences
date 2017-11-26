@@ -211,6 +211,7 @@ void vtkMRMLSequenceNode::Copy(vtkMRMLNode *anode)
 
   this->SetIndexName(snode->GetIndexName());
   this->SetIndexUnit(snode->GetIndexUnit());
+  this->SetIndexType(snode->GetIndexType());
   this->SetNumericIndexValueTolerance(snode->GetNumericIndexValueTolerance());
 
   // Clear nodes: RemoveAllNodes is not a public method, so it's simpler to just delete and recreate the scene
@@ -263,6 +264,7 @@ void vtkMRMLSequenceNode::CopySequenceIndex(vtkMRMLNode *anode)
   vtkMRMLSequenceNode *snode = (vtkMRMLSequenceNode *)anode;
   this->SetIndexName(snode->GetIndexName());
   this->SetIndexUnit(snode->GetIndexUnit());
+  this->SetIndexType(snode->GetIndexType());
   this->SetNumericIndexValueTolerance(snode->GetNumericIndexValueTolerance());
   if (this->IndexEntries.size() > 0 || snode->IndexEntries.size() > 0)
   {
