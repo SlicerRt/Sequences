@@ -926,12 +926,12 @@ void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
 {
   // Before activating the recording, set the initial timestamp to be correct
   this->RecordingTimeOffsetSec = vtkTimerLog::GetUniversalTime();
-  if (this->GetMasterSequenceNode()!=NULL 
-    && this->GetMasterSequenceNode()->GetNumberOfDataNodes()>0
+  int numberOfItems = this->GetNumberOfItems();
+  if (numberOfItems>0
     && this->GetMasterSequenceNode()->GetIndexType()==vtkMRMLSequenceNode::NumericIndex)
   {
     std::stringstream timeString;
-    timeString << this->GetMasterSequenceNode()->GetNthIndexValue( this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1 );
+    timeString << this->GetMasterSequenceNode()->GetNthIndexValue(numberOfItems - 1);
     double timeValue = 0;
     timeString >> timeValue;
     this->RecordingTimeOffsetSec -= timeValue;
@@ -946,25 +946,15 @@ void vtkMRMLSequenceBrowserNode::SetRecordingActive(bool recording)
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectFirstItem()
 {
-  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
-  int selectedItemNumber = -1;
-  if (sequenceNode && sequenceNode->GetNumberOfDataNodes()>0)
-  {
-    selectedItemNumber = 0;
-  }
-  this->SetSelectedItemNumber(selectedItemNumber );
+  int selectedItemNumber = (this->GetNumberOfItems() > 0)  ? 0 :- 1;
+  this->SetSelectedItemNumber(selectedItemNumber);
   return selectedItemNumber;
 }
 
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectLastItem()
 {
-  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
-  int selectedItemNumber = -1;
-  if (sequenceNode && sequenceNode->GetNumberOfDataNodes()>0)
-  {
-    selectedItemNumber = sequenceNode->GetNumberOfDataNodes()-1;
-  }
+  int selectedItemNumber = this->GetNumberOfItems() - 1;
   this->SetSelectedItemNumber(selectedItemNumber );
   return selectedItemNumber;
 }
@@ -972,8 +962,8 @@ int vtkMRMLSequenceBrowserNode::SelectLastItem()
 //---------------------------------------------------------------------------
 int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
 {
-  vtkMRMLSequenceNode* sequenceNode=this->GetMasterSequenceNode();
-  if (sequenceNode==NULL || sequenceNode->GetNumberOfDataNodes()==0)
+  int numberOfItems = this->GetNumberOfItems();
+  if (numberOfItems == 0)
   {
     // nothing to replay
     return -1;
@@ -987,12 +977,12 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
   else
   {
     selectedItemNumber += selectionIncrement;
-    if (selectedItemNumber>=sequenceNode->GetNumberOfDataNodes())
+    if (selectedItemNumber >= numberOfItems)
     {
       if (this->GetPlaybackLooped())
       {
         // wrap around and keep playback going
-        selectedItemNumber = selectedItemNumber % sequenceNode->GetNumberOfDataNodes();
+        selectedItemNumber = selectedItemNumber % numberOfItems;
       }
       else
       {
@@ -1005,12 +995,12 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
       if (this->GetPlaybackLooped())
       {
         // wrap around and keep playback going
-        selectedItemNumber = (selectedItemNumber % sequenceNode->GetNumberOfDataNodes()) + sequenceNode->GetNumberOfDataNodes();
+        selectedItemNumber = (selectedItemNumber % numberOfItems) + numberOfItems;
       }
       else
       {
         this->SetPlaybackActive(false);
-        selectedItemNumber=sequenceNode->GetNumberOfDataNodes()-1;
+        selectedItemNumber = numberOfItems - 1;
       }
     }
   }
@@ -1018,6 +1008,18 @@ int vtkMRMLSequenceBrowserNode::SelectNextItem(int selectionIncrement/*=1*/)
   this->EndModify(browserNodeModify);
   return selectedItemNumber;
 }
+
+//---------------------------------------------------------------------------
+int vtkMRMLSequenceBrowserNode::GetNumberOfItems()
+{
+  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
+  if (!sequenceNode)
+  {
+    return 0;
+  }
+  return sequenceNode->GetNumberOfDataNodes();
+}
+
 
 //---------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData )
@@ -1060,10 +1062,11 @@ void vtkMRMLSequenceBrowserNode::SaveProxyNodesState()
     // Recording a single snapshot
     // TODO: add support for non-numeric index type
     double lastItemTime = 0;
-    if (this->GetMasterSequenceNode()->GetNumberOfDataNodes() > 0)
+    int numberOfItems = this->GetNumberOfItems();
+    if (numberOfItems > 0)
     {
       std::stringstream timeString;
-      timeString << this->GetMasterSequenceNode()->GetNthIndexValue(this->GetMasterSequenceNode()->GetNumberOfDataNodes() - 1);
+      timeString << this->GetMasterSequenceNode()->GetNthIndexValue(numberOfItems - 1);
       timeString >> lastItemTime;
     }
     double playbackRateFps = this->GetPlaybackRateFps() != 0.0 ? this->GetPlaybackRateFps() : 1.0;

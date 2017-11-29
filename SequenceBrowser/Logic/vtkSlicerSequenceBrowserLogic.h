@@ -79,6 +79,14 @@ public:
 
   static bool IsNodeCompatibleForBrowsing(vtkMRMLSequenceNode* masterNode, vtkMRMLSequenceNode* testedNode);
 
+  /// Get collection of browser nodes that use a specific sequence node.
+  void GetBrowserNodesForSequenceNode(vtkMRMLSequenceNode* sequenceNode, vtkCollection* foundBrowserNodes);
+
+  /// Get first browser node that use a specific sequence node. This is a convenience method for
+  /// cases when it is known that a sequence is only used in one browser node. In general case,
+  /// use GetBrowserNodesForSequenceNode instead.
+  vtkMRMLSequenceBrowserNode* GetFirstBrowserNodeForSequenceNode(vtkMRMLSequenceNode* sequenceNode);
+
 protected:
   vtkSlicerSequenceBrowserLogic();
   virtual ~vtkSlicerSequenceBrowserLogic();

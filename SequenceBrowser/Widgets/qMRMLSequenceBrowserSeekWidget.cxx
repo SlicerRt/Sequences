@@ -183,3 +183,10 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->slider_IndexValue->setValue(0);
   }  
 }
+
+//-----------------------------------------------------------------------------
+QSlider* qMRMLSequenceBrowserSeekWidget::slider() const
+{
+  Q_D(const qMRMLSequenceBrowserSeekWidget);
+  return d->slider_IndexValue;
+}

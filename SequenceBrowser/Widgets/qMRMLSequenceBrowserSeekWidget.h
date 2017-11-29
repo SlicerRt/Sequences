@@ -30,6 +30,7 @@
 class qMRMLSequenceBrowserSeekWidgetPrivate;
 class vtkMRMLNode;
 class vtkMRMLSequenceBrowserNode;
+class QSlider;
 
 /// \ingroup Slicer_QtModules_Markups
 class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_EXPORT qMRMLSequenceBrowserSeekWidget
@@ -42,6 +43,10 @@ public:
   typedef qMRMLWidget Superclass;
   qMRMLSequenceBrowserSeekWidget(QWidget *newParent = 0);
   virtual ~qMRMLSequenceBrowserSeekWidget();
+
+  /// Get access to the internal slider widget.
+  /// This allows fine-tuning of parameters such as page step.
+  Q_INVOKABLE QSlider* slider() const;
 
 public slots:
   void setMRMLSequenceBrowserNode(vtkMRMLNode* browserNode);

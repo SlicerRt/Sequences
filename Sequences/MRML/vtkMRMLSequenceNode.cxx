@@ -39,8 +39,23 @@
 
 #define SAFE_CHAR_POINTER(unsafeString) ( unsafeString==NULL?"":unsafeString )
 
+// This macro sets a member variable and sets both this node and the storage node as modified.
+// This macro can be used for properties that are stored in both the scene and in the stored file.
+#define vtkCxxSetVariableInDataAndStorageNodeMacro(name, type) \
+  void vtkMRMLSequenceNode::Set##name(type arg) \
+  { \
+    if (arg == this->name) { return; } \
+    this->name = arg; \
+    this->StorableModifiedTime.Modified(); \
+    this->Modified(); \
+  }
+
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLSequenceNode);
+vtkCxxSetVariableInDataAndStorageNodeMacro(IndexName, const std::string&);
+vtkCxxSetVariableInDataAndStorageNodeMacro(IndexUnit, const std::string&);
+vtkCxxSetVariableInDataAndStorageNodeMacro(IndexType, int);
+vtkCxxSetVariableInDataAndStorageNodeMacro(NumericIndexValueTolerance, double);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceNode::vtkMRMLSequenceNode()

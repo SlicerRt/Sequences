@@ -182,6 +182,9 @@ public:
   /// Selects last sequence item for display, returns current selected item number
   int SelectLastItem();
 
+  /// Returns number of items in the sequence (number of data nodes in master sequence node)
+  int GetNumberOfItems();
+
   /// Adds proxy nodes from another scene (typically from the main scene). The data node is optionally copied.
   vtkMRMLNode* AddProxyNode(vtkMRMLNode* sourceProxyNode, vtkMRMLSequenceNode* sequenceNode, bool copy=true);
 
