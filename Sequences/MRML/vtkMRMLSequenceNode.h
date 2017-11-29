@@ -71,17 +71,17 @@ public:
   virtual const char* GetNodeTagName() {return "Sequence";};
 
   /// Set index name (example: time)
-  vtkSetMacro(IndexName, std::string);
+  void SetIndexName(const std::string& str);
   /// Get index name (example: time)
   vtkGetMacro(IndexName, std::string);
 
   /// Set unit for the index (example: s)
-  vtkSetMacro(IndexUnit, std::string);
+  void SetIndexUnit(const std::string& str);
   /// Get unit for the index (example: s)
   vtkGetMacro(IndexUnit, std::string);
 
   /// Set the type of the index (numeric, text, ...)
-  vtkSetMacro(IndexType, int);
+  void SetIndexType(int indexType);
   void SetIndexTypeFromString(const char *indexTypeString);
   /// Get the type of the index (numeric, text, ...)
   vtkGetMacro(IndexType, int);
@@ -91,7 +91,7 @@ public:
   /// then the index values considered to be equal.
   vtkGetMacro(NumericIndexValueTolerance, double);
   /// Set tolerance value for comparing numerix index values.
-  vtkSetMacro(NumericIndexValueTolerance, double);
+  void SetNumericIndexValueTolerance(double tolerance);
 
   /// Helper functions for converting between string and code representation of the index type
   static std::string GetIndexTypeAsString(int indexType);
@@ -126,6 +126,7 @@ public:
 
   bool UpdateIndexValue(const std::string& oldIndexValue, const std::string& newIndexValue);
 
+  /// Return the number of nodes stored in this sequence.
   int GetNumberOfDataNodes();
 
   /// Return the class name of the data nodes (e.g., vtkMRMLTransformNode). If there are no data nodes yet then it returns empty string.
