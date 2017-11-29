@@ -120,11 +120,19 @@ void qSlicerMetafileImporterModule::setup()
 
   vtkSlicerMetafileImporterLogic* metafileImporterLogic = vtkSlicerMetafileImporterLogic::SafeDownCast( this->logic() );
   qSlicerAbstractCoreModule* sequenceModule = app->moduleManager()->module( "Sequences" );
-  vtkSlicerSequencesLogic* sequencesLogic = vtkSlicerSequencesLogic::SafeDownCast(sequenceModule->logic());
+  
   if ( sequenceModule )
-    {
+  {
+    vtkSlicerSequencesLogic* sequencesLogic = vtkSlicerSequencesLogic::SafeDownCast(sequenceModule->logic());
     metafileImporterLogic->SetSequencesLogic(sequencesLogic);
-    }
+    // It would be nicer to implement this reader in Sequences module, but then we would not be able to create a default browser node.
+    // Creating a default browser node is important, because it is a convenience for the user.
+    app->coreIOManager()->registerIO(new qSlicerSequencesReader(sequencesLogic, this));
+  }
+  else
+  {
+    qWarning("Could not register Sequences reader, as Sequences module is not registered.");
+  }
 
   // Register the IO
   app->coreIOManager()->registerIO( new qSlicerMetafileReader( metafileImporterLogic, this ) );
@@ -132,10 +140,6 @@ void qSlicerMetafileImporterModule::setup()
 
   app->coreIOManager()->registerIO( new qSlicerVolumeSequenceReader( metafileImporterLogic, this ) );
   app->coreIOManager()->registerIO( new qSlicerNodeWriter( "Sequences", QString( "VolumeSequenceFile" ), QStringList() << "vtkMRMLSequenceNode", true, this ) );
-  
-  // It would be nicer to implement this reader in Sequences module, but then we would not be able to create a default browser node.
-  // Creating a default browser node is important, because it is a convenience for the user.
-  app->coreIOManager()->registerIO(new qSlicerSequencesReader(sequencesLogic, this));
 }
 
 //-----------------------------------------------------------------------------
