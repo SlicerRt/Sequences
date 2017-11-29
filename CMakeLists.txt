@@ -25,7 +25,6 @@ add_subdirectory(SequenceSampleData)
 
 if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
   # In development
-  add_subdirectory(SequenceRegistration)
   add_subdirectory(SequenceLabelStatistics)
   add_subdirectory(SequenceResample)
   #add_subdirectory(SequenceGaussianBlurImageFilter)
