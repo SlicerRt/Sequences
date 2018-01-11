@@ -587,8 +587,10 @@ public:
 };
 
 //----------------------------------------------------------------------------
-// Needed when we don't use the vtkStandardNewMacro.
-vtkInstantiatorNewMacro(vtkMRMLNodeSequencer);
+#if VTK_MAJOR_VERSION < 9
+  // Needed when we don't use the vtkStandardNewMacro.
+  vtkInstantiatorNewMacro(vtkMRMLNodeSequencer);
+#endif
 
 //----------------------------------------------------------------------------
 // vtkMRMLNodeSequencer methods

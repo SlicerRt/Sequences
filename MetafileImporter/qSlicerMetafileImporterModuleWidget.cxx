@@ -17,6 +17,8 @@
 
 // Qt includes
 #include <QDebug>
+#include <QFileDialog>
+#include <QProgressDialog>
 #include <QtGui>
 
 // SlicerQt includes

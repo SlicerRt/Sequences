@@ -20,7 +20,6 @@
 #include <QMenu>
 #include <QSettings>
 #include <QTimer>
-#include <QtPlugin>
 
 #include "qSlicerApplication.h"
 #include "qSlicerCoreApplication.h"
@@ -40,7 +39,11 @@
 static const double UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC = 0.020; // refresh output with a maximum of 50FPS
 
 //-----------------------------------------------------------------------------
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#include <QtPlugin>
 Q_EXPORT_PLUGIN2(qSlicerSequenceBrowserModule, qSlicerSequenceBrowserModule);
+#endif
+
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
