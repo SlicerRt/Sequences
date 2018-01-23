@@ -21,7 +21,13 @@
 #ifndef __qSlicerMarkupsModuleWidgetsAbstractPlugin_h
 #define __qSlicerMarkupsModuleWidgetsAbstractPlugin_h
 
+#include <QtGlobal>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 #include <QDesignerCustomWidgetInterface>
+#else
+#include <QtUiPlugin/QDesignerCustomWidgetInterface>
+#endif
+
 #include "qSlicerSequenceBrowserModuleWidgetsPluginsExport.h"
 
 class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_PLUGINS_EXPORT qSlicerSequenceBrowserModuleWidgetsAbstractPlugin
