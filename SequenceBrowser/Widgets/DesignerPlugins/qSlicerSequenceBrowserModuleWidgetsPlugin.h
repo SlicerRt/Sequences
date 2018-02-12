@@ -22,7 +22,7 @@
 #define __qSlicerSequenceBrowserModuleWidgetsPlugin_h
 
 // Qt includes
-#include "vtkSlicerConfigure.h" // For Slicer_HAVE_QT5
+#include "vtkSlicerConfigure.h" // For Slicer_HAVE_QT5	
 #ifdef Slicer_HAVE_QT5
 #include <QtUiPlugin/QDesignerCustomWidgetCollectionInterface>
 #else
@@ -40,7 +40,7 @@ class Q_SLICER_MODULE_SEQUENCEBROWSER_WIDGETS_PLUGINS_EXPORT qSlicerSequenceBrow
   , public QDesignerCustomWidgetCollectionInterface
 {
   Q_OBJECT
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))	
   Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QDesignerCustomWidgetInterface")
 #endif
   Q_INTERFACES(QDesignerCustomWidgetCollectionInterface);

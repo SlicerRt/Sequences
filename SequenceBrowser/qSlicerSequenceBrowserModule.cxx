@@ -184,7 +184,7 @@ QStringList qSlicerSequenceBrowserModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerSequenceBrowserModule::dependencies() const
 {
-  return QStringList();
+  return QStringList() << "SlicerOpenIGTLink";
 }
 
 //-----------------------------------------------------------------------------

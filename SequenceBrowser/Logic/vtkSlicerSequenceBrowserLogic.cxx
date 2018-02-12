@@ -332,7 +332,7 @@ void vtkSlicerSequenceBrowserLogic::UpdateProxyNodesFromSequences(vtkMRMLSequenc
     // TODO: if we really want to force non-mutable nodes in the sequence then we have to deep-copy, but that's slow.
     // Make sure that by default/most of the time shallow-copy is used.
     bool shallowCopy = browserNode->GetSaveChanges(synchronizedSequenceNode);
-    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->CopyNode(sourceDataNode, targetProxyNode, shallowCopy);
+    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(targetProxyNode)->CopyNodeReplay(sourceDataNode, targetProxyNode, shallowCopy);
 
     // Restore node references
     targetProxyNode->CopyReferences(proxyOriginalReferenceStorage);

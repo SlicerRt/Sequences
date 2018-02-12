@@ -51,6 +51,8 @@ public:
     NodeSequencer();
     virtual ~NodeSequencer();
     virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy = false);
+    virtual void CopyNodeReplay(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy = false)
+    { CopyNode(source, target, shallowCopy);};
     virtual vtkMRMLNode* DeepCopyNodeToScene(vtkMRMLNode* source, vtkMRMLScene* scene);
     virtual vtkIntArray* GetRecordingEvents();
     virtual std::string GetSupportedNodeClassName();

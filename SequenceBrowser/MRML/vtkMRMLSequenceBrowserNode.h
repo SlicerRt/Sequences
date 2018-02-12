@@ -120,7 +120,9 @@ public:
 
   /// Get/Set automatic playback (automatic continuous changing of selected sequence nodes)
   vtkGetMacro(PlaybackActive, bool);
-  vtkSetMacro(PlaybackActive, bool);
+  //vtkSetMacro(PlaybackActive, bool);
+  void SetPlaybackActive(bool value);
+  
   vtkBooleanMacro(PlaybackActive, bool);
 
   /// Get/Set playback rate in fps (frames per second)

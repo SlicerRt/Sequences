@@ -24,6 +24,11 @@
 #include "vtkMRMLSequenceStorageNode.h"
 #include "vtkMRMLVolumeSequenceStorageNode.h"
 
+#include "igtlConfigure.h"
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  #include "vtkMRMLBitStreamSequenceStorageNode.h"
+#endif
+
 // MRML includes
 #include "vtkCacheManager.h"
 #include "vtkMRMLScalarVolumeNode.h"
@@ -75,6 +80,9 @@ void vtkSlicerSequencesLogic::RegisterNodes()
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLSequenceStorageNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());
   this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLBitStreamSequenceStorageNode>::New());
+#endif
 }
 
 //---------------------------------------------------------------------------

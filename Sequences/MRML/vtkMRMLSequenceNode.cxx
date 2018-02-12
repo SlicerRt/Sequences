@@ -22,6 +22,12 @@
 #include "vtkMRMLSequenceStorageNode.h"
 #include "vtkMRMLVolumeSequenceStorageNode.h"
 
+#include "igtlConfigure.h"
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  #include "vtkMRMLBitStreamNode.h"
+  #include "vtkMRMLBitStreamSequenceStorageNode.h"
+#endif
+
 // MRML includes
 #include <vtkMRMLScene.h>
 
@@ -74,6 +80,19 @@ vtkMRMLSequenceNode::~vtkMRMLSequenceNode()
 {
   this->SequenceScene->Delete();
   this->SequenceScene=NULL;
+}
+
+
+void vtkMRMLSequenceNode::ResetReplayNodeStatus(int nodeIndex, vtkMRMLNode* proxyNode)
+{
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  if(strcmp(this->GetDataNodeClassName().c_str(), "vtkMRMLBitStreamNode")==0)
+    {
+    vtkMRMLBitStreamNode* bitStreamNode = vtkMRMLBitStreamNode::SafeDownCast(proxyNode);
+    if (bitStreamNode != NULL)
+      bitStreamNode->SetKeyFrameDecoded(false);
+    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -650,6 +669,9 @@ std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* file
   std::vector< vtkSmartPointer<vtkMRMLStorageNode> > specializedStorageNodes;
   specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
   specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLBitStreamSequenceStorageNode>::New());
+#endif
   for (std::vector< vtkSmartPointer<vtkMRMLStorageNode> >::iterator specializedStorageNodeIt = specializedStorageNodes.begin();
     specializedStorageNodeIt != specializedStorageNodes.end(); ++specializedStorageNodeIt)
   {

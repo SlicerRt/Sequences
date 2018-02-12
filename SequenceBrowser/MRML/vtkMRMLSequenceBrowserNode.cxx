@@ -353,6 +353,28 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   this->EndModify(wasModified);
 }
 
+void vtkMRMLSequenceBrowserNode::SetPlaybackActive(bool value)
+{
+  this->PlaybackActive = value;
+  if (value == true)
+   {
+    std::vector< vtkMRMLSequenceNode* > sequenceNodes;
+    this->GetSynchronizedSequenceNodes(sequenceNodes, true);
+    for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++)
+      {
+      vtkMRMLSequenceNode* currSequenceNode = (*it);
+      vtkMRMLNode* node = this->GetProxyNode(currSequenceNode);
+      if (node != NULL)
+        {
+        if (strcmp(node->GetClassName(),"vtkMRMLBitStreamNode") == 0)
+          {
+          currSequenceNode->ResetReplayNodeStatus(this->GetSelectedItemNumber(), this->GetProxyNode(currSequenceNode));
+          }
+        }
+      }
+    }
+}
+
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
 {

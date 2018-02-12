@@ -153,6 +153,8 @@ public:
     TextIndex,
     NumberOfIndexTypes // this line must be the last one
   };
+  
+  void ResetReplayNodeStatus(int nodeIndex, vtkMRMLNode* proxyNode);
 
 protected:
   vtkMRMLSequenceNode();

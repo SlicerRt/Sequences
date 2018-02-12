@@ -21,7 +21,7 @@
 #ifndef __qSlicerMarkupsModuleWidgetsAbstractPlugin_h
 #define __qSlicerMarkupsModuleWidgetsAbstractPlugin_h
 
-#include <QtGlobal>
+#include <QtGlobal>	
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 #include <QDesignerCustomWidgetInterface>
 #else

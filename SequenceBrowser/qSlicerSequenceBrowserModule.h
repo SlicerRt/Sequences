@@ -41,8 +41,8 @@ qSlicerSequenceBrowserModule
 {
   Q_OBJECT;
   QVTK_OBJECT;
-#ifdef Slicer_HAVE_QT5
-  Q_PLUGIN_METADATA(IID "org.slicer.modules.loadable.qSlicerLoadableModule/1.0");
+#ifdef Slicer_HAVE_QT5	
+  Q_PLUGIN_METADATA(IID "org.slicer.modules.loadable.qSlicerLoadableModule/1.0");	
 #endif
   Q_INTERFACES(qSlicerLoadableModule);
 
@@ -71,7 +71,7 @@ public:
   Q_INVOKABLE bool autoShowToolBar();
   Q_INVOKABLE bool isToolBarVisible();
   Q_INVOKABLE qMRMLSequenceBrowserToolBar* toolBar();
-
+  
 protected:
 
   /// Initialize the module. Register the volumes reader/writer

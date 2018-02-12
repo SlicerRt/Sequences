@@ -100,7 +100,7 @@ QStringList qSlicerSequencesModule::categories() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerSequencesModule::dependencies() const
 {
-  return QStringList();
+  return QStringList() << "SlicerOpenIGTLink";
 }
 
 //-----------------------------------------------------------------------------

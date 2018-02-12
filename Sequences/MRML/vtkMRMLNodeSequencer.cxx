@@ -38,12 +38,18 @@
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLVectorVolumeDisplayNode.h>
 #include <vtkMRMLViewNode.h>
+#include <vtkMRMLVectorVolumeNode.h>
 #include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLDoubleArrayNode.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
 
+// OpenIGTLinkIF node include
+#include "igtlConfigure.h"
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  #include "vtkMRMLBitStreamNode.h"
+#endif
 //----------------------------------------------------------------------------
 
 vtkMRMLNodeSequencer::NodeSequencer::NodeSequencer()
@@ -73,7 +79,8 @@ bool vtkMRMLNodeSequencer::NodeSequencer::IsNodeSupported(vtkMRMLNode* node)
   {
     return false;
   }
-  return node->IsA(this->SupportedNodeClassName.c_str());
+  //return node->IsA(this->SupportedNodeClassName.c_str());
+  return strcmp(node->GetClassName(), this->SupportedNodeClassName.c_str())== 0;
 }
 
 bool vtkMRMLNodeSequencer::NodeSequencer::IsNodeSupported(const std::string& nodeClassName)
@@ -198,6 +205,64 @@ public:
   }
 
 };
+
+
+//----------------------------------------------------------------------------
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+class BitStreamNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  BitStreamNodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLBitStreamNode";
+    this->RecordingEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLVolumeNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+  
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLBitStreamNode* targetBitStreamNode = vtkMRMLBitStreamNode::SafeDownCast(target);
+    vtkMRMLBitStreamNode* sourceBitStreamNode = vtkMRMLBitStreamNode::SafeDownCast(source);
+    igtl::VideoMessage::Pointer msgstream = sourceBitStreamNode->GetMessageStreamBuffer();
+    targetBitStreamNode->SetScene(sourceBitStreamNode->GetScene());
+    
+    //! To avoid multiple copy of the source when the sampling rate is high. Copy status will be set to true
+    //  after the source bit stream gets copied. The copy status will be set to false in the ProcessDeviceModifiedEvents of the bit stream node.
+    if (!shallowCopy && targetBitStreamNode && !sourceBitStreamNode->GetIsCopied())
+      {
+      targetBitStreamNode->SetCodecName(sourceBitStreamNode->GetCodecName());
+      targetBitStreamNode->SetMessageStream(msgstream);
+      targetBitStreamNode->SetKeyFrameStream(sourceBitStreamNode->GetKeyFrameStream());
+      targetBitStreamNode->SetKeyFrameUpdated(sourceBitStreamNode->GetKeyFrameUpdated());
+      sourceBitStreamNode->SetIsCopied(true);
+      target->EndModify(oldModified);
+      }
+  }
+  
+  virtual void CopyNodeReplay(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false*/ )
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLBitStreamNode* targetBitStreamNode = vtkMRMLBitStreamNode::SafeDownCast(target);
+    vtkMRMLBitStreamNode* sourceBitStreamNode = vtkMRMLBitStreamNode::SafeDownCast(source);
+    
+    //int length = sourceBitStreamNode->GetMessageStreamLength();
+    igtl::VideoMessage::Pointer msgstream = sourceBitStreamNode->GetMessageStreamBuffer();
+    if(!targetBitStreamNode->GetKeyFrameDecoded())
+      {
+      targetBitStreamNode->SetKeyFrameDecoded(true);
+      targetBitStreamNode->SetKeyFrameStream(sourceBitStreamNode->GetKeyFrameStream());
+      targetBitStreamNode->DecodeMessageStream(targetBitStreamNode->GetKeyFrameStream());
+      }
+    targetBitStreamNode->DecodeMessageStream(msgstream);
+    target->EndModify(oldModified);
+  }
+};
+#endif
 
 //----------------------------------------------------------------------------
 
@@ -638,6 +703,9 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new ViewNodeSequencer());
   this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
   this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
+#if defined(OpenIGTLink_ENABLE_VIDEOSTREAMING)
+  this->RegisterNodeSequencer(new BitStreamNodeSequencer());
+#endif  
 }
 
 //----------------------------------------------------------------------------
