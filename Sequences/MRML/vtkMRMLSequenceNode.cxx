@@ -59,9 +59,9 @@ vtkCxxSetVariableInDataAndStorageNodeMacro(NumericIndexValueTolerance, double);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceNode::vtkMRMLSequenceNode()
-: SequenceScene(0)
-, IndexType(vtkMRMLSequenceNode::NumericIndex)
+: IndexType(vtkMRMLSequenceNode::NumericIndex)
 , NumericIndexValueTolerance(0.001)
+, SequenceScene(0)
 {
   this->SetIndexName("time");
   this->SetIndexUnit("s");
