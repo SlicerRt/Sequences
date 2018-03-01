@@ -344,7 +344,7 @@ public:
     target->EndModify(oldModified);
   }
 
-  virtual void AddDefaultDisplayNodes(vtkMRMLNode* node)
+  virtual void AddDefaultDisplayNodes(vtkMRMLNode* vtkNotUsed(node))
   {
     // don't create display nodes for transforms by default
   }
@@ -393,7 +393,7 @@ public:
     this->SupportedNodeClassName = "vtkMRMLSliceCompositeNode";
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
   }
-  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
   {
     // Singleton node, therefore we cannot use the default Copy() method
     vtkMRMLSliceCompositeNode* targetNode = vtkMRMLSliceCompositeNode::SafeDownCast(target);
@@ -441,7 +441,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
   }
 
-  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
   {
     // Don't copy with single-modified-event
     // TODO: check if default behavior is really not correct
@@ -467,7 +467,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
   }
 
-  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
   {
     vtkMRMLCameraNode* targetCameraNode = vtkMRMLCameraNode::SafeDownCast(target);
     vtkMRMLCameraNode* sourceCameraNode = vtkMRMLCameraNode::SafeDownCast(source);
@@ -498,7 +498,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
   }
 
-  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
   {
     // Singleton node, therefore we cannot use the default Copy() method
     vtkMRMLSliceNode* targetSliceNode = vtkMRMLSliceNode::SafeDownCast(target);
@@ -539,7 +539,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
   }
 
-  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
   {
     vtkMRMLViewNode* targetNode = vtkMRMLViewNode::SafeDownCast(target);
     vtkMRMLViewNode* sourceNode = vtkMRMLViewNode::SafeDownCast(source);
