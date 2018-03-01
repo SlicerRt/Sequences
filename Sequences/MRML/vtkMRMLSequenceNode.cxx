@@ -524,7 +524,7 @@ vtkMRMLNode* vtkMRMLSequenceNode::GetDataNodeAtValue(const std::string& indexVal
 //---------------------------------------------------------------------------
 std::string vtkMRMLSequenceNode::GetNthIndexValue(int seqItemIndex)
 {
-  if (seqItemIndex<0 || seqItemIndex>=this->IndexEntries.size())
+  if (seqItemIndex<0 || seqItemIndex>=static_cast<int>(this->IndexEntries.size()))
   {
     vtkErrorMacro("vtkMRMLSequenceNode::GetNthIndexValue failed, invalid seqItemIndex value: "<<seqItemIndex);
     return "";
@@ -617,7 +617,7 @@ std::string vtkMRMLSequenceNode::GetDataNodeTagName()
 //-----------------------------------------------------------------------------
 vtkMRMLNode* vtkMRMLSequenceNode::GetNthDataNode(int itemNumber)
 {
-  if (this->IndexEntries.size()<=itemNumber)
+  if (static_cast<int>(this->IndexEntries.size())<=itemNumber)
   {
     vtkErrorMacro("vtkMRMLSequenceNode::GetNthDataNode failed: itemNumber "<<itemNumber<<" is out of range");
     return NULL;

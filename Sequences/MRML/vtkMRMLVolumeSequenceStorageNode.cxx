@@ -148,7 +148,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     frameVolume->SetRASToIJKMatrix(reader->GetRasToIjkMatrix());
 
     std::ostringstream indexStr;
-    if (indexValues.size() > frameIndex)
+    if (static_cast<int>(indexValues.size()) > frameIndex)
     {
       indexStr << indexValues[frameIndex] << std::ends;
     }

@@ -236,7 +236,7 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(co
       {
         // Setup hierarchy structure
         vtkMRMLSequenceNode* newTransformsSequenceNode = NULL;
-        if (numberOfCreatedNodes < createdNodes.size())
+        if (numberOfCreatedNodes < static_cast<int>(createdNodes.size()))
         {
           // reuse supplied sequence node
           newTransformsSequenceNode = createdNodes[numberOfCreatedNodes];
