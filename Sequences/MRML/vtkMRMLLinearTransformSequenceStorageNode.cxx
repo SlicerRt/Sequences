@@ -132,7 +132,7 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(co
     Trim(name);
     Trim(value);
 
-    if (name.compare("ElementDataFile") == NULL)
+    if (name.compare("ElementDataFile") == 0)
     {
       // this is the last field of the header
       break;
@@ -142,11 +142,11 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(co
     if (name.compare(0, SEQMETA_FIELD_FRAME_FIELD_PREFIX.size(), SEQMETA_FIELD_FRAME_FIELD_PREFIX) != 0)
     {
       // not a frame field
-      if (name.compare("UltrasoundImageOrientation") == NULL)
+      if (name.compare("UltrasoundImageOrientation") == 0)
       {
         imageMetaData["UltrasoundImageOrientation"] = value;
       }
-      else if (name.compare("UltrasoundImageType") == NULL)
+      else if (name.compare("UltrasoundImageType") == 0)
       {
         imageMetaData["UltrasoundImageType"] = value;
       }
