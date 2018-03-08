@@ -316,7 +316,7 @@ vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceMetafile
     frameNumberToIndexValueMap, imageMetaData) == 0)
   {
     // error is logged in ReadTransforms
-    return NULL;
+    vtkWarningMacro("No transforms read from metafile: " << fileName);
   }
 
 #ifdef ENABLE_PERFORMANCE_PROFILING
