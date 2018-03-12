@@ -6,9 +6,6 @@ set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_MRML_EXPORT"
 include_directories(BEFORE ${vtkTeem_INCLUDE_DIRS})
 set(${KIT}_INCLUDE_DIRECTORIES
   ${Slicer_Base_INCLUDE_DIRS}
-  ${vtkSlicerOpenIGTLinkIFModuleMRML_INCLUDE_DIRS}
-  ${OpenIGTLinkIO_INCLUDE_DIRS}
-  ${OpenIGTLink_INCLUDE_DIRS}
   )
 
 set(${KIT}_SRCS
@@ -22,14 +19,9 @@ set(${KIT}_SRCS
   vtkMRMLSequenceStorageNode.h
   vtkMRMLVolumeSequenceStorageNode.cxx
   vtkMRMLVolumeSequenceStorageNode.h
-  )
-
-IF(OpenIGTLink_ENABLE_VIDEOSTREAMING)
-  LIST(APPEND ${KIT}_SRCS
   vtkMRMLBitStreamSequenceStorageNode.cxx
   vtkMRMLBitStreamSequenceStorageNode.h
   )
-ENDIF()
 
 set(${KIT}_TARGET_LIBRARIES
   ${ITK_LIBRARIES}
@@ -37,7 +29,6 @@ set(${KIT}_TARGET_LIBRARIES
   SlicerBaseLogic
   qSlicerBaseQTCLI
   vtkSlicerMarkupsModuleMRML
-  vtkSlicerOpenIGTLinkIFModuleMRML
   )
 
 #-----------------------------------------------------------------------------
