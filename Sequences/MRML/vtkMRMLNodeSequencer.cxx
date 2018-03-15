@@ -227,13 +227,15 @@ public:
     
     //! To avoid multiple copy of the source when the sampling rate is high. Copy status will be set to true
     //  after the source bit stream gets copied. The copy status will be set to false in the ProcessDeviceModifiedEvents of the bit stream node.
-    if (!shallowCopy && targetBitStreamNode && !sourceBitStreamNode->GetIsCopied())
+    if (!shallowCopy && targetBitStreamNode && sourceBitStreamNode->GetFrameUpdated())
       {
-      targetBitStreamNode->SetCodecName(sourceBitStreamNode->GetCodecName());
-      targetBitStreamNode->SetMessageStream(sourceBitStreamNode->GetMessageStream());
-      targetBitStreamNode->SetKeyFrameStream(sourceBitStreamNode->GetKeyFrameStream());
+      targetBitStreamNode->SetCodecType(sourceBitStreamNode->GetCodecType());
+      std::string srcFrameMessage = sourceBitStreamNode->GetFrameMessage();
+      targetBitStreamNode->SetFrameMessage(srcFrameMessage);
+      std::string srcKeyFrameMessage  = sourceBitStreamNode->GetKeyFrameMessage();
+      targetBitStreamNode->SetKeyFrameMessage(srcKeyFrameMessage);
       targetBitStreamNode->SetKeyFrameUpdated(sourceBitStreamNode->GetKeyFrameUpdated());
-      sourceBitStreamNode->SetIsCopied(true);
+      sourceBitStreamNode->SetFrameUpdated(false);
       target->EndModify(oldModified);
       }
   }
@@ -246,13 +248,13 @@ public:
     if (targetBitStreamNode->GetCompressionDevice())
     {
       vtkMRMLCompressionDeviceNode::ContentData* targetContent = targetBitStreamNode->GetCompressionDevice()->GetContent();
-      std::string messageBuffer = sourceBitStreamNode->GetMessageStream();
+      std::string messageBuffer = sourceBitStreamNode->GetFrameMessage();
       targetContent->frameMessage.resize(messageBuffer.size());
       targetContent->frameMessage.assign(messageBuffer);
-      std::string keyMessageBuffer = sourceBitStreamNode->GetMessageStream();
+      std::string keyMessageBuffer = sourceBitStreamNode->GetKeyFrameMessage();
       targetContent->keyFrameMessage.resize(keyMessageBuffer.size());
       targetContent->keyFrameMessage.assign(keyMessageBuffer);
-      targetBitStreamNode->DecodeMessageStream(targetContent);
+      targetBitStreamNode->DecodeFrameMessage(targetContent);
       target->EndModify(oldModified);
     }
   }
