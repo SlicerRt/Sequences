@@ -6,12 +6,12 @@
  or http://www.slicer.org/copyright/copyright.txt for details.
  
  =========================================================================auto=*/
-///  vtkMRMLBitStreamSequenceStorageNode - MRML node that can read/write
+///  vtkMRMLStreamingVolumeSequenceStorageNode - MRML node that can read/write
 ///  a Sequence node containing bit stream in a text file
 ///
 
-#ifndef __vtkMRMLBitStreamSequenceStorageNode_h
-#define __vtkMRMLBitStreamSequenceStorageNode_h
+#ifndef __vtkMRMLStreamingVolumeSequenceStorageNode_h
+#define __vtkMRMLStreamingVolumeSequenceStorageNode_h
 
 #include "vtkSlicerSequencesModuleMRMLExport.h"
 
@@ -20,12 +20,12 @@
 
 
 /// \ingroup Slicer_QtModules_Sequences
-class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLBitStreamSequenceStorageNode : public vtkMRMLStorageNode
+class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLStreamingVolumeSequenceStorageNode : public vtkMRMLStorageNode
 {
 public:
   
-  static vtkMRMLBitStreamSequenceStorageNode *New();
-  vtkTypeMacro(vtkMRMLBitStreamSequenceStorageNode,vtkMRMLStorageNode);
+  static vtkMRMLStreamingVolumeSequenceStorageNode *New();
+  vtkTypeMacro(vtkMRMLStreamingVolumeSequenceStorageNode,vtkMRMLStorageNode);
   
   virtual vtkMRMLNode* CreateNodeInstance();
   
@@ -43,10 +43,10 @@ public:
   virtual const char* GetDefaultWriteFileExtension();
   
 protected:
-  vtkMRMLBitStreamSequenceStorageNode();
-  ~vtkMRMLBitStreamSequenceStorageNode();
-  vtkMRMLBitStreamSequenceStorageNode(const vtkMRMLBitStreamSequenceStorageNode&);
-  void operator=(const vtkMRMLBitStreamSequenceStorageNode&);
+  vtkMRMLStreamingVolumeSequenceStorageNode();
+  ~vtkMRMLStreamingVolumeSequenceStorageNode();
+  vtkMRMLStreamingVolumeSequenceStorageNode(const vtkMRMLStreamingVolumeSequenceStorageNode&);
+  void operator=(const vtkMRMLStreamingVolumeSequenceStorageNode&);
   
   
   virtual int WriteDataInternal(vtkMRMLNode *refNode);

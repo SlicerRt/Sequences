@@ -21,8 +21,8 @@
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLSequenceStorageNode.h"
 #include "vtkMRMLVolumeSequenceStorageNode.h"
-#include "vtkMRMLBitStreamVolumeNode.h"
-#include "vtkMRMLBitStreamSequenceStorageNode.h"
+#include "vtkMRMLStreamingVolumeNode.h"
+#include "vtkMRMLStreamingVolumeSequenceStorageNode.h"
 
 // MRML includes
 #include <vtkMRMLScene.h>
@@ -81,9 +81,9 @@ vtkMRMLSequenceNode::~vtkMRMLSequenceNode()
 
 void vtkMRMLSequenceNode::ResetReplayNodeStatus(int nodeIndex, vtkMRMLNode* proxyNode)
 {
-  if(strcmp(this->GetDataNodeClassName().c_str(), "vtkMRMLBitStreamVolumeNode")==0)
+  if(strcmp(this->GetDataNodeClassName().c_str(), "vtkMRMLStreamingVolumeNode")==0)
     {
-    vtkMRMLBitStreamVolumeNode* bitStreamNode = vtkMRMLBitStreamVolumeNode::SafeDownCast(proxyNode);
+    vtkMRMLStreamingVolumeNode* bitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(proxyNode);
     if (bitStreamNode != NULL)
       bitStreamNode->SetKeyFrameDecoded(false);
     }
@@ -663,7 +663,7 @@ std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* file
   std::vector< vtkSmartPointer<vtkMRMLStorageNode> > specializedStorageNodes;
   specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
   specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());
-  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLBitStreamSequenceStorageNode>::New());
+  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLStreamingVolumeSequenceStorageNode>::New());
   for (std::vector< vtkSmartPointer<vtkMRMLStorageNode> >::iterator specializedStorageNodeIt = specializedStorageNodes.begin();
     specializedStorageNodeIt != specializedStorageNodes.end(); ++specializedStorageNodeIt)
   {

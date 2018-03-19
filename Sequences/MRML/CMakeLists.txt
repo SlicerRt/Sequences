@@ -19,8 +19,8 @@ set(${KIT}_SRCS
   vtkMRMLSequenceStorageNode.h
   vtkMRMLVolumeSequenceStorageNode.cxx
   vtkMRMLVolumeSequenceStorageNode.h
-  vtkMRMLBitStreamSequenceStorageNode.cxx
-  vtkMRMLBitStreamSequenceStorageNode.h
+  vtkMRMLStreamingVolumeSequenceStorageNode.cxx
+  vtkMRMLStreamingVolumeSequenceStorageNode.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

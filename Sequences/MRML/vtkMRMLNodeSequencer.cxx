@@ -44,7 +44,7 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
-#include "vtkMRMLBitStreamVolumeNode.h"
+#include "vtkMRMLStreamingVolumeNode.h"
 
 //----------------------------------------------------------------------------
 
@@ -209,7 +209,7 @@ class BitStreamVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 public:
   BitStreamVolumeNodeSequencer()
   {
-    this->SupportedNodeClassName = "vtkMRMLBitStreamVolumeNode";
+    this->SupportedNodeClassName = "vtkMRMLStreamingVolumeNode";
     this->RecordingEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
     this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLVolumeNode");
@@ -221,8 +221,8 @@ public:
   virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
   {
     int oldModified = target->StartModify();
-    vtkMRMLBitStreamVolumeNode* targetBitStreamNode = vtkMRMLBitStreamVolumeNode::SafeDownCast(target);
-    vtkMRMLBitStreamVolumeNode* sourceBitStreamNode = vtkMRMLBitStreamVolumeNode::SafeDownCast(source);
+    vtkMRMLStreamingVolumeNode* targetBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(target);
+    vtkMRMLStreamingVolumeNode* sourceBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(source);
     targetBitStreamNode->SetScene(sourceBitStreamNode->GetScene());
     
     //! To avoid multiple copy of the source when the sampling rate is high. Copy status will be set to true
@@ -230,10 +230,10 @@ public:
     if (!shallowCopy && targetBitStreamNode && sourceBitStreamNode->GetFrameUpdated())
       {
       targetBitStreamNode->SetCodecType(sourceBitStreamNode->GetCodecType());
-      std::string srcFrameMessage = sourceBitStreamNode->GetFrameMessage();
-      targetBitStreamNode->SetFrameMessage(srcFrameMessage);
-      std::string srcKeyFrameMessage  = sourceBitStreamNode->GetKeyFrameMessage();
-      targetBitStreamNode->SetKeyFrameMessage(srcKeyFrameMessage);
+      vtkUnsignedCharArray* srcFrame = sourceBitStreamNode->GetFrame();
+      targetBitStreamNode->SetFrame(srcFrame);
+      vtkUnsignedCharArray* srcKeyFrame  = sourceBitStreamNode->GetKeyFrame();
+      targetBitStreamNode->SetKeyFrame(srcKeyFrame);
       targetBitStreamNode->SetKeyFrameUpdated(sourceBitStreamNode->GetKeyFrameUpdated());
       sourceBitStreamNode->SetFrameUpdated(false);
       target->EndModify(oldModified);
@@ -243,18 +243,23 @@ public:
   virtual void CopyNodeReplay(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false*/ )
   {
     int oldModified = target->StartModify();
-    vtkMRMLBitStreamVolumeNode* targetBitStreamNode = vtkMRMLBitStreamVolumeNode::SafeDownCast(target);
-    vtkMRMLBitStreamVolumeNode* sourceBitStreamNode = vtkMRMLBitStreamVolumeNode::SafeDownCast(source);
-    if (targetBitStreamNode->GetCompressionDevice())
+    vtkMRMLStreamingVolumeNode* targetBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(target);
+    vtkMRMLStreamingVolumeNode* sourceBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(source);
+    if (sourceBitStreamNode->GetFrame() && sourceBitStreamNode->GetKeyFrame())
     {
-      vtkMRMLCompressionDeviceNode::ContentData* targetContent = targetBitStreamNode->GetCompressionDevice()->GetContent();
-      std::string messageBuffer = sourceBitStreamNode->GetFrameMessage();
-      targetContent->frameMessage.resize(messageBuffer.size());
-      targetContent->frameMessage.assign(messageBuffer);
-      std::string keyMessageBuffer = sourceBitStreamNode->GetKeyFrameMessage();
-      targetContent->keyFrameMessage.resize(keyMessageBuffer.size());
-      targetContent->keyFrameMessage.assign(keyMessageBuffer);
-      targetBitStreamNode->DecodeFrameMessage(targetContent);
+      vtkStreamingVolumeCodec::ContentData* targetContent = targetBitStreamNode->GetCompressionCodec()->GetContent();
+      vtkStreamingVolumeCodec::ContentData* sourceContent = sourceBitStreamNode->GetCompressionCodec()->GetContent();
+      std::string srcString = sourceContent->frame;
+      char* destStringPoiter = new char[srcString.length()];
+      memcpy(destStringPoiter, srcString.c_str(), srcString.length());
+      targetContent->frame.resize(srcString.length());
+      targetContent->frame.assign(destStringPoiter);
+      std::string srcKeyString = sourceContent->keyFrame;
+      char* destKeyStringPoiter = new char[srcKeyString.length()];
+      memcpy(destKeyStringPoiter, srcKeyString.c_str(), srcKeyString.length());
+      targetContent->keyFrame.resize(srcKeyString.length());
+      targetContent->keyFrame.assign(destKeyStringPoiter);
+      targetBitStreamNode->DecodeFrame(targetContent);
       target->EndModify(oldModified);
     }
   }
