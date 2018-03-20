@@ -249,16 +249,8 @@ public:
     {
       vtkStreamingVolumeCodec::ContentData* targetContent = targetBitStreamNode->GetCompressionCodec()->GetContent();
       vtkStreamingVolumeCodec::ContentData* sourceContent = sourceBitStreamNode->GetCompressionCodec()->GetContent();
-      std::string srcString = sourceContent->frame;
-      char* destStringPoiter = new char[srcString.length()];
-      memcpy(destStringPoiter, srcString.c_str(), srcString.length());
-      targetContent->frame.resize(srcString.length());
-      targetContent->frame.assign(destStringPoiter);
-      std::string srcKeyString = sourceContent->keyFrame;
-      char* destKeyStringPoiter = new char[srcKeyString.length()];
-      memcpy(destKeyStringPoiter, srcKeyString.c_str(), srcKeyString.length());
-      targetContent->keyFrame.resize(srcKeyString.length());
-      targetContent->keyFrame.assign(destKeyStringPoiter);
+      targetContent->frame->DeepCopy(sourceContent->frame);
+      targetContent->keyFrame->DeepCopy(sourceContent->keyFrame);;
       targetBitStreamNode->DecodeFrame(targetContent);
       target->EndModify(oldModified);
     }

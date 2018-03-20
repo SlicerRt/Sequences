@@ -232,19 +232,21 @@ int vtkMRMLStreamingVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* ref
           {
           char *buffer = new char[stringMessageLenInt];
           fread(buffer, stringMessageLenInt, 1, stream);
-          std::string bufferString(buffer,buffer+stringMessageLenInt);
+          vtkUnsignedCharArray* bufferString = vtkUnsignedCharArray::New();
+          bufferString->SetNumberOfTuples(stringMessageLenInt);
+          memcpy(bufferString->GetPointer(0), buffer, stringMessageLenInt);
           frameProxyNode->SetFrameUpdated(true);
           if(strncmp(FrameType.c_str(), "PrecedingKeyFrame", 17) == 0)
             {
-            frameProxyNode->UpdateKeyFrameFromDataStream(bufferString);
+            frameProxyNode->UpdateKeyFrameFromCodecKeyFrame(bufferString);
             }
           else if(strncmp(FrameType.c_str(), "IsKeyFrame", 10) == 0)
             {
             if(strncmp(isKeyFrame.c_str(), "1", 10) == 0)
               {
-              frameProxyNode->UpdateFrameFromDataStream(bufferString);
+              frameProxyNode->UpdateKeyFrameFromCodecKeyFrame(bufferString);
               }
-            frameProxyNode->UpdateFrameFromDataStream(bufferString);
+            frameProxyNode->UpdateFrameFromCodecFrame(bufferString);
             volSequenceNode->SetDataNodeAtValue(frameProxyNode, std::string(timeStamp));
             }
             fread(&data[0],1,1,stream); // get rid of last line break
