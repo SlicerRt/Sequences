@@ -168,7 +168,7 @@ int vtkMRMLStreamingVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* ref
   int tagValueLength;
   if(GetTagValue(headerString, headerLength, "ObjectType", 10, tagValueString, tagValueLength))
   {
-    if (strcmp(tagValueString.c_str(), "BitStreamVolume")==0)
+    if (strcmp(tagValueString.c_str(), "StreamingVolume")==0)
     {
       fileValid *= true;
     }
@@ -238,15 +238,15 @@ int vtkMRMLStreamingVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* ref
           frameProxyNode->SetFrameUpdated(true);
           if(strncmp(FrameType.c_str(), "PrecedingKeyFrame", 17) == 0)
             {
-            frameProxyNode->UpdateKeyFrameFromCodecKeyFrame(bufferString);
+            frameProxyNode->UpdateKeyFrameByDeepCopy(bufferString);
             }
           else if(strncmp(FrameType.c_str(), "IsKeyFrame", 10) == 0)
             {
             if(strncmp(isKeyFrame.c_str(), "1", 10) == 0)
               {
-              frameProxyNode->UpdateKeyFrameFromCodecKeyFrame(bufferString);
+              frameProxyNode->UpdateKeyFrameByDeepCopy(bufferString);
               }
-            frameProxyNode->UpdateFrameFromCodecFrame(bufferString);
+            frameProxyNode->UpdateFrameByDeepCopy(bufferString);
             volSequenceNode->SetDataNodeAtValue(frameProxyNode, std::string(timeStamp));
             }
             fread(&data[0],1,1,stream); // get rid of last line break
@@ -317,7 +317,7 @@ int vtkMRMLStreamingVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *re
   // Append the transform information to the end of the file
   vtkMRMLStreamingVolumeNode* frameBitStream = vtkMRMLStreamingVolumeNode::SafeDownCast(bitStreamSequenceNode->GetNthDataNode(0));
   std::stringstream defaultHeaderOutStream;
-  defaultHeaderOutStream << "ObjectType: BitStreamVolume" << std::endl;
+  defaultHeaderOutStream << "ObjectType: StreamingVolume" << std::endl;
   if (this->GetScene()->CreateNodeByClass("vtkMRMLIGTLIOCompressionDeviceNode"))
     {
     defaultHeaderOutStream<< "Compression Device Node: " << "vtkMRMLIGTLIOCompressionDeviceNode" <<std::endl;

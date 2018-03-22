@@ -204,10 +204,10 @@ public:
 
 
 //----------------------------------------------------------------------------
-class BitStreamVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+class StreamingVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 {
 public:
-  BitStreamVolumeNodeSequencer()
+  StreamingVolumeNodeSequencer()
   {
     this->SupportedNodeClassName = "vtkMRMLStreamingVolumeNode";
     this->RecordingEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
@@ -231,11 +231,10 @@ public:
       {
       targetBitStreamNode->SetCodecType(sourceBitStreamNode->GetCodecType());
       vtkUnsignedCharArray* srcFrame = sourceBitStreamNode->GetFrame();
-      targetBitStreamNode->SetFrame(srcFrame);
+      targetBitStreamNode->UpdateFrameByDeepCopy(srcFrame);
       vtkUnsignedCharArray* srcKeyFrame  = sourceBitStreamNode->GetKeyFrame();
-      targetBitStreamNode->SetKeyFrame(srcKeyFrame);
+      targetBitStreamNode->UpdateKeyFrameByDeepCopy(srcKeyFrame);
       targetBitStreamNode->SetKeyFrameUpdated(sourceBitStreamNode->GetKeyFrameUpdated());
-      sourceBitStreamNode->SetFrameUpdated(false);
       target->EndModify(oldModified);
       }
   }
@@ -246,14 +245,16 @@ public:
     vtkMRMLStreamingVolumeNode* targetBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(target);
     vtkMRMLStreamingVolumeNode* sourceBitStreamNode = vtkMRMLStreamingVolumeNode::SafeDownCast(source);
     if (sourceBitStreamNode->GetFrame() && sourceBitStreamNode->GetKeyFrame())
-    {
-      vtkStreamingVolumeCodec::ContentData* targetContent = targetBitStreamNode->GetCompressionCodec()->GetContent();
-      vtkStreamingVolumeCodec::ContentData* sourceContent = sourceBitStreamNode->GetCompressionCodec()->GetContent();
-      targetContent->frame->DeepCopy(sourceContent->frame);
-      targetContent->keyFrame->DeepCopy(sourceContent->keyFrame);;
-      targetBitStreamNode->DecodeFrame(targetContent);
-      target->EndModify(oldModified);
-    }
+      {
+      if(targetBitStreamNode->GetCompressionCodec() != NULL) // only when the proxy node has a compression device , then we could replay
+        {
+        vtkStreamingVolumeCodec::ContentData* targetContent = targetBitStreamNode->GetCompressionCodec()->GetContent();
+        targetContent->frame = sourceBitStreamNode->GetFrame();
+        targetContent->keyFrame = sourceBitStreamNode->GetKeyFrame();
+        targetBitStreamNode->DecodeFrame(targetContent);
+        target->EndModify(oldModified);
+        }
+      }
   }
 };
 
@@ -696,7 +697,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new ViewNodeSequencer());
   this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
   this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
-  this->RegisterNodeSequencer(new BitStreamVolumeNodeSequencer());
+  this->RegisterNodeSequencer(new StreamingVolumeNodeSequencer());
 }
 
 //----------------------------------------------------------------------------

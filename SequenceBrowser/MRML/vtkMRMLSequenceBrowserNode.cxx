@@ -366,7 +366,7 @@ void vtkMRMLSequenceBrowserNode::SetPlaybackActive(bool value)
       vtkMRMLNode* node = this->GetProxyNode(currSequenceNode);
       if (node != NULL)
         {
-        if (strcmp(node->GetClassName(),"vtkMRMLBitStreamVolumeNode") == 0)
+        if (strcmp(node->GetClassName(),"vtkMRMLStreamingVolumeNode") == 0)
           {
           currSequenceNode->ResetReplayNodeStatus(this->GetSelectedItemNumber(), this->GetProxyNode(currSequenceNode));
           }

@@ -181,7 +181,7 @@ bool vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode(vtkMRMLNode *re
     vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: no data nodes");
     return false;
     }
-  if (strcmp(volSequenceNode->GetNthDataNode(0)->GetClassName(),"vtkMRMLBitStreamVolumeNode")==0)
+  if (strcmp(volSequenceNode->GetNthDataNode(0)->GetClassName(),"vtkMRMLStreamingVolumeNode")==0)
     {
     vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only volume nodes can be written");
     return false;
