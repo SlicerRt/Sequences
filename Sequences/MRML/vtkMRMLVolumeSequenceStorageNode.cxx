@@ -15,8 +15,8 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLVectorVolumeNode.h"
 
-#include "vtkNRRDReader.h"
-#include "vtkNRRDWriter.h"
+#include "vtkTeemNRRDReader.h"
+#include "vtkTeemNRRDWriter.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkImageAppendComponents.h"
@@ -58,15 +58,15 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     vtkErrorMacro("ReadDataInternal: not a Sequence node.");
     return 0;
     }
-  
+
   std::string fullName = this->GetFullNameFromFileName();
-  if (fullName == std::string("")) 
+  if (fullName == std::string(""))
     {
     vtkErrorMacro("ReadData: File name not specified");
     return 0;
     }
 
-  vtkNew<vtkNRRDReader> reader;
+  vtkNew<vtkTeemNRRDReader> reader;
   reader->SetFileName(fullName.c_str());
 
   // Check if this is a NRRD file that we can read
@@ -77,7 +77,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     }
 
   // Set up reader
-  if (this->CenterImage) 
+  if (this->CenterImage)
     {
     reader->SetUseNativeOriginOff();
     }
@@ -89,7 +89,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // Read the header to see if the NRRD file corresponds to the
   // MRML Node
   reader->UpdateInformation();
-  
+
   // Read the volume
   reader->Update();
 
@@ -135,7 +135,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   vtkNew<vtkImageExtractComponents> extractComponents;
   extractComponents->SetInputConnection(reader->GetOutputPort());
   for (int frameIndex = 0; frameIndex<numberOfFrames; frameIndex++)
-  {    
+  {
     extractComponents->SetComponents(frameIndex);
     extractComponents->Update();
     vtkNew<vtkImageData> frameVoxels;
@@ -156,7 +156,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     {
       indexStr << frameIndex << std::ends;
     }
-    
+
     std::ostringstream nameStr;
     nameStr << refNode->GetName() << "_" << std::setw(4) << std::setfill('0') << frameIndex << std::ends;
     frameVolume->SetName( nameStr.str().c_str() );
@@ -320,7 +320,7 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     return 0;
     }
   // Use here the NRRD Writer
-  vtkNew<vtkNRRDWriter> writer;
+  vtkNew<vtkTeemNRRDWriter> writer;
   writer->SetFileName(fullName.c_str());
   appender->Update();
   writer->SetInputConnection(appender->GetOutputPort());
@@ -357,7 +357,7 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     }
     writer->SetAttribute("axis 0 index values", ssIndexValues.str());
   }
-  
+
   // pass down all MRML attributes to NRRD
   std::vector<std::string> attributeNames = volSequenceNode->GetAttributeNames();
   std::vector<std::string>::iterator ait = attributeNames.begin();
