@@ -20,13 +20,11 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkMRMLScene.h"
 #include "vtkMRMLSequenceNode.h"
 
-#include "vtkTeemNRRDReader.h"
-#include "vtkTeemNRRDWriter.h"
-
 #include "vtkObjectFactory.h"
 #include "vtkImageAppendComponents.h"
 #include "vtkImageData.h"
 #include "vtkImageExtractComponents.h"
+#include "vtkMatrix4x4.h"
 #include "vtkNew.h"
 #include "vtkStringArray.h"
 

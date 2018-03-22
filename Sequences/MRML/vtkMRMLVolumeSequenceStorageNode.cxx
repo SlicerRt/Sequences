@@ -15,8 +15,14 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLVectorVolumeNode.h"
 
-#include "vtkTeemNRRDReader.h"
-#include "vtkTeemNRRDWriter.h"
+#include "vtkSlicerVersionConfigure.h"
+#if Slicer_VERSION_MAJOR > 4 || (Slicer_VERSION_MAJOR == 4 && Slicer_VERSION_MINOR >= 9)
+  #include "vtkTeemNRRDReader.h"
+  #include "vtkTeemNRRDWriter.h"
+#else
+  #include "vtkNRRDReader.h"
+  #include "vtkNRRDWriter.h"
+#endif
 
 #include "vtkObjectFactory.h"
 #include "vtkImageAppendComponents.h"
@@ -66,7 +72,11 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     return 0;
     }
 
+#if Slicer_VERSION_MAJOR > 4 || (Slicer_VERSION_MAJOR == 4 && Slicer_VERSION_MINOR >= 9)
   vtkNew<vtkTeemNRRDReader> reader;
+#else
+  vtkNew<vtkNRRDReader> reader;
+#endif
   reader->SetFileName(fullName.c_str());
 
   // Check if this is a NRRD file that we can read
@@ -320,7 +330,11 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     return 0;
     }
   // Use here the NRRD Writer
+#if Slicer_VERSION_MAJOR > 4 || (Slicer_VERSION_MAJOR == 4 && Slicer_VERSION_MINOR >= 9)
   vtkNew<vtkTeemNRRDWriter> writer;
+#else
+  vtkNew<vtkNRRDWriter> writer;
+#endif
   writer->SetFileName(fullName.c_str());
   appender->Update();
   writer->SetInputConnection(appender->GetOutputPort());
