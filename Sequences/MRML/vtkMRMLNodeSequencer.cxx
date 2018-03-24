@@ -229,14 +229,16 @@ public:
     //  after the source bit stream gets copied. The copy status will be set to false in the ProcessDeviceModifiedEvents of the bit stream node.
     if (!shallowCopy && targetBitStreamNode && sourceBitStreamNode->GetFrameUpdated())
       {
-      targetBitStreamNode->SetCodecType(sourceBitStreamNode->GetCodecType());
+      targetBitStreamNode->SetCodecClassName(sourceBitStreamNode->GetCodecClassName());
       vtkUnsignedCharArray* srcFrame = sourceBitStreamNode->GetFrame();
       targetBitStreamNode->UpdateFrameByDeepCopy(srcFrame);
       vtkUnsignedCharArray* srcKeyFrame  = sourceBitStreamNode->GetKeyFrame();
       targetBitStreamNode->UpdateKeyFrameByDeepCopy(srcKeyFrame);
       targetBitStreamNode->SetKeyFrameUpdated(sourceBitStreamNode->GetKeyFrameUpdated());
-      target->EndModify(oldModified);
+      targetBitStreamNode->SetFrameUpdated(sourceBitStreamNode->GetFrameUpdated());
+      sourceBitStreamNode->SetFrameUpdated(false); //prevent the bug of copying proxy node twice.
       }
+    target->EndModify(oldModified);
   }
   
   virtual void CopyNodeReplay(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false*/ )
@@ -248,13 +250,17 @@ public:
       {
       if(targetBitStreamNode->GetCompressionCodec() != NULL) // only when the proxy node has a compression device , then we could replay
         {
-        vtkStreamingVolumeCodec::ContentData* targetContent = targetBitStreamNode->GetCompressionCodec()->GetContent();
-        targetContent->frame = sourceBitStreamNode->GetFrame();
-        targetContent->keyFrame = sourceBitStreamNode->GetKeyFrame();
-        targetBitStreamNode->DecodeFrame(targetContent);
-        target->EndModify(oldModified);
+        if(sourceBitStreamNode->GetKeyFrameUpdated())
+          {
+          targetBitStreamNode->DecodeKeyFrame(sourceBitStreamNode->GetKeyFrame());
+          }
+        else
+          {
+          targetBitStreamNode->DecodeFrame(sourceBitStreamNode->GetFrame());
+          }
         }
       }
+    target->EndModify(oldModified);
   }
 };
 
