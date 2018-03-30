@@ -332,6 +332,7 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   // Use here the NRRD Writer
 #if Slicer_VERSION_MAJOR > 4 || (Slicer_VERSION_MAJOR == 4 && Slicer_VERSION_MINOR >= 9)
   vtkNew<vtkTeemNRRDWriter> writer;
+  writer->SetVectorAxisKind(nrrdKindList);
 #else
   vtkNew<vtkNRRDWriter> writer;
 #endif
