@@ -22,6 +22,7 @@ add_subdirectory(Sequences)
 add_subdirectory(SequenceBrowser)
 add_subdirectory(MetafileImporter)
 add_subdirectory(SequenceSampleData)
+add_subdirectory(CropVolumeSequence)
 
 if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
   # In development
