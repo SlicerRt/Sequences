@@ -15,8 +15,8 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkMRMLSequenceNode.h"
 #include "vtkMRMLVectorVolumeNode.h"
 
-#include "vtkNRRDReader.h"
-#include "vtkNRRDWriter.h"
+#include "vtkNrrdReader.h"
+#include "vtkNrrdWriter.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkImageAppendComponents.h"
@@ -66,7 +66,7 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     return 0;
     }
 
-  vtkNew<vtkNRRDReader> reader;
+  vtkNew<vtkNrrdReader> reader;
   reader->SetFileName(fullName.c_str());
 
   // Check if this is a NRRD file that we can read
@@ -319,8 +319,8 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     vtkErrorMacro("WriteData: File name not specified");
     return 0;
     }
-  // Use here the NRRD Writer
-  vtkNew<vtkNRRDWriter> writer;
+  // Use here the Nrrd Writer
+  vtkNew<vtkNrrdWriter> writer;
   writer->SetFileName(fullName.c_str());
   appender->Update();
   writer->SetInputConnection(appender->GetOutputPort());
