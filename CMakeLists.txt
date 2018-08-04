@@ -15,13 +15,18 @@ find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
-OPTION(SEQUENCES_ENABLE_EXPERIMENTAL_MODULES "Enable the building of work-in-progress, experimental modules." OFF)
+option(SEQUENCES_ENABLE_EXPERIMENTAL_MODULES "Enable the building of work-in-progress, experimental modules." OFF)
+option(SEQUENCES_ENABLE_SAMPLEDATA_MODULE "Enable module SequenceSampleData, it depends on the Slicer module SampleData." ON)
+mark_as_advanced(SEQUENCES_ENABLE_SAMPLEDATA_MODULE)
+
 
 #-----------------------------------------------------------------------------
 add_subdirectory(Sequences)
 add_subdirectory(SequenceBrowser)
 add_subdirectory(MetafileImporter)
-add_subdirectory(SequenceSampleData)
+if (SEQUENCES_ENABLE_SAMPLEDATA_MODULE)
+  add_subdirectory(SequenceSampleData)
+endif()
 add_subdirectory(CropVolumeSequence)
 
 if (SEQUENCES_ENABLE_EXPERIMENTAL_MODULES)
