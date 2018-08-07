@@ -235,9 +235,10 @@ void qSlicerSequencesModuleWidget::exit()
 } 
 
 //-----------------------------------------------------------------------------
-void qSlicerSequencesModuleWidget::onNodeAddedEvent(vtkObject*, vtkObject* node)
+void qSlicerSequencesModuleWidget::onNodeAddedEvent(vtkObject* scene, vtkObject* node)
 {
-  Q_D(qSlicerSequencesModuleWidget);
+  Q_UNUSED(scene);
+  Q_UNUSED(node);
   if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
   {
     return;

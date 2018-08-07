@@ -130,7 +130,6 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     return;
     }
 
-  const char* sequenceNodeId = sequenceNode->GetID() ? sequenceNode->GetID() : "(none)";
   d->label_IndexName->setText(sequenceNode->GetIndexName().c_str());
 
   // Setting the min/max could trigger an index change (if current index is out of the new range),

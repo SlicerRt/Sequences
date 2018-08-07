@@ -467,8 +467,10 @@ void qSlicerSequenceBrowserModuleWidget::enter()
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::onNodeAddedEvent(vtkObject*, vtkObject* node)
+void qSlicerSequenceBrowserModuleWidget::onNodeAddedEvent(vtkObject* scene, vtkObject* node)
 {
+  Q_UNUSED(scene);
+  Q_UNUSED(node);
   if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
   {
     return;
@@ -590,12 +592,14 @@ void qSlicerSequenceBrowserModuleWidget::indexDisplayModeChanged(int index)
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
+  Q_UNUSED(caller);
   this->updateWidgetFromMRML();
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vtkObject* inputNode)
 {
+  Q_UNUSED(inputNode);
   this->updateWidgetFromMRML();  
 }
 
