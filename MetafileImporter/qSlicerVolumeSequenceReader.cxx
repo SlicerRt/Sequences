@@ -19,7 +19,7 @@
 #include <QDebug>
 
 // SlicerQt includes
-#include "qSlicerMetafileImporterModule.h"
+#include "qSlicerSequenceBrowserModule.h"
 #include "qSlicerVolumeSequenceReader.h"
 
 // Logic includes
@@ -113,6 +113,6 @@ bool qSlicerVolumeSequenceReader::load(const IOProperties& properties)
   } 
   this->setLoadedNodes(loadedNodes);
 
-  qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
+  qSlicerSequenceBrowserModule::showSequenceBrowser(browserNode);
   return true;
 }

@@ -154,23 +154,3 @@ vtkMRMLAbstractLogic* qSlicerMetafileImporterModule::createLogic()
 {
   return vtkSlicerMetafileImporterLogic::New();
 }
-
-//-----------------------------------------------------------------------------
-bool qSlicerMetafileImporterModule::showSequenceBrowser(vtkMRMLSequenceBrowserNode* browserNode)
-{
-  qSlicerCoreApplication* app = qSlicerCoreApplication::application();
-  if (!app
-    || !app->moduleManager()
-    || !dynamic_cast<qSlicerSequenceBrowserModule*>(app->moduleManager()->module("SequenceBrowser")) )
-  {
-    qCritical("SequenceBrowser module is not available");
-    return false;
-  }
-  qSlicerSequenceBrowserModule* sequenceBrowserModule = dynamic_cast<qSlicerSequenceBrowserModule*>(app->moduleManager()->module("SequenceBrowser"));
-  if (sequenceBrowserModule->autoShowToolBar())
-  {
-    sequenceBrowserModule->setToolBarActiveBrowserNode(browserNode);
-    sequenceBrowserModule->setToolBarVisible(true);
-  }
-  return true;
-}

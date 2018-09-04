@@ -61,9 +61,6 @@ public:
   /// Make this module hidden
   virtual bool isHidden()const { return true; };
 
-  /// Utility function for showing the browserNode in the application user interface (toolbar)
-  static bool showSequenceBrowser(vtkMRMLSequenceBrowserNode* browserNode);
-
 protected:
 
   /// Initialize the module. Register the volumes reader/writer

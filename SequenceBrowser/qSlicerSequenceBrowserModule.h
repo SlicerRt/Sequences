@@ -67,10 +67,16 @@ public:
   virtual QStringList categories()const;
   virtual QStringList dependencies() const;
 
-  /// Enables automatic showing sequence browser toolbar when a new sequence is loaded
+  /// Indicates that sequence browser toolbar should be showed when a new sequence is loaded.
+  /// Adding a new sequence browser node to the scene does not show the toolbar automatically
+  /// but the importer must call showSequenceBrowser method.
   Q_INVOKABLE bool autoShowToolBar();
   Q_INVOKABLE bool isToolBarVisible();
   Q_INVOKABLE qMRMLSequenceBrowserToolBar* toolBar();
+
+  /// Utility function for showing the browserNode in the application user interface (toolbar)
+  /// if autoShowToolBar is enabled.
+  Q_INVOKABLE static bool showSequenceBrowser(vtkMRMLSequenceBrowserNode* browserNode);
 
 protected:
 

@@ -23,7 +23,7 @@
 
 // SlicerQt includes
 #include "qSlicerSequencesReader.h"
-#include "qSlicerMetafileImporterModule.h"
+#include "qSlicerSequenceBrowserModule.h"
 
 // Logic includes
 #include "vtkSlicerSequencesLogic.h"
@@ -133,7 +133,7 @@ bool qSlicerSequencesReader::load(const IOProperties& properties)
   {
     loadedNodeIDs << QString(browserNode->GetID());
     browserNode->SetAndObserveMasterSequenceNodeID(node->GetID());
-    qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
+    qSlicerSequenceBrowserModule::showSequenceBrowser(browserNode);
   }
 
   this->setLoadedNodes(loadedNodeIDs);

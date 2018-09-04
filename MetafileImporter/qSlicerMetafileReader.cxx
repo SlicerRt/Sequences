@@ -24,6 +24,7 @@
 // SlicerQt includes
 #include "qSlicerMetafileReader.h"
 #include "qSlicerMetafileImporterModule.h"
+#include "qSlicerSequenceBrowserModule.h"
 
 // Logic includes
 #include "vtkSlicerMetafileImporterLogic.h"
@@ -119,6 +120,6 @@ bool qSlicerMetafileReader::load(const IOProperties& properties)
   
   this->setLoadedNodes(loadedNodes);
   
-  qSlicerMetafileImporterModule::showSequenceBrowser(browserNode);
+  qSlicerSequenceBrowserModule::showSequenceBrowser(browserNode);
   return true;
 }
