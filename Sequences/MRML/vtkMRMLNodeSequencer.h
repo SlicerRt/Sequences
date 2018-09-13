@@ -45,7 +45,7 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLNodeSequencer
 public:
 
   /// Information and methods that are needed for efficient recording and replay of sequences.
-  class NodeSequencer
+  class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT NodeSequencer
   {
   public:
     NodeSequencer();
