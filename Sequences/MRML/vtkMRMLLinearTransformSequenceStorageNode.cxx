@@ -85,9 +85,9 @@ void StringToInt(const char* strPtr, T &result)
 }
 
 //----------------------------------------------------------------------------
-int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(const std::string& fileName, vtkMRMLScene *scene,
+int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceFileTransforms(const std::string& fileName, vtkMRMLScene *scene,
   std::deque< vtkSmartPointer<vtkMRMLSequenceNode> > &createdNodes, std::map< int, std::string >& frameNumberToIndexValueMap,
-  std::map< std::string, std::string > &imageMetaData)
+  std::map< std::string, std::string > &imageMetaData, SequenceFileType fileType/*=METAIMAGE_SEQUENCE_FILE */)
 {
   int numberOfCreatedNodes = 0;
   // Open in binary mode because we determine the start of the image buffer also during this read
@@ -116,15 +116,46 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(co
     std::string lineStr = line;
 
     // Split line into name and value
-    size_t equalSignFound = 0;
-    equalSignFound = lineStr.find_first_of("=");
-    if (equalSignFound == std::string::npos)
+    size_t separatorFound = 0;
+    if (fileType == NRRD_SEQUENCE_FILE)
     {
+      separatorFound = lineStr.find_first_of("#");
+      if (separatorFound != std::string::npos || lineStr.find("NRRD") == 0)
+      {
+        // Header definition or comment found, skip
+        continue;
+      }
+
+      separatorFound = lineStr.find_first_of(":");
+    }
+    else
+    {
+      separatorFound = lineStr.find_first_of("=");
+    }
+
+    if (separatorFound == std::string::npos)
+    {
+      if (fileType == NRRD_SEQUENCE_FILE)
+      {
+        // End of NRRD header
+        // There are no more transforms to read
+        break;
+      }
+
       vtkGenericWarningMacro("Parsing line failed, equal sign is missing (" << lineStr << ")");
       continue;
     }
-    std::string name = lineStr.substr(0, equalSignFound);
-    std::string value = lineStr.substr(equalSignFound + 1);
+
+    std::string name = lineStr.substr(0, separatorFound);
+    std::string value = lineStr.substr(separatorFound + 1);
+
+    if (fileType == NRRD_SEQUENCE_FILE)
+    {
+      if (lineStr[separatorFound + 1] == '=')
+      {
+        value = lineStr.substr(separatorFound + 2);
+      }
+    }
 
     // Trim spaces from the left and right
     Trim(name);
@@ -147,6 +178,10 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(co
       else if (name.compare("UltrasoundImageType") == 0)
       {
         imageMetaData["UltrasoundImageType"] = value;
+      }
+      else if (name.compare("NDims") == 0)
+      {
+        imageMetaData["NDims"] = value;
       }
       continue;
     }
@@ -474,7 +509,7 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadDataInternal(vtkMRMLNode* ref
   createdTransformNodes.push_back(seqNode);
   std::map< int, std::string > frameNumberToIndexValueMap;
   std::map< std::string, std::string > imageMetaData;
-  if (vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceMetafileTransforms(fullName,
+  if (vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceFileTransforms(fullName,
     NULL, /* additional nodes will not be added to the scene */
     createdTransformNodes,
     frameNumberToIndexValueMap, imageMetaData) == 0)

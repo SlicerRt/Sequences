@@ -30,7 +30,7 @@
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerMetafileImporterModuleWidgetPrivate: public Ui_qSlicerMetafileImporterModuleWidget
 {
-  Q_DECLARE_PUBLIC( qSlicerMetafileImporterModuleWidget ); 
+  Q_DECLARE_PUBLIC( qSlicerMetafileImporterModuleWidget );
 
 protected:
   qSlicerMetafileImporterModuleWidget* const q_ptr;
@@ -93,9 +93,9 @@ void qSlicerMetafileImporterModuleWidget
 ::onImportButtonClicked()
 {
   Q_D( qSlicerMetafileImporterModuleWidget );
-  
-  QString fileName = QFileDialog::getOpenFileName( this, tr("Open metafile"), "", tr("MHA Files (*.mha)") );
-  
+
+  QString fileName = QFileDialog::getOpenFileName( this, tr("Open metafile"), "", tr("MHA Files (*.mha *.mhd *.nrrd)") );
+
   if ( fileName.isEmpty() == false )
   {
     QProgressDialog dialog;
@@ -104,10 +104,10 @@ void qSlicerMetafileImporterModuleWidget
     dialog.show();
     dialog.setValue( 25 );
 
-    d->logic()->ReadSequenceMetafile( fileName.toStdString() );
+    d->logic()->ReadSequenceFile( fileName.toStdString() );
 
     dialog.close();
   }
- 
+
 }
 
