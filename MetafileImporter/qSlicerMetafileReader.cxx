@@ -20,6 +20,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QFileInfo>
 
 // SlicerQt includes
 #include "qSlicerMetafileReader.h"
@@ -36,6 +37,9 @@
 #include <vtkCollection.h>
 #include <vtkNew.h>
 #include <vtkSmartPointer.h>
+
+// MRML Sequence includes
+#include <vtkMRMLLinearTransformSequenceStorageNode.h>
 
 //-----------------------------------------------------------------------------
 class qSlicerMetafileReaderPrivate
@@ -86,7 +90,7 @@ qSlicerIO::IOFileType qSlicerMetafileReader::fileType() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileReader::extensions() const
 {
-  return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd)";
+  return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd *.igs.mha *.igs.nrrd *.igs.mhd *.igs.nhdr)";
 }
 
 //-----------------------------------------------------------------------------
@@ -98,14 +102,15 @@ bool qSlicerMetafileReader::load(const IOProperties& properties)
     qCritical() << "qSlicerMetafileReader::load did not receive fileName property";
   }
   QString fileName = properties["fileName"].toString();
-  
-  vtkNew<vtkCollection> loadedSequenceNodes;  
-  vtkMRMLSequenceBrowserNode* browserNode = d->MetafileImporterLogic->ReadSequenceMetafile(fileName.toStdString(), loadedSequenceNodes.GetPointer());
+
+  vtkNew<vtkCollection> loadedSequenceNodes;
+
+  vtkMRMLSequenceBrowserNode* browserNode = d->MetafileImporterLogic->ReadSequenceFile(fileName.toStdString(), loadedSequenceNodes.GetPointer());
   if (browserNode == NULL)
   {
     return false;
   }
-  
+
   QStringList loadedNodes;
   loadedNodes << QString(browserNode->GetID());
   for (int i = 0; i < loadedSequenceNodes->GetNumberOfItems(); i++)
@@ -116,10 +121,10 @@ bool qSlicerMetafileReader::load(const IOProperties& properties)
       continue;
     }
     loadedNodes << QString(loadedNode->GetID());
-  } 
-  
+  }
+
   this->setLoadedNodes(loadedNodes);
-  
+
   qSlicerSequenceBrowserModule::showSequenceBrowser(browserNode);
   return true;
 }
