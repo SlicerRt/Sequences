@@ -100,9 +100,6 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // MRML Node
   reader->UpdateInformation();
 
-  // Read the volume
-  reader->Update();
-
   // Read index information and custom attributes
   std::vector< std::string > indexValues;
   typedef std::vector<std::string> KeyVector;
@@ -134,27 +131,17 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   const char* sequenceAxisUnit = reader->GetAxisUnit(0);
   volSequenceNode->SetIndexUnit(sequenceAxisUnit ? sequenceAxisUnit : "");
 
-  // Copy image data to sequence of volume nodes
-  vtkImageData* imageData = reader->GetOutput();
-  if (imageData == NULL || imageData->GetPointData()==NULL || imageData->GetPointData()->GetScalars() == NULL)
+  // Read and copy the data to sequence of volume nodes
+  int numberOfFrames = reader->GetNumberOfSequenceFrames();
+  for (int frameIndex = 0; frameIndex < numberOfFrames; ++frameIndex)
   {
-    vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: invalid image data");
-    return 0;
-  }
-  int numberOfFrames = imageData->GetNumberOfScalarComponents();
-  vtkNew<vtkImageExtractComponents> extractComponents;
-  extractComponents->SetInputConnection(reader->GetOutputPort());
-  for (int frameIndex = 0; frameIndex<numberOfFrames; frameIndex++)
-  {
-    extractComponents->SetComponents(frameIndex);
-    extractComponents->Update();
-    vtkNew<vtkImageData> frameVoxels;
-    frameVoxels->DeepCopy(extractComponents->GetOutput());
-    // Slicer expects normalized image position and spacing
-    frameVoxels->SetSpacing( 1, 1, 1 );
-    frameVoxels->SetOrigin( 0, 0, 0 );
+    reader->SetSequenceFrameIndex(frameIndex);
+    reader->Update();
+    vtkImageData *imageData = reader->GetOutput();
+    imageData->SetOrigin(0, 0, 0);
+    imageData->SetSpacing(1, 1, 1);
     vtkNew<vtkMRMLScalarVolumeNode> frameVolume;
-    frameVolume->SetAndObserveImageData(frameVoxels.GetPointer());
+    frameVolume->SetAndObserveImageData(imageData);
     frameVolume->SetRASToIJKMatrix(reader->GetRasToIjkMatrix());
 
     std::ostringstream indexStr;
