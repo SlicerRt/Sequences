@@ -35,8 +35,20 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode :
   /// Return true if the node can be read in.
   virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
 
-  /// Return true if the node can be written by using thie writer.
+  /// Return true if the node can be written by using the writer.
   virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode);
+
+  /// Write the data. Returns 1 on success, 0 otherwise.
+  ///
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  /// The nrrd file will be formatted such as:
+  /// "kinds: domain domain domain list"
+  /// This order is the optimal, best perfomance, choice for streaming
+  /// 3D+T data to a file using the Teem library.
+#else
+  /// The nrrd file will be formatted such as:
+  /// "kinds: list domain domain domain"
+#endif
   virtual int WriteDataInternal(vtkMRMLNode *refNode);
 
   ///
@@ -53,6 +65,14 @@ protected:
   /// Returns 0 by default (read not supported).
   /// This implementation delegates most everything to the superclass
   /// but it has an early exit if the file to be read is incompatible.
+  ///
+  /// It is assumed that the nrrd file is formatted such as:
+  /// "kinds: list domain domain domain"
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  /// or
+  /// "kinds: domain domain domain list"
+#endif
+
   virtual int ReadDataInternal(vtkMRMLNode* refNode);
   
   /// Initialize all the supported write file types

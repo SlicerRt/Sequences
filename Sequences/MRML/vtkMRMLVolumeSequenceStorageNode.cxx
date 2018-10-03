@@ -23,13 +23,15 @@ or http://www.slicer.org/copyright/copyright.txt for details.
   #include "vtkNRRDReader.h"
   #include "vtkNRRDWriter.h"
 #endif
-
 #include "vtkObjectFactory.h"
-#include "vtkImageAppendComponents.h"
 #include "vtkImageData.h"
+#ifndef NRRD_CHUNK_IO_AVAILABLE
+#include "vtkImageAppendComponents.h"
 #include "vtkImageExtractComponents.h"
+#endif
 #include "vtkNew.h"
 #include "vtkStringArray.h"
+#include "vtksys/SystemTools.hxx"
 
 //----------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLVolumeSequenceStorageNode);
@@ -61,14 +63,14 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   vtkMRMLSequenceNode* volSequenceNode = dynamic_cast<vtkMRMLSequenceNode*>(refNode);
   if (!volSequenceNode)
     {
-    vtkErrorMacro("ReadDataInternal: not a Sequence node.");
+    vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::ReadDataInternal : not a Sequence node.");
     return 0;
     }
 
   std::string fullName = this->GetFullNameFromFileName();
   if (fullName == std::string(""))
     {
-    vtkErrorMacro("ReadData: File name not specified");
+    vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::ReadDataInternal : File name not specified");
     return 0;
     }
 
@@ -86,6 +88,11 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     return 0;
     }
 
+  // Set Read Multiple Images on
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  reader->ReadImageListAsMultipleImagesOn();
+#endif
+
   // Set up reader
   if (this->CenterImage)
     {
@@ -100,78 +107,121 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // MRML Node
   reader->UpdateInformation();
 
-  // Read the volume
-  reader->Update();
-
   // Read index information and custom attributes
   std::vector< std::string > indexValues;
   typedef std::vector<std::string> KeyVector;
   KeyVector keys = reader->GetHeaderKeysVector();
+  int frameAxis = 0;
   for ( KeyVector::iterator kit = keys.begin(); kit != keys.end(); ++kit)
-  {
+    {
+#ifdef NRRD_CHUNK_IO_AVAILABLE
     if (*kit == "axis 0 index type")
-    {
+      {
       volSequenceNode->SetIndexTypeFromString(reader->GetHeaderValue((*kit).c_str()));
-    }
-    else if (*kit == "axis 0 index values")
-    {
+      frameAxis = 0;
+      }
+    else if (*kit == "axis 3 index type")
+      {
+      volSequenceNode->SetIndexTypeFromString(reader->GetHeaderValue((*kit).c_str()));
+      frameAxis = 3;
+      }
+    else if (*kit == "axis 0 index values" || *kit == "axis 3 index values")
+      {
       std::string indexValue;
       for (std::istringstream indexValueList(reader->GetHeaderValue((*kit).c_str()));
         indexValueList >> indexValue;)
-      {
+        {
         // Encode string to make sure there are no spaces in the serialized index value (space is used as separator)
         indexValues.push_back(vtkMRMLNode::URLDecodeString(indexValue.c_str()));
+        }
+#else
+    if (*kit == "axis 0 index type")
+      {
+      volSequenceNode->SetIndexTypeFromString(reader->GetHeaderValue((*kit).c_str()));
+      }
+    else if (*kit == "axis 0 index values")
+      {
+      std::string indexValue;
+      for (std::istringstream indexValueList(reader->GetHeaderValue((*kit).c_str()));
+        indexValueList >> indexValue;)
+        {
+        // Encode string to make sure there are no spaces in the serialized index value (space is used as separator)
+        indexValues.push_back(vtkMRMLNode::URLDecodeString(indexValue.c_str()));
+        }
+#endif
+      }
+    else
+      {
+      volSequenceNode->SetAttribute((*kit).c_str(), reader->GetHeaderValue((*kit).c_str()));
       }
     }
-    else
-    {
-      volSequenceNode->SetAttribute((*kit).c_str(), reader->GetHeaderValue((*kit).c_str()));
-    }
-  }
 
-  const char* sequenceAxisLabel = reader->GetAxisLabel(0);
+  const char* sequenceAxisLabel = reader->GetAxisLabel(frameAxis);
   volSequenceNode->SetIndexName(sequenceAxisLabel ? sequenceAxisLabel : "frame");
-  const char* sequenceAxisUnit = reader->GetAxisUnit(0);
+  const char* sequenceAxisUnit = reader->GetAxisUnit(frameAxis);
   volSequenceNode->SetIndexUnit(sequenceAxisUnit ? sequenceAxisUnit : "");
 
+  // Read and copy the data to sequence of volume nodes
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  int numberOfFrames = reader->GetNumberOfImages();
+#else
+  reader->Update();
   // Copy image data to sequence of volume nodes
   vtkImageData* imageData = reader->GetOutput();
   if (imageData == NULL || imageData->GetPointData()==NULL || imageData->GetPointData()->GetScalars() == NULL)
-  {
+    {
     vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: invalid image data");
     return 0;
-  }
+    }
   int numberOfFrames = imageData->GetNumberOfScalarComponents();
   vtkNew<vtkImageExtractComponents> extractComponents;
   extractComponents->SetInputConnection(reader->GetOutputPort());
-  for (int frameIndex = 0; frameIndex<numberOfFrames; frameIndex++)
-  {
+#endif
+
+  vtkDebugMacro(<< " vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: Starting reading sequence. ");
+  for (int frameIndex = 0; frameIndex < numberOfFrames; ++frameIndex)
+    {
+    vtkDebugMacro(<< " reading frame : "<<frameIndex);
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+    reader->SetCurrentImageIndex(frameIndex);
+    reader->Update();
+    // It is not necessary to deepcopy imageData here,
+    // because it will be already deepcopied in volSequenceNode->SetDataNodeAtValue.
+    vtkImageData *frameVoxels = reader->GetOutput();
+#else
     extractComponents->SetComponents(frameIndex);
     extractComponents->Update();
     vtkNew<vtkImageData> frameVoxels;
     frameVoxels->DeepCopy(extractComponents->GetOutput());
+#endif
     // Slicer expects normalized image position and spacing
-    frameVoxels->SetSpacing( 1, 1, 1 );
-    frameVoxels->SetOrigin( 0, 0, 0 );
+    frameVoxels->SetOrigin(0, 0, 0);
+    frameVoxels->SetSpacing(1, 1, 1);
     vtkNew<vtkMRMLScalarVolumeNode> frameVolume;
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+    frameVolume->SetAndObserveImageData(frameVoxels);
+#else
     frameVolume->SetAndObserveImageData(frameVoxels.GetPointer());
+#endif
     frameVolume->SetRASToIJKMatrix(reader->GetRasToIjkMatrix());
 
     std::ostringstream indexStr;
     if (static_cast<int>(indexValues.size()) > frameIndex)
-    {
+      {
       indexStr << indexValues[frameIndex] << std::ends;
-    }
+      }
     else
-    {
+      {
       indexStr << frameIndex << std::ends;
-    }
+      }
 
     std::ostringstream nameStr;
     nameStr << refNode->GetName() << "_" << std::setw(4) << std::setfill('0') << frameIndex << std::ends;
     frameVolume->SetName( nameStr.str().c_str() );
     volSequenceNode->SetDataNodeAtValue(frameVolume.GetPointer(), indexStr.str().c_str() );
-  }
+    }
+
+  vtkDebugMacro(<< " vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: sequence successfully read. ");
 
   // success
   return 1;
@@ -262,7 +312,7 @@ bool vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode(vtkMRMLNode *re
 int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 {
   vtkMRMLSequenceNode* volSequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
-  if (volSequenceNode==NULL)
+  if (volSequenceNode == NULL)
     {
     vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Do not recognize node type " << refNode->GetClassName());
     return 0;
@@ -271,62 +321,63 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   vtkNew<vtkMatrix4x4> ijkToRas;
   int frameVolumeDimensions[3] = {0};
   int frameVolumeScalarType = VTK_VOID;
-  if (volSequenceNode->GetNumberOfDataNodes()>0)
-  {
+  int numberOfFrameVolumes = volSequenceNode->GetNumberOfDataNodes();
+  if (numberOfFrameVolumes > 0)
+    {
     vtkMRMLVolumeNode* frameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(0));
     if (frameVolume==NULL)
-    {
+      {
       vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Data node is not a volume");
       return 0;
-    }
+      }
     frameVolume->GetIJKToRASMatrix(ijkToRas.GetPointer());
     if (frameVolume->GetImageData())
-    {
+      {
       frameVolume->GetImageData()->GetDimensions(frameVolumeDimensions);
       frameVolumeScalarType = frameVolume->GetImageData()->GetScalarType();
+      }
     }
-  }
 
+#ifndef NRRD_CHUNK_IO_AVAILABLE
   vtkNew<vtkImageAppendComponents> appender;
-
-  int numberOfFrameVolumes = volSequenceNode->GetNumberOfDataNodes();
   for (int frameIndex=0; frameIndex<numberOfFrameVolumes; frameIndex++)
-  {
+    {
     vtkMRMLVolumeNode* frameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(frameIndex));
     if (frameVolume==NULL)
-    {
+      {
       vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Data node "<<frameIndex<<" is not a volume");
       return 0;
-    }
+      }
     //TODO: check if frameVolume->GetIJKToRASMatrix() is the same as ijkToRas
     // either save the IJK to RAS into each frame or resample or return with error
     int currentFrameVolumeDimensions[3] = {0};
     int currentFrameVolumeScalarType = VTK_VOID;
     if (frameVolume->GetImageData())
-    {
+      {
       frameVolume->GetImageData()->GetDimensions(currentFrameVolumeDimensions);
       currentFrameVolumeScalarType = frameVolume->GetImageData()->GetScalarType();
-    }
+      }
     if (currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
     || currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
     || currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
     || currentFrameVolumeScalarType != frameVolumeScalarType)
-    {
+      {
       vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Data node "<<frameIndex<<" size or scalar type mismatch ("
         <<"got "<<currentFrameVolumeDimensions[0]<<"x"<<currentFrameVolumeDimensions[1]<<"x"<<currentFrameVolumeDimensions[2]<<" "<<vtkImageScalarTypeNameMacro(currentFrameVolumeScalarType)<<", "
         <<"expected "<<frameVolumeDimensions[0]<<"x"<<frameVolumeDimensions[1]<<"x"<<frameVolumeDimensions[2]<<" "<<vtkImageScalarTypeNameMacro(frameVolumeScalarType) );
       return 0;
-    }
+     }
     if (frameVolume->GetImageData())
-    {
+      {
       appender->AddInputData(frameVolume->GetImageData());
-    }
+      }
   }
+#endif
 
   std::string fullName = this->GetFullNameFromFileName();
   if (fullName == std::string(""))
     {
-    vtkErrorMacro("WriteData: File name not specified");
+    vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: File name not specified");
     return 0;
     }
   // Use here the NRRD Writer
@@ -337,40 +388,56 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   vtkNew<vtkNRRDWriter> writer;
 #endif
   writer->SetFileName(fullName.c_str());
-  appender->Update();
-  writer->SetInputConnection(appender->GetOutputPort());
+
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  // Set Write Multiple Images on
+  writer->WriteMultipleImagesAsImageListsOn();
+#endif
+
   writer->SetUseCompression(this->GetUseCompression());
 
-  // set volume attributes
+  // Set volume attributes
   writer->SetIJKToRASMatrix(ijkToRas.GetPointer());
   //writer->SetMeasurementFrameMatrix(mf.GetPointer());
 
   // Write index information
+  int axisIndex;
+  std::string axisType, axisValues;
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  axisIndex = 3;
+  axisType = "axis 3 index type";
+  axisValues = "axis 3 index values";
+#else
+  axisIndex = 0;
+  axisType = "axis 0 index type";
+  axisValues = "axis 0 index values";
+#endif
+
   if (!volSequenceNode->GetIndexName().empty())
-  {
-    writer->SetAxisLabel(0, volSequenceNode->GetIndexName().c_str());
-  }
+    {
+    writer->SetAxisLabel(axisIndex, volSequenceNode->GetIndexName().c_str());
+    }
   if (!volSequenceNode->GetIndexUnit().empty())
-  {
-    writer->SetAxisUnit(0, volSequenceNode->GetIndexUnit().c_str());
-  }
+    {
+    writer->SetAxisUnit(axisIndex, volSequenceNode->GetIndexUnit().c_str());
+    }
   if (!volSequenceNode->GetIndexTypeAsString().empty())
-  {
-    writer->SetAttribute("axis 0 index type", volSequenceNode->GetIndexTypeAsString());
-  }
+    {
+    writer->SetAttribute(axisType, volSequenceNode->GetIndexTypeAsString());
+    }
   if (numberOfFrameVolumes > 0)
-  {
+    {
     std::stringstream ssIndexValues;
     for (int frameIndex = 0; frameIndex < numberOfFrameVolumes; frameIndex++)
-    {
-      if (frameIndex > 0)
       {
+      if (frameIndex > 0)
+        {
         ssIndexValues << " ";
-      }
+        }
       // Encode string to make sure there are no spaces in the serialized index value (space is used as separator)
       ssIndexValues << vtkMRMLNode::URLEncodeString(volSequenceNode->GetNthIndexValue(frameIndex).c_str());
-    }
-    writer->SetAttribute("axis 0 index values", ssIndexValues.str());
+      }
+    writer->SetAttribute(axisValues, ssIndexValues.str());
   }
 
   // pass down all MRML attributes to NRRD
@@ -381,6 +448,67 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     writer->SetAttribute((*ait), volSequenceNode->GetAttribute((*ait).c_str()));
     }
 
+#ifdef NRRD_CHUNK_IO_AVAILABLE
+  writer->SetNumberOfImages(numberOfFrameVolumes);
+  int writeFlag = 1;
+  vtkDebugMacro(<< " vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Starting writing sequence. ");
+  for (int frameIndex = 0; frameIndex < numberOfFrameVolumes; ++frameIndex)
+    {
+    vtkDebugMacro(<< " writing frame : "<<frameIndex);
+    vtkMRMLVolumeNode* frameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(frameIndex));
+    if (frameVolume == NULL)
+      {
+      vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Data node "<<frameIndex<<" is not a volume");
+      return 0;
+      }
+    //TODO: check if frameVolume->GetIJKToRASMatrix() is the same as ijkToRas
+    // either save the IJK to RAS into each frame or resample or return with error
+    int currentFrameVolumeDimensions[3] = {0};
+    int currentFrameVolumeScalarType = VTK_VOID;
+    if (frameVolume->GetImageData())
+      {
+      frameVolume->GetImageData()->GetDimensions(currentFrameVolumeDimensions);
+      currentFrameVolumeScalarType = frameVolume->GetImageData()->GetScalarType();
+      }
+    if (currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
+    || currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
+    || currentFrameVolumeDimensions[0] != frameVolumeDimensions[0]
+    || currentFrameVolumeScalarType != frameVolumeScalarType)
+      {
+      vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: Data node "<<frameIndex<<" size or scalar type mismatch ("
+        <<"got "<<currentFrameVolumeDimensions[0]<<"x"<<currentFrameVolumeDimensions[1]<<"x"<<currentFrameVolumeDimensions[2]<<" "<<vtkImageScalarTypeNameMacro(currentFrameVolumeScalarType)<<", "
+        <<"expected "<<frameVolumeDimensions[0]<<"x"<<frameVolumeDimensions[1]<<"x"<<frameVolumeDimensions[2]<<" "<<vtkImageScalarTypeNameMacro(frameVolumeScalarType) );
+      return 0;
+      }
+    if (frameVolume->GetImageData() == NULL)
+      {
+      vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: "
+                       "image data of Data node "<<frameIndex<<" not found.");
+      return 0;
+      }
+
+    writer->SetInputDataObject(frameVolume->GetImageData());
+    writer->SetCurrentImageIndex(frameIndex);
+
+    writer->Write();
+    if (writer->GetWriteError())
+      {
+      vtkErrorMacro(<< "vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: "
+                       "ERROR writing NRRD file " << (writer->GetFileName() == NULL ? "null" : writer->GetFileName()));
+      writeFlag = 0;
+      }
+    this->StageWriteData(refNode);
+    }
+
+  Nrrd* nrrd =  writer->GetNRRDTeem();
+  nrrd = nrrdNix(nrrd);
+  NrrdIoState* nio =  writer->GetNRRDIoTeem();
+  nio = nrrdIoStateNix(nio);
+
+#else
+  appender->Update();
+  writer->SetInputConnection(appender->GetOutputPort());
+
   writer->Write();
   int writeFlag = 1;
   if (writer->GetWriteError())
@@ -390,7 +518,9 @@ int vtkMRMLVolumeSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     }
 
   this->StageWriteData(refNode);
+#endif
 
+  vtkDebugMacro(<< " vtkMRMLVolumeSequenceStorageNode::WriteDataInternal: sequence successfully written. ");
   return writeFlag;
 }
 
