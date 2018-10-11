@@ -520,6 +520,7 @@ vtkMRMLSequenceNode* vtkSlicerSequenceBrowserLogic::AddSynchronizedNode(vtkMRMLN
   {
     browserNode->AddProxyNode(proxyNode, sequenceNode, false);
     vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->AddDefaultDisplayNodes(proxyNode);
+    vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(proxyNode)->AddDefaultSequenceStorageNode(sequenceNode);
   }
   return sequenceNode;
 }
