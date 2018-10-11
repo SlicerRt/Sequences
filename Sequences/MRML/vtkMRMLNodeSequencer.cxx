@@ -44,6 +44,9 @@
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
 
+// Sequence MRML includes
+#include <vtkMRMLSequenceNode.h>
+
 //----------------------------------------------------------------------------
 
 vtkMRMLNodeSequencer::NodeSequencer::NodeSequencer()
@@ -137,6 +140,16 @@ void vtkMRMLNodeSequencer::NodeSequencer::AddDefaultDisplayNodes(vtkMRMLNode* no
     return;
   }
   displayableNode->CreateDefaultDisplayNodes();
+}
+
+void vtkMRMLNodeSequencer::NodeSequencer::AddDefaultSequenceStorageNode(vtkMRMLSequenceNode* node)
+{
+  if (node == NULL)
+  {
+    // no node, there is nothing to do
+    return;
+  }
+  node->AddDefaultStorageNode();
 }
 
 //----------------------------------------------------------------------------
