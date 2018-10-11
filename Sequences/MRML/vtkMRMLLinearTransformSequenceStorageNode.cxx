@@ -444,8 +444,8 @@ bool vtkMRMLLinearTransformSequenceStorageNode::WriteSequenceMetafileTransforms(
 
       std::string transformValue = "1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"; // Identity
       std::string transformStatus = "INVALID";
-      vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::SafeDownCast(currSequenceNode->GetDataNodeAtValue(indexValue.c_str()));
-      if (transformNode != NULL)
+      vtkMRMLTransformNode* transformNode = vtkMRMLTransformNode::SafeDownCast(currSequenceNode->GetDataNodeAtValue(indexValue.c_str()));
+      if (transformNode != NULL && transformNode->IsLinear())
       {
         vtkNew<vtkMatrix4x4> matrix;
         transformNode->GetMatrixTransformToParent(matrix.GetPointer());
