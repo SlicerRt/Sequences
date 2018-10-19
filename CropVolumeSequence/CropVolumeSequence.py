@@ -180,7 +180,7 @@ class CropVolumeSequenceLogic(ScriptedLoadableModuleLogic):
 
     if outputVolSeq == inputVolSeq:
       outputVolSeq = None
-    
+
     if outputVolSeq:
       # Initialize output sequence
       outputVolSeq.RemoveAllDataNodes()
@@ -192,7 +192,7 @@ class CropVolumeSequenceLogic(ScriptedLoadableModuleLogic):
     else:
       outputVolume = None
       cropParameters.SetOutputVolumeNodeID(inputVolume.GetID())
-     
+
     try:
       qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
       numberOfDataNodes = inputVolSeq.GetNumberOfDataNodes()
@@ -226,7 +226,7 @@ class CropVolumeSequenceLogic(ScriptedLoadableModuleLogic):
           seqBrowser.AddSynchronizedSequenceNode(outputVolSeq)
         else:
           seqBrowser = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceBrowserNode")
-          seqBrowser.SetAndObserveMasterSequenceNodeID(outputVolSeq.GetID())          
+          seqBrowser.SetAndObserveMasterSequenceNodeID(outputVolSeq.GetID())
         seqBrowser.SetOverwriteProxyName(outputVolSeq, True)
 
         # Show output in slice views
@@ -234,7 +234,7 @@ class CropVolumeSequenceLogic(ScriptedLoadableModuleLogic):
         slicer.app.processEvents()
         outputVolume = seqBrowser.GetProxyNode(outputVolSeq)
         slicer.util.setSliceViewerLayers(background=outputVolume)
-      
+
       elif not outputVolSeq:
         # Refresh proxy node
         seqBrowser = slicer.modules.sequencebrowser.logic().GetFirstBrowserNodeForSequenceNode(inputVolSeq)
@@ -261,37 +261,41 @@ class CropVolumeSequenceTest(ScriptedLoadableModuleTest):
     self.test_CropVolumeSequence1()
 
   def test_CropVolumeSequence1(self):
-    """ Ideally you should have several levels of tests.  At the lowest level
-    tests should exercise the functionality of the logic with different inputs
-    (both valid and invalid).  At higher levels your tests should emulate the
-    way the user would interact with your code and confirm that it still works
-    the way you intended.
-    One of the most important features of the tests is that it should alert other
-    developers when their changes will have an impact on the behavior of your
-    module.  For example, if a developer removes a feature that you depend on,
-    your test should break so they know that the feature is needed.
-    """
 
     self.delayDisplay("Starting the test")
-    #
-    # first, get some data
-    #
-    import urllib
-    downloads = (
-        ('http://slicer.kitware.com/midas3/download?items=5767', 'FA.nrrd', slicer.util.loadVolume),
-        )
 
-    for url,name,loader in downloads:
-      filePath = slicer.app.temporaryPath + '/' + name
-      if not os.path.exists(filePath) or os.stat(filePath).st_size == 0:
-        logging.info('Requesting download %s from %s...\n' % (name, url))
-        urllib.urlretrieve(url, filePath)
-      if loader:
-        logging.info('Loading %s...' % (name,))
-        loader(filePath)
-    self.delayDisplay('Finished with download and loading')
+    # Load volume sequence
+    import SampleData
+    sequenceBrowserNode=SampleData.SampleDataLogic().downloadSample('CTCardio')[0]
+    sequenceNode=sequenceBrowserNode.GetMasterSequenceNode()
 
-    volumeNode = slicer.util.getNode(pattern="FA")
-    logic = CropVolumeSequenceLogic()
-    self.assertIsNotNone( logic.hasImageData(volumeNode) )
+    # Set cropping parameters
+    croppedSequenceNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLSequenceNode')
+    cropVolumeNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLCropVolumeParametersNode')
+    cropVolumeNode.SetIsotropicResampling(True)
+    cropVolumeNode.SetSpacingScalingConst(3.0)
+    volumeNode = sequenceBrowserNode.GetProxyNode(sequenceNode)
+
+    # Set cropping region
+    roiNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLAnnotationROINode')
+    cropVolumeNode.SetROINodeID(roiNode.GetID())
+    cropVolumeNode.SetInputVolumeNodeID(volumeNode.GetID())
+    slicer.modules.cropvolume.logic().FitROIToInputVolume(cropVolumeNode)
+
+    # Crop volume sequence
+    CropVolumeSequenceLogic().run(sequenceNode,croppedSequenceNode,cropVolumeNode)
+
+    # Verify results
+
+    self.assertEqual(croppedSequenceNode.GetNumberOfDataNodes(),
+      sequenceNode.GetNumberOfDataNodes())
+
+    cropVolumeNode = sequenceBrowserNode.GetProxyNode(croppedSequenceNode)
+    self.assertIsNotNone(cropVolumeNode)
+
+    # We downsampled by a factor of 3 therefore the image size must be decreased by about factor of 3
+    # (less along z axis due to anisotropic input volume and isotropic output volume)
+    self.assertEqual(volumeNode.GetImageData().GetExtent(), (0, 127, 0, 103, 0, 71))
+    self.assertEqual(cropVolumeNode.GetImageData().GetExtent(), (0, 41, 0, 33, 0, 40))
+
     self.delayDisplay('Test passed!')
