@@ -31,6 +31,7 @@
 class vtkMRMLNode;
 class vtkMRMLScene;
 class vtkIntArray;
+class vtkMRMLSequenceNode;
 
 /// \brief Singleton node that contain MRML node specific methods for treating them as sequences.
 ///
@@ -57,6 +58,7 @@ public:
     virtual bool IsNodeSupported(vtkMRMLNode* node);
     virtual bool IsNodeSupported(const std::string& nodeClassName);
     virtual void AddDefaultDisplayNodes(vtkMRMLNode* node);
+    virtual void AddDefaultSequenceStorageNode(vtkMRMLSequenceNode* node);
 
   protected:
     vtkSmartPointer< vtkIntArray > RecordingEvents;
