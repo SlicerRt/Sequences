@@ -27,8 +27,8 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 #include "vtkImageData.h"
 #ifndef NRRD_CHUNK_IO_AVAILABLE
 #include "vtkImageAppendComponents.h"
-#include "vtkImageExtractComponents.h"
 #endif
+#include "vtkImageExtractComponents.h"
 #include "vtkNew.h"
 #include "vtkStringArray.h"
 #include "vtksys/SystemTools.hxx"
@@ -88,9 +88,11 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     return 0;
     }
 
-  // Set Read Multiple Images on
 #ifdef NRRD_CHUNK_IO_AVAILABLE
-  reader->ReadImageListAsMultipleImagesOn();
+  // Set Read Multiple Images on.
+  // If the data are compressed, this will return false and
+  // the data will be read as a single multi-component image
+  bool readAsMultipleImagesOn = reader->ReadImageListAsMultipleImagesOn();
 #endif
 
   // Set up reader
@@ -164,6 +166,21 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
   // Read and copy the data to sequence of volume nodes
 #ifdef NRRD_CHUNK_IO_AVAILABLE
   int numberOfFrames = reader->GetNumberOfImages();
+  vtkImageData* imageData = NULL;
+  vtkNew<vtkImageExtractComponents> extractComponents;
+  if (!readAsMultipleImagesOn)
+    {
+    reader->Update();
+    // Copy image data to sequence of volume nodes
+    imageData = reader->GetOutput();
+    if (imageData == NULL || imageData->GetPointData()==NULL || imageData->GetPointData()->GetScalars() == NULL)
+      {
+      vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::ReadDataInternal: invalid image data");
+      return 0;
+      }
+    numberOfFrames = imageData->GetNumberOfScalarComponents();
+    extractComponents->SetInputConnection(reader->GetOutputPort());
+    }
 #else
   reader->Update();
   // Copy image data to sequence of volume nodes
@@ -183,11 +200,21 @@ int vtkMRMLVolumeSequenceStorageNode::ReadDataInternal(vtkMRMLNode* refNode)
     {
     vtkDebugMacro(<< " reading frame : "<<frameIndex);
 #ifdef NRRD_CHUNK_IO_AVAILABLE
-    reader->SetCurrentImageIndex(frameIndex);
-    reader->Update();
-    // It is not necessary to deepcopy imageData here,
-    // because it will be already deepcopied in volSequenceNode->SetDataNodeAtValue.
-    vtkImageData *frameVoxels = reader->GetOutput();
+    vtkImageData *frameVoxels = NULL;
+    if (readAsMultipleImagesOn)
+      {
+      reader->SetCurrentImageIndex(frameIndex);
+      reader->Update();
+      // It is not necessary to deepcopy imageData here,
+      // because it will be already deepcopied in volSequenceNode->SetDataNodeAtValue.
+      frameVoxels = reader->GetOutput();
+      }
+    else
+      {
+      extractComponents->SetComponents(frameIndex);
+      extractComponents->Update();
+      frameVoxels = extractComponents->GetOutput();
+      }
 #else
     extractComponents->SetComponents(frameIndex);
     extractComponents->Update();
