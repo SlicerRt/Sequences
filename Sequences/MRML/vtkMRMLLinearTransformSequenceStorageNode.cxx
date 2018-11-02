@@ -536,12 +536,7 @@ bool vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode(vtkMRM
   vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
   if (sequenceNode == NULL)
   {
-    vtkDebugMacro("vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode: input is not a sequence node");
-    return false;
-  }
-  if (sequenceNode->GetNumberOfDataNodes() == 0)
-  {
-    vtkDebugMacro("vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode: no data nodes");
+    vtkErrorMacro("vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode: input is not a sequence node");
     return false;
   }
   int numberOfFrameVolumes = sequenceNode->GetNumberOfDataNodes();
@@ -550,7 +545,7 @@ bool vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode(vtkMRM
     vtkMRMLTransformNode* transform = vtkMRMLTransformNode::SafeDownCast(sequenceNode->GetNthDataNode(frameIndex));
     if (transform == NULL || !transform->IsLinear())
     {
-      vtkDebugMacro("vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode: only linear transform nodes can be written (frame " << frameIndex << ")");
+      vtkErrorMacro("vtkMRMLLinearTransformSequenceStorageNode::CanWriteFromReferenceNode: only linear transform nodes can be written (frame " << frameIndex << ")");
       return false;
     }
   }
