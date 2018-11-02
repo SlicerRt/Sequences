@@ -260,19 +260,13 @@ bool vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode(vtkMRMLNode *re
   vtkMRMLSequenceNode* volSequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
   if (volSequenceNode == NULL)
     {
-    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: invalid volSequenceNode");
+    vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: invalid volSequenceNode");
     return false;
     }
-  if (volSequenceNode->GetNumberOfDataNodes() == 0)
-    {
-    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: no data nodes");
-    return false;
-    }
-
   vtkMRMLVolumeNode* firstFrameVolume = vtkMRMLVolumeNode::SafeDownCast(volSequenceNode->GetNthDataNode(0));
   if (firstFrameVolume == NULL)
     {
-    vtkDebugMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only volume nodes can be written");
+    vtkErrorMacro("vtkMRMLVolumeSequenceStorageNode::CanWriteFromReferenceNode: only volume nodes can be written");
     return false;
     }
 
