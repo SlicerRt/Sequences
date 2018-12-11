@@ -140,19 +140,19 @@ void vtkMRMLSequenceNode::ReadXMLAttributes(const char** atts)
   // Read all MRML node attributes from two arrays of names and values
   const char* attName;
   const char* attValue;
-  while (*atts != NULL) 
+  while (*atts != NULL)
   {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "indexName")) 
+    if (!strcmp(attName, "indexName"))
     {
       this->SetIndexName(attValue);
     }
-    else if (!strcmp(attName, "indexUnit")) 
+    else if (!strcmp(attName, "indexUnit"))
     {
       this->SetIndexUnit(attValue);
     }
-    else if (!strcmp(attName, "indexType"))     
+    else if (!strcmp(attName, "indexType"))
     {
       int indexType=GetIndexTypeFromString(attValue);
       if (indexType<0 || indexType>=vtkMRMLSequenceNode::NumberOfIndexTypes)
@@ -187,7 +187,7 @@ void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
     this->IndexEntries.clear();
     modified = true;
   }
-  
+
   std::stringstream ss(indexText);
   std::string nodeId_indexValue;
   while (std::getline(ss, nodeId_indexValue, ';'))
@@ -197,7 +197,7 @@ void vtkMRMLSequenceNode::ReadIndexValues(const std::string& indexText)
     {
       std::string nodeId = nodeId_indexValue.substr(0, indexValueSeparatorPos);
       std::string indexValue = nodeId_indexValue.substr(indexValueSeparatorPos+1, nodeId_indexValue.size()-indexValueSeparatorPos-1);
-  
+
       IndexEntryType indexEntry;
       indexEntry.IndexValue=indexValue;
       // The nodes are not read yet, so we can only store the node ID and get the pointer to the node later (in UpdateScene())
@@ -338,7 +338,7 @@ bool vtkMRMLSequenceNode::UpdateDataNodeAtValue(vtkMRMLNode* node, const std::st
 {
   if (node==NULL)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid node"); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateDataNodeAtValue failed, invalid node");
     return false;
   }
   vtkMRMLNode* nodeToBeUpdated = this->GetDataNodeAtValue(indexValue);
@@ -398,7 +398,7 @@ vtkMRMLNode* vtkMRMLSequenceNode::SetDataNodeAtValue(vtkMRMLNode* node, const st
   {
     // The sequence item doesn't exist yet
     seqItemIndex = GetInsertPosition(indexValue);
-    // Create new item    
+    // Create new item
     IndexEntryType seqItem;
     seqItem.IndexValue = indexValue;
     this->IndexEntries.insert(this->IndexEntries.begin() + seqItemIndex, seqItem);
@@ -549,7 +549,7 @@ bool vtkMRMLSequenceNode::UpdateIndexValue(const std::string& oldIndexValue, con
   int oldSeqItemIndex = GetItemNumberFromIndexValue(oldIndexValue);
   if (oldSeqItemIndex<0)
   {
-    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no data node found with index value "<<oldIndexValue); 
+    vtkErrorMacro("vtkMRMLSequenceNode::UpdateIndexValue failed, no data node found with index value "<<oldIndexValue);
     return false;
   }
   if (this->GetItemNumberFromIndexValue(newIndexValue) >= 0)
@@ -634,7 +634,15 @@ vtkMRMLScene* vtkMRMLSequenceNode::GetSequenceScene()
 //-----------------------------------------------------------------------------
 vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
 {
-  return vtkMRMLSequenceStorageNode::New();
+  vtkMRMLScene* scene = this->GetScene();
+  if (scene == NULL)
+  {
+    vtkErrorMacro("CreateDefaultStorageNode failed: scene is invalid");
+    return NULL;
+  }
+
+  return vtkMRMLStorageNode::SafeDownCast(
+    scene->CreateNodeByClass(this->GetDefaultStorageNodeClassName().c_str()));
 }
 
 //-----------------------------------------------------------
@@ -646,24 +654,21 @@ std::string vtkMRMLSequenceNode::GetDefaultStorageNodeClassName(const char* file
     return "";
   }
 
-  // Use specific volume sequence storage node, if possible
-  std::vector< vtkSmartPointer<vtkMRMLStorageNode> > specializedStorageNodes;
-  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLVolumeSequenceStorageNode>::New());
-  specializedStorageNodes.push_back(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());
-  for (std::vector< vtkSmartPointer<vtkMRMLStorageNode> >::iterator specializedStorageNodeIt = specializedStorageNodes.begin();
-    specializedStorageNodeIt != specializedStorageNodes.end(); ++specializedStorageNodeIt)
+  // Use specific sequence storage node, if possible
+  vtkMRMLNodeSequencer::NodeSequencer* sequencer = vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(this->GetNthDataNode(0));
+  std::string storageNodeClassName = sequencer->GetDefaultSequenceStorageNodeClassName();
+  vtkSmartPointer<vtkMRMLStorageNode> storageNode = vtkSmartPointer<vtkMRMLStorageNode>::Take(
+    vtkMRMLStorageNode::SafeDownCast(this->GetScene()->CreateNodeByClass(storageNodeClassName.c_str())));
+
+  // Filename is not specified or it is specified and there is a supported file extension
+  if (!filename || (filename && !storageNode->GetSupportedFileExtension(filename, false, true).empty()))
   {
-    if (filename && (*specializedStorageNodeIt)->GetSupportedFileExtension(filename, false, true).empty())
+    if (storageNode->CanWriteFromReferenceNode(this))
     {
-      // cannot write into the required file extension
-      continue;
-    }
-    if ((*specializedStorageNodeIt)->CanWriteFromReferenceNode(this))
-    {
-      return (*specializedStorageNodeIt)->GetClassName();
+      return storageNodeClassName;
     }
   }
-  
+
   // Use generic storage node
   return "vtkMRMLSequenceStorageNode";
 }

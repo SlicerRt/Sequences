@@ -3,7 +3,7 @@ set(KIT qSlicer${MODULE_NAME}Module)
 #-----------------------------------------------------------------------------
 set(KIT_TEST_SRCS
   vtkMRMLSequenceNodeTest1.cxx
-  #qSlicer${MODULE_NAME}ModuleTest.cxx
+  vtkMRMLSequenceStorageNodeTest1.cxx
   )
 
 #-----------------------------------------------------------------------------
@@ -14,5 +14,5 @@ slicerMacroConfigureModuleCxxTestDriver(
   )
 
 #-----------------------------------------------------------------------------
-#simple_test(qSlicer${MODULE_NAME}ModuleTest)
 simple_test(vtkMRMLSequenceNodeTest1)
+simple_test(vtkMRMLSequenceStorageNodeTest1)
