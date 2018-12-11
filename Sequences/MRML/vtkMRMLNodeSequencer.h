@@ -59,6 +59,7 @@ public:
     virtual bool IsNodeSupported(const std::string& nodeClassName);
     virtual void AddDefaultDisplayNodes(vtkMRMLNode* node);
     virtual void AddDefaultSequenceStorageNode(vtkMRMLSequenceNode* node);
+    vtkGetMacro(DefaultSequenceStorageNodeClassName, std::string);
 
   protected:
     vtkSmartPointer< vtkIntArray > RecordingEvents;
@@ -68,6 +69,8 @@ public:
     // Names of parent classes of SupportedNodeClass.
     // They are used for determining what is the most specific sequences for a node class.
     std::vector< std::string > SupportedNodeParentClassNames;
+    // Name of the MRMLStorageNode class that should be used to store this node type.
+    std::string DefaultSequenceStorageNodeClassName;
   };
 
   vtkTypeMacro(vtkMRMLNodeSequencer, vtkObject);

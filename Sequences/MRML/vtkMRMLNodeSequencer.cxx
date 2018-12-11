@@ -54,6 +54,7 @@ vtkMRMLNodeSequencer::NodeSequencer::NodeSequencer()
   this->RecordingEvents = vtkSmartPointer< vtkIntArray >::New();
   this->RecordingEvents->InsertNextValue(vtkCommand::ModifiedEvent);
   this->SupportedNodeClassName = "vtkMRMLNode";
+  this->DefaultSequenceStorageNodeClassName = "vtkMRMLSequenceStorageNode";
 }
 
 vtkMRMLNodeSequencer::NodeSequencer::~NodeSequencer()
@@ -149,7 +150,25 @@ void vtkMRMLNodeSequencer::NodeSequencer::AddDefaultSequenceStorageNode(vtkMRMLS
     // no node, there is nothing to do
     return;
   }
-  node->AddDefaultStorageNode();
+
+  vtkMRMLScene* scene = node->GetScene();
+  if (scene == NULL)
+  {
+    return;
+  }
+
+  if (node->GetStorageNode())
+  {
+    // Storage node already exists
+    return;
+  }
+
+  vtkMRMLNode* storageNode = scene->AddNewNodeByClass(this->DefaultSequenceStorageNodeClassName);
+  if (storageNode == NULL)
+  {
+    return;
+  }
+  node->SetAndObserveStorageNodeID(storageNode->GetID());
 }
 
 //----------------------------------------------------------------------------
@@ -166,6 +185,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+    this->DefaultSequenceStorageNodeClassName = "vtkMRMLVolumeSequenceStorageNode";
   }
 
   virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
@@ -317,6 +337,7 @@ public:
     this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+    this->DefaultSequenceStorageNodeClassName = "vtkMRMLLinearTransformSequenceStorageNode";
   }
 
   virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool shallowCopy /* =false */)
