@@ -171,6 +171,11 @@ void vtkMRMLNodeSequencer::NodeSequencer::AddDefaultSequenceStorageNode(vtkMRMLS
   node->SetAndObserveStorageNodeID(storageNode->GetID());
 }
 
+std::string vtkMRMLNodeSequencer::NodeSequencer::GetDefaultSequenceStorageNodeClassName()
+{
+  return this->DefaultSequenceStorageNodeClassName;
+}
+
 //----------------------------------------------------------------------------
 
 class ScalarVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer

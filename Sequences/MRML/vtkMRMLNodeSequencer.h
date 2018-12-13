@@ -59,7 +59,7 @@ public:
     virtual bool IsNodeSupported(const std::string& nodeClassName);
     virtual void AddDefaultDisplayNodes(vtkMRMLNode* node);
     virtual void AddDefaultSequenceStorageNode(vtkMRMLSequenceNode* node);
-    vtkGetMacro(DefaultSequenceStorageNodeClassName, std::string);
+    virtual std::string GetDefaultSequenceStorageNodeClassName();
 
   protected:
     vtkSmartPointer< vtkIntArray > RecordingEvents;
