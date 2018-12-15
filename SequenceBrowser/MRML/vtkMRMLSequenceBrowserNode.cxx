@@ -1077,7 +1077,6 @@ void vtkMRMLSequenceBrowserNode::SaveProxyNodesState()
   int wasModified = this->StartModify();
   std::vector< vtkMRMLSequenceNode* > sequenceNodes;
   this->GetSynchronizedSequenceNodes(sequenceNodes, true);
-  vtkMRMLSequenceNode* sequenceNode = NULL;
   bool snapshotAdded = false;
   for (std::vector< vtkMRMLSequenceNode* >::iterator it = sequenceNodes.begin(); it != sequenceNodes.end(); it++)
   {
