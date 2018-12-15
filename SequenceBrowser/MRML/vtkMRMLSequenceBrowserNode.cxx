@@ -117,16 +117,16 @@ vtkMRMLNodeNewMacro(vtkMRMLSequenceBrowserNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
-: SelectedItemNumber(-1)
-, LastPostfixIndex(0)
-, PlaybackActive(false)
+: PlaybackActive(false)
 , PlaybackRateFps(10.0)
 , PlaybackItemSkippingEnabled(true)
 , PlaybackLooped(true)
+, SelectedItemNumber(-1)
+, RecordingActive(false)
 , RecordMasterOnly(false)
 , RecordingSamplingMode(vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
 , IndexDisplayMode(vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue)
-, RecordingActive(false)
+, LastPostfixIndex(0)
 {
   this->SetHideFromEditors(false);
   this->RecordingTimeOffsetSec = vtkTimerLog::GetUniversalTime();
