@@ -266,7 +266,7 @@ class CropVolumeSequenceTest(ScriptedLoadableModuleTest):
 
     # Load volume sequence
     import SampleData
-    sequenceBrowserNode=SampleData.SampleDataLogic().downloadSample('CTCardio')[0]
+    sequenceBrowserNode=SampleData.downloadSample('CTCardio')
     sequenceNode=sequenceBrowserNode.GetMasterSequenceNode()
 
     # Set cropping parameters
