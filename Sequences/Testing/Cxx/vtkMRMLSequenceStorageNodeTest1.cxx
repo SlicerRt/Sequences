@@ -36,7 +36,7 @@
 #include "vtkMRMLCoreTestingMacros.h"
 
 //-----------------------------------------------------------------------------
-int vtkMRMLSequenceStorageNodeTest1( int argc, char * argv[] )
+int vtkMRMLSequenceStorageNodeTest1( int, char * [] )
 {
   vtkNew<vtkMRMLScene> scene;
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLLinearTransformSequenceStorageNode>::New());

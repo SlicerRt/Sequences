@@ -375,7 +375,7 @@ vtkMRMLSequenceBrowserNode* vtkSlicerMetafileImporterLogic::ReadSequenceFile(con
   // For the user's convenience, add a browser node and show the volume in the slice viewer.
   // If a browser node by that exact name exists already then we reuse that to browse all the nodes together.
   vtkSmartPointer<vtkMRMLSequenceBrowserNode> sequenceBrowserNode;
-  vtkMRMLSequenceNode* createdImageNode;
+  vtkMRMLSequenceNode* createdImageNode = NULL;
   if (fileType == METAIMAGE_SEQUENCE_FILE)
   {
     createdImageNode = this->ReadSequenceMetafileImages(fileName, imageBaseNodeName, frameNumberToIndexValueMap);
