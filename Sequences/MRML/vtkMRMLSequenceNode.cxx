@@ -637,7 +637,7 @@ vtkMRMLStorageNode* vtkMRMLSequenceNode::CreateDefaultStorageNode()
   vtkMRMLScene* scene = this->GetScene();
   if (scene == NULL)
   {
-    vtkErrorMacro("CreateDefaultStorageNode failed: scene is invalid");
+    vtkDebugMacro("CreateDefaultStorageNode failed: scene is invalid");
     return NULL;
   }
 
