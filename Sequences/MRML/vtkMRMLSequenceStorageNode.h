@@ -30,19 +30,19 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLSequenceStorageNode : publi
 public:
   static vtkMRMLSequenceStorageNode *New();
   vtkTypeMacro(vtkMRMLSequenceStorageNode,vtkMRMLStorageNode);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  virtual vtkMRMLNode* CreateNodeInstance();
+  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
-  /// 
+  ///
   /// Get node XML tag name (like Storage, Sequence)
-  virtual const char* GetNodeTagName()  {return "SequenceStorage";};
+  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "SequenceStorage";};
 
   /// Return a default file extension for writting
-  virtual const char* GetDefaultWriteFileExtension();
+  virtual const char* GetDefaultWriteFileExtension() VTK_OVERRIDE;
 
   /// Return true if the reference node can be read in
-  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
+  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode) VTK_OVERRIDE;
 
   // filename: fCal_Test_Validation_3NWires_fCal2.0-ProbeToTracker-Seq.seq.mha
   // itemname: ProbeToTracker
@@ -61,16 +61,16 @@ protected:
   void operator=(const vtkMRMLSequenceStorageNode&);
 
   /// Initialize all the supported read file types
-  virtual void InitializeSupportedReadFileTypes();
+  virtual void InitializeSupportedReadFileTypes() VTK_OVERRIDE;
 
   /// Initialize all the supported write file types
-  virtual void InitializeSupportedWriteFileTypes();
+  virtual void InitializeSupportedWriteFileTypes() VTK_OVERRIDE;
 
   /// Read data and set it in the referenced node
-  virtual int ReadDataInternal(vtkMRMLNode *refNode);
+  virtual int ReadDataInternal(vtkMRMLNode *refNode) VTK_OVERRIDE;
 
   /// Write data from a  referenced node
-  virtual int WriteDataInternal(vtkMRMLNode *refNode);
+  virtual int WriteDataInternal(vtkMRMLNode *refNode) VTK_OVERRIDE;
 
   bool WriteToMRB(const char* fullName, vtkMRMLScene *scene);
 

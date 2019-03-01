@@ -46,19 +46,19 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLSequenceNode : public vtkMR
 public:
   static vtkMRMLSequenceNode *New();
   vtkTypeMacro(vtkMRMLSequenceNode,vtkMRMLStorableNode);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   /// Create instance of a sequence node
-  virtual vtkMRMLNode* CreateNodeInstance();
+  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
-  /// Set node attributes from name/value pairs 
-  virtual void ReadXMLAttributes( const char** atts);
+  /// Set node attributes from name/value pairs
+  virtual void ReadXMLAttributes( const char** atts) VTK_OVERRIDE;
 
-  /// Write this node's information to a MRML file in XML format. 
-  virtual void WriteXML(ostream& of, int indent);
+  /// Write this node's information to a MRML file in XML format.
+  virtual void WriteXML(ostream& of, int indent) VTK_OVERRIDE;
 
-  /// Copy the node's attributes to this object 
-  virtual void Copy(vtkMRMLNode *node);
+  /// Copy the node's attributes to this object
+  virtual void Copy(vtkMRMLNode *node) VTK_OVERRIDE;
 
   /// Copy sequence index information (index name, unit, type, values, etc)
   /// Does not copy data nodes.
@@ -67,8 +67,8 @@ public:
   /// Update sequence index to point to nodes
   void UpdateSequenceIndex();
 
-  /// Get unique node XML tag name (like Volume, Model) 
-  virtual const char* GetNodeTagName() {return "Sequence";};
+  /// Get unique node XML tag name (like Volume, Model)
+  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "Sequence";};
 
   /// Set index name (example: time)
   void SetIndexName(const std::string& str);
@@ -137,14 +137,14 @@ public:
 
   vtkMRMLScene* GetSequenceScene();
 
-  virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
+  virtual vtkMRMLStorageNode* CreateDefaultStorageNode() VTK_OVERRIDE;
 
   /// Returns vtkMRMLVolumeSequenceStorageNode or vtkMRMLLinearTransformSequenceStorageNode if applicable
   // (sequence contains volumes with the same type and geometry; or a list of linear transforms)
   /// and generic vtkMRMLSequenceStorageNode otherwise.
-  virtual std::string GetDefaultStorageNodeClassName(const char* filename = NULL);
+  virtual std::string GetDefaultStorageNodeClassName(const char* filename = NULL) VTK_OVERRIDE;
 
-  virtual void UpdateScene(vtkMRMLScene *scene);
+  virtual void UpdateScene(vtkMRMLScene *scene) VTK_OVERRIDE;
 
   /// Type of the index. Controls the behavior of sorting, finding, etc. Additional types may be added in the future, such as tag cloud, two-dimensional index, ...
   enum IndexTypes
