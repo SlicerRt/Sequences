@@ -8,7 +8,7 @@
 =========================================================================auto=*/
 ///  vtkMRMLVolumeSequenceStorageNode - MRML node that can read/write
 ///  a Sequence node containing volumes in a single NRRD file
-/// 
+///
 
 #ifndef __vtkMRMLVolumeSequenceStorageNode_h
 #define __vtkMRMLVolumeSequenceStorageNode_h
@@ -26,17 +26,17 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode :
   static vtkMRMLVolumeSequenceStorageNode *New();
   vtkTypeMacro(vtkMRMLVolumeSequenceStorageNode,vtkMRMLNRRDStorageNode);
 
-  virtual vtkMRMLNode* CreateNodeInstance();
+  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
-  /// 
+  ///
   /// Get node XML tag name (like Storage, Model)
-  virtual const char* GetNodeTagName()  {return "VolumeSequenceStorage";};
+  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "VolumeSequenceStorage";};
 
   /// Return true if the node can be read in.
-  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode);
+  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode) VTK_OVERRIDE;
 
   /// Return true if the node can be written by using the writer.
-  virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode);
+  virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode) VTK_OVERRIDE;
 
   /// Write the data. Returns 1 on success, 0 otherwise.
   ///
@@ -49,11 +49,11 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLVolumeSequenceStorageNode :
   /// The nrrd file will be formatted such as:
   /// "kinds: list domain domain domain"
 #endif
-  virtual int WriteDataInternal(vtkMRMLNode *refNode);
+  virtual int WriteDataInternal(vtkMRMLNode *refNode) VTK_OVERRIDE;
 
   ///
   /// Return a default file extension for writting
-  virtual const char* GetDefaultWriteFileExtension();
+  virtual const char* GetDefaultWriteFileExtension() VTK_OVERRIDE;
 
 protected:
   vtkMRMLVolumeSequenceStorageNode();
@@ -73,13 +73,13 @@ protected:
   /// "kinds: domain domain domain list"
 #endif
 
-  virtual int ReadDataInternal(vtkMRMLNode* refNode);
-  
-  /// Initialize all the supported write file types
-  virtual void InitializeSupportedReadFileTypes();
+  virtual int ReadDataInternal(vtkMRMLNode* refNode) VTK_OVERRIDE;
 
   /// Initialize all the supported write file types
-  virtual void InitializeSupportedWriteFileTypes();
+  virtual void InitializeSupportedReadFileTypes() VTK_OVERRIDE;
+
+  /// Initialize all the supported write file types
+  virtual void InitializeSupportedWriteFileTypes() VTK_OVERRIDE;
 };
 
 #endif
