@@ -90,7 +90,7 @@ qSlicerIO::IOFileType qSlicerMetafileReader::fileType() const
 //-----------------------------------------------------------------------------
 QStringList qSlicerMetafileReader::extensions() const
 {
-  return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd *.igs.mha *.igs.nrrd *.igs.mhd *.igs.nhdr)";
+  return QStringList() << "Sequence Metafile (*.seq.mha *.seq.mhd *.mha *.mhd)";
 }
 
 //-----------------------------------------------------------------------------
