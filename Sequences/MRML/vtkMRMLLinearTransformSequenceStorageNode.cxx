@@ -268,7 +268,7 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceFileTransforms(const 
       if (transformSequenceNodes.find(transform->GetName()) == transformSequenceNodes.end())
       {
         // Setup hierarchy structure
-        vtkMRMLSequenceNode* newTransformsSequenceNode = NULL;
+        vtkSmartPointer<vtkMRMLSequenceNode> newTransformsSequenceNode;
         if (numberOfCreatedNodes < static_cast<int>(createdNodes.size()))
         {
           // reuse supplied sequence node
@@ -278,7 +278,7 @@ int vtkMRMLLinearTransformSequenceStorageNode::ReadSequenceFileTransforms(const 
         else
         {
           // Create new sequence node
-          newTransformsSequenceNode = vtkMRMLSequenceNode::New();
+          newTransformsSequenceNode = vtkSmartPointer<vtkMRMLSequenceNode>::New();
           createdNodes.push_back(newTransformsSequenceNode);
         }
         numberOfCreatedNodes++;
