@@ -42,7 +42,7 @@ class VTK_SLICER_SEQUENCEBROWSER_MODULE_MRML_EXPORT vtkMRMLSequenceBrowserNode :
 public:
   static vtkMRMLSequenceBrowserNode *New();
   vtkTypeMacro(vtkMRMLSequenceBrowserNode,vtkMRMLNode);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /// ProxyNodeModifiedEvent is invoked when a proxy node is modified
   enum
@@ -69,19 +69,19 @@ public:
   };
 
   /// Create instance of a GAD node.
-  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
+  virtual vtkMRMLNode* CreateNodeInstance() override;
 
   /// Set node attributes from name/value pairs
-  virtual void ReadXMLAttributes( const char** atts) VTK_OVERRIDE;
+  virtual void ReadXMLAttributes( const char** atts) override;
 
   /// Write this node's information to a MRML file in XML format.
-  virtual void WriteXML(ostream& of, int indent) VTK_OVERRIDE;
+  virtual void WriteXML(ostream& of, int indent) override;
 
   /// Copy the node's attributes to this object
-  virtual void Copy(vtkMRMLNode *node) VTK_OVERRIDE;
+  virtual void Copy(vtkMRMLNode *node) override;
 
   /// Get unique node XML tag name (like Volume, Model)
-  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "SequenceBrowser";};
+  virtual const char* GetNodeTagName() override {return "SequenceBrowser";};
 
   /// Set the sequence data node.
   /// Returns the new proxy node postfix.
@@ -279,7 +279,7 @@ public:
   void SetSaveChanges(vtkMRMLSequenceNode* sequenceNode, bool save);
 
   /// Process MRML node events for recording of the proxy nodes
-  void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData ) VTK_OVERRIDE;
+  void ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData ) override;
 
   /// Save state of all proxy nodes that recording is enabled for
   virtual void SaveProxyNodesState();
@@ -295,7 +295,7 @@ protected:
   void FixSequenceNodeReferenceRoleName();
 
   /// Called whenever a new node reference is added
-  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference) VTK_OVERRIDE;
+  virtual void OnNodeReferenceAdded(vtkMRMLNodeReference* nodeReference) override;
 
   std::string GenerateSynchronizationPostfix();
   std::string GetSynchronizationPostfixFromSequence(vtkMRMLSequenceNode* sequenceNode);

@@ -36,22 +36,22 @@ class VTK_SLICER_SEQUENCES_MODULE_MRML_EXPORT vtkMRMLLinearTransformSequenceStor
   static vtkMRMLLinearTransformSequenceStorageNode *New();
   vtkTypeMacro(vtkMRMLLinearTransformSequenceStorageNode,vtkMRMLNRRDStorageNode);
 
-  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
+  virtual vtkMRMLNode* CreateNodeInstance() override;
 
   ///
   /// Get node XML tag name (like Storage, Model)
-  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "LinearTransformSequenceStorage";};
+  virtual const char* GetNodeTagName() override {return "LinearTransformSequenceStorage";};
 
   /// Return true if the node can be read in.
-  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode) VTK_OVERRIDE;
+  virtual bool CanReadInReferenceNode(vtkMRMLNode *refNode) override;
 
   /// Return true if the node can be written by using thie writer.
-  virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode) VTK_OVERRIDE;
-  virtual int WriteDataInternal(vtkMRMLNode *refNode) VTK_OVERRIDE;
+  virtual bool CanWriteFromReferenceNode(vtkMRMLNode* refNode) override;
+  virtual int WriteDataInternal(vtkMRMLNode *refNode) override;
 
   ///
   /// Return a default file extension for writting
-  virtual const char* GetDefaultWriteFileExtension() VTK_OVERRIDE;
+  virtual const char* GetDefaultWriteFileExtension() override;
 
   /// Read all the fields in the metaimage file header.
   /// If sequence nodes are passed in createdNodes then they will be reused. New sequence nodes will be created if there are more transforms
@@ -75,13 +75,13 @@ protected:
   /// Returns 0 by default (read not supported).
   /// This implementation delegates most everything to the superclass
   /// but it has an early exit if the file to be read is incompatible.
-  virtual int ReadDataInternal(vtkMRMLNode* refNode) VTK_OVERRIDE;
+  virtual int ReadDataInternal(vtkMRMLNode* refNode) override;
 
   /// Initialize all the supported write file types
-  virtual void InitializeSupportedReadFileTypes() VTK_OVERRIDE;
+  virtual void InitializeSupportedReadFileTypes() override;
 
   /// Initialize all the supported write file types
-  virtual void InitializeSupportedWriteFileTypes() VTK_OVERRIDE;
+  virtual void InitializeSupportedWriteFileTypes() override;
 };
 
 #endif
