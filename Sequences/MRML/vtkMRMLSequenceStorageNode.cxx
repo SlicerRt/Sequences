@@ -166,11 +166,12 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     vtkNew<vtkMRMLSequenceNode> embeddedSequenceNode;
     embeddedSequenceNode->CopySequenceIndex(sequenceNode);
     embeddedSequenceNode->SetSingletonTag("SequenceIndex");
+
+    // We add a singleton node to the scene.
+    // If there was a SequenceIndex node in the scene already then it will be overwritten.
     sequenceScene->AddNode(embeddedSequenceNode.GetPointer());
 
     success = WriteToMRB(fullName.c_str(), sequenceScene);
-
-    sequenceScene->RemoveNode(embeddedSequenceNode.GetPointer());
   }
   else
   {
