@@ -25,6 +25,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QFontDatabase>
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Markups
@@ -55,7 +56,8 @@ void qMRMLSequenceBrowserSeekWidgetPrivate::init()
 {
   Q_Q(qMRMLSequenceBrowserSeekWidget);
   this->setupUi(q);
-  QObject::connect( this->slider_IndexValue, SIGNAL(valueChanged(int)), q, SLOT(setSelectedItemNumber(int)) );  
+  this->label_IndexValue->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  QObject::connect( this->slider_IndexValue, SIGNAL(valueChanged(int)), q, SLOT(setSelectedItemNumber(int)) );
   q->updateWidgetFromMRML();
 }
 
@@ -105,7 +107,7 @@ void qMRMLSequenceBrowserSeekWidget::setSelectedItemNumber(int itemNumber)
     return;
   }
   int selectedItemNumber=-1;
-  vtkMRMLSequenceNode* sequenceNode=d->SequenceBrowserNode->GetMasterSequenceNode();  
+  vtkMRMLSequenceNode* sequenceNode=d->SequenceBrowserNode->GetMasterSequenceNode();
   if (sequenceNode!=NULL && itemNumber>=0)
   {
     if (itemNumber<sequenceNode->GetNumberOfDataNodes())
@@ -155,6 +157,21 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     {
       // display as index value (12.34sec)
       std::string indexValue = sequenceNode->GetNthIndexValue(selectedItemNumber);
+      vtkVariant indexVariant = indexValue;
+      bool success = false;
+      float floatValue = indexVariant.ToFloat(&success);
+      if (success)
+      {
+        std::string formattedString(64, '\0');
+        std::stringstream formatSS;
+        formatSS << "%." << d->SequenceBrowserNode->GetIndexDisplayDecimals() << "f";
+        std::string indexDisplayFormat = formatSS.str();
+        int writtenSize = std::snprintf(&formattedString[0], formattedString.size(), indexDisplayFormat.c_str(), floatValue);
+        formattedString.resize(writtenSize);
+        indexValue = formattedString;
+      }
+
+
       if (!indexValue.empty())
       {
         d->label_IndexValue->setText(indexValue.c_str());
@@ -180,7 +197,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->label_IndexValue->setText("");
     d->label_IndexUnit->setText("");
     d->slider_IndexValue->setValue(0);
-  }  
+  }
 }
 
 //-----------------------------------------------------------------------------

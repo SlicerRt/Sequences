@@ -161,14 +161,14 @@ vtkSlicerSequenceBrowserLogic*
 qSlicerSequenceBrowserModuleWidgetPrivate::logic() const
 {
   Q_Q(const qSlicerSequenceBrowserModuleWidget);
-  
+
   vtkSlicerSequenceBrowserLogic* logic=vtkSlicerSequenceBrowserLogic::SafeDownCast(q->logic());
   if (logic==NULL)
   {
     qCritical() << "Sequence browser logic is invalid";
   }
   return logic;
-} 
+}
 
 //-----------------------------------------------------------------------------
 qMRMLSequenceBrowserToolBar* qSlicerSequenceBrowserModuleWidgetPrivate::toolBar()
@@ -276,7 +276,7 @@ void qSlicerSequenceBrowserModuleWidgetPrivate::updateInteractiveCharting()
       double *crosshairPositionDouble_IJK = worldToIjkTransform->TransformDoublePoint(croshairPosition_RAS);
       int croshairPosition_IJK[3]={vtkMath::Round(crosshairPositionDouble_IJK[0]), vtkMath::Round(crosshairPositionDouble_IJK[1]), vtkMath::Round(crosshairPositionDouble_IJK[2])};
       int* imageExtent = vNode->GetImageData()->GetExtent();
-      bool isCrosshairInsideImage = imageExtent[0]<=croshairPosition_IJK[0] && croshairPosition_IJK[0]<=imageExtent[1] 
+      bool isCrosshairInsideImage = imageExtent[0]<=croshairPosition_IJK[0] && croshairPosition_IJK[0]<=imageExtent[1]
           && imageExtent[2]<=croshairPosition_IJK[1] && croshairPosition_IJK[1]<=imageExtent[3]
           && imageExtent[4]<=croshairPosition_IJK[2] && croshairPosition_IJK[2]<=imageExtent[5];
       if (isCrosshairInsideImage)
@@ -368,7 +368,7 @@ void qSlicerSequenceBrowserModuleWidget::setMRMLScene(vtkMRMLScene* scene)
     {
     return;
     }
-  
+
   this->Superclass::setMRMLScene(scene);
   d->setAndObserveCrosshairNode();
 }
@@ -379,7 +379,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   Q_D(qSlicerSequenceBrowserModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
-  
+
   d->init();
 
   connect(d->MRMLNodeComboBox_ActiveBrowser, SIGNAL(currentNodeChanged(vtkMRMLNode*)), this, SLOT(activeBrowserNodeChanged(vtkMRMLNode*)));
@@ -388,12 +388,13 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect(d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)));
   connect(d->comboBox_RecordingSamplingMode, SIGNAL(currentIndexChanged(int)), this, SLOT(recordingSamplingModeChanged(int)));
   connect(d->comboBox_IndexDisplayMode, SIGNAL(currentIndexChanged(int)), this, SLOT(indexDisplayModeChanged(int)));
+  connect(d->spinBox_IndexDisplayDecimals, SIGNAL(valueChanged(int)), this, SLOT(indexDisplayDecimalsChanged(int)));
   connect(d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()));
   connect(d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()));
   d->pushButton_AddSequenceNode->setIcon( QIcon(":/Icons/Add.png" ));
   d->pushButton_RemoveSequenceNode->setIcon(QIcon(":/Icons/Remove.png"));
 
-  
+
   qMRMLSequenceBrowserToolBar* toolBar = d->toolBar();
   if (toolBar)
   {
@@ -417,7 +418,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   tableWidget_SynchronizedSequenceNodes_HeaderView-> setSectionResizeMode(SYNCH_NODES_OVERWRITE_PROXY_NAME_COLUMN, QHeaderView::ResizeToContents);
   tableWidget_SynchronizedSequenceNodes_HeaderView-> setSectionResizeMode(SYNCH_NODES_SAVE_CHANGES_COLUMN, QHeaderView::ResizeToContents);
 #endif
-  
+
   tableWidget_SynchronizedSequenceNodes_HeaderView->setStretchLastSection(false);
 
   d->tableWidget_SynchronizedSequenceNodes->setColumnWidth(SYNCH_NODES_NAME_COLUMN, 200);
@@ -520,7 +521,7 @@ void qSlicerSequenceBrowserModuleWidget::onMRMLSceneEndCloseEvent()
     return;
     }
   this->refreshSynchronizedSequenceNodesTable();
-} 
+}
 
 
 //-----------------------------------------------------------------------------
@@ -528,7 +529,7 @@ void qSlicerSequenceBrowserModuleWidget::exit()
 {
   this->Superclass::exit();
   this->qvtkDisconnectAll();
-} 
+}
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* node)
@@ -541,7 +542,7 @@ void qSlicerSequenceBrowserModuleWidget::activeBrowserNodeChanged(vtkMRMLNode* n
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::sequenceNodeChanged(vtkMRMLNode* inputNode)
 {
-  vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);  
+  vtkMRMLSequenceNode* sequenceNode = vtkMRMLSequenceNode::SafeDownCast(inputNode);
   this->setMasterSequenceNode(sequenceNode);
 }
 
@@ -590,6 +591,17 @@ void qSlicerSequenceBrowserModuleWidget::indexDisplayModeChanged(int index)
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSequenceBrowserModuleWidget::indexDisplayDecimalsChanged(int decimals)
+{
+  Q_D(qSlicerSequenceBrowserModuleWidget);
+  if (d->ActiveBrowserNode == NULL)
+  {
+    return; // no active node, nothing to update
+  }
+  d->ActiveBrowserNode->SetIndexDisplayDecimals(decimals);
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* caller)
 {
   Q_UNUSED(caller);
@@ -600,7 +612,7 @@ void qSlicerSequenceBrowserModuleWidget::onActiveBrowserNodeModified(vtkObject* 
 void qSlicerSequenceBrowserModuleWidget::onMRMLInputSequenceInputNodeModified(vtkObject* inputNode)
 {
   Q_UNUSED(inputNode);
-  this->updateWidgetFromMRML();  
+  this->updateWidgetFromMRML();
 }
 
 // --------------------------------------------------------------------------
@@ -669,7 +681,7 @@ void qSlicerSequenceBrowserModuleWidget::setMasterSequenceNode(vtkMRMLSequenceNo
     }
 
     d->ActiveBrowserNode->EndModify(oldModify);
-  }   
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -761,6 +773,10 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   d->comboBox_IndexDisplayMode->setCurrentIndex(d->ActiveBrowserNode->GetIndexDisplayMode());
   d->comboBox_IndexDisplayMode->blockSignals(wasBlocked);
 
+  wasBlocked = d->spinBox_IndexDisplayDecimals->blockSignals(true);
+  d->spinBox_IndexDisplayDecimals->setValue(d->ActiveBrowserNode->GetIndexDisplayDecimals());
+  d->spinBox_IndexDisplayDecimals->blockSignals(wasBlocked);
+
   this->refreshSynchronizedSequenceNodesTable();
 }
 
@@ -799,7 +815,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     return;
   }
   // A valid active browser node is selected
-  vtkMRMLSequenceNode* sequenceNode = d->ActiveBrowserNode->GetMasterSequenceNode();  
+  vtkMRMLSequenceNode* sequenceNode = d->ActiveBrowserNode->GetMasterSequenceNode();
   if (sequenceNode==NULL)
   {
     d->tableWidget_SynchronizedSequenceNodes->setRowCount(0); // clear() would not actually remove the rows
@@ -882,7 +898,7 @@ void qSlicerSequenceBrowserModuleWidget::refreshSynchronizedSequenceNodesTable()
     d->tableWidget_SynchronizedSequenceNodes->setCellWidget(i, SYNCH_NODES_SAVE_CHANGES_COLUMN, saveChangesCheckbox);
 
     QTableWidgetItem* nameItem = new QTableWidgetItem( QString(syncedNode->GetName()) );
-    d->tableWidget_SynchronizedSequenceNodes->setItem(i, SYNCH_NODES_NAME_COLUMN, nameItem);    
+    d->tableWidget_SynchronizedSequenceNodes->setItem(i, SYNCH_NODES_NAME_COLUMN, nameItem);
 
     vtkMRMLNode* proxyNode = d->ActiveBrowserNode->GetProxyNode(syncedNode);
     qMRMLNodeComboBox* proxyNodeComboBox = new qMRMLNodeComboBox();
@@ -927,7 +943,7 @@ void qSlicerSequenceBrowserModuleWidget::sequenceNodeNameEdited(int row, int col
   }
 
   std::string newSequenceNodeName = d->tableWidget_SynchronizedSequenceNodes->item(row, column)->text().toStdString();
-  
+
   QWidget* proxyNodeComboBox = d->tableWidget_SynchronizedSequenceNodes->cellWidget(row, SYNCH_NODES_PROXY_COLUMN);
   std::string synchronizedNodeID = proxyNodeComboBox->property("MRMLNodeID").toString().toLatin1().constData();
   vtkMRMLSequenceNode* synchronizedNode = vtkMRMLSequenceNode::SafeDownCast( this->mrmlScene()->GetNodeByID(synchronizedNodeID) );
@@ -945,7 +961,7 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateCh
     qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodePlaybackStateChanged: Invalid activeBrowserNode";
     return;
   }
-  
+
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
@@ -968,7 +984,7 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateC
     qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeRecordingStateChanged: Invalid activeBrowserNode";
     return;
   }
-  
+
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
@@ -991,7 +1007,7 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeOverwriteProxyN
     qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeOverwriteProxyNameStateChanged: Invalid activeBrowserNode";
     return;
   }
-  
+
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
@@ -1014,7 +1030,7 @@ void qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeSaveChangesStat
     qCritical() << "qSlicerSequenceBrowserModuleWidget::synchronizedSequenceNodeSaveChangesStateChanged: Invalid activeBrowserNode";
     return;
   }
-  
+
   QCheckBox* senderCheckbox = dynamic_cast<QCheckBox*>(sender());
   if (!senderCheckbox)
   {
@@ -1037,7 +1053,7 @@ void qSlicerSequenceBrowserModuleWidget::onProxyNodeChanged(vtkMRMLNode* newProx
     qCritical() << "qSlicerSequenceBrowserModuleWidget::onProxyNodeChanged: Invalid activeBrowserNode";
     return;
   }
-  
+
   qMRMLNodeComboBox* senderComboBox = dynamic_cast<qMRMLNodeComboBox*>(sender());
   if (!senderComboBox)
   {
