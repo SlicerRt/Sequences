@@ -61,7 +61,7 @@ struct vtkMRMLSequenceBrowserNode::SynchronizationProperties
     SaveChanges(false) // to prevent accidental sequence node changes by default
   {
   }
-  
+
   void FromString( std::string str );
   std::string ToString();
 
@@ -126,6 +126,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 , RecordMasterOnly(false)
 , RecordingSamplingMode(vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
 , IndexDisplayMode(vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue)
+, IndexDisplayDecimals(2)
 , LastPostfixIndex(0)
 {
   this->SetHideFromEditors(false);
@@ -141,13 +142,14 @@ vtkMRMLSequenceBrowserNode::~vtkMRMLSequenceBrowserNode()
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
 {
+  // TODO: Convert to use MRML node macros
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
 
   of << indent << " playbackActive=\"" << (this->PlaybackActive ? "true" : "false") << "\"";
-  of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\""; 
+  of << indent << " playbackRateFps=\"" << this->PlaybackRateFps << "\"";
   of << indent << " playbackItemSkippingEnabled=\"" << (this->PlaybackItemSkippingEnabled ? "true" : "false") << "\"";
-  of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";  
+  of << indent << " playbackLooped=\"" << (this->PlaybackLooped ? "true" : "false") << "\"";
   of << indent << " selectedItemNumber=\"" << this->SelectedItemNumber << "\"";
   of << indent << " recordingActive=\"" << (this->RecordingActive ? "true" : "false") << "\"";
   of << indent << " recordOnMasterModifiedOnly=\"" << (this->RecordMasterOnly ? "true" : "false") << "\"";
@@ -163,11 +165,12 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   {
     of << indent << " indexDisplayMode=\"" << indexDisplayModeString << "\"";
   }
+  of << indent << "indexDisplayDecimals=\"" << IndexDisplayDecimals << "\"";
 
   of << indent << " virtualNodePostfixes=\""; // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
   for(std::vector< std::string >::iterator roleNameIt=this->SynchronizationPostfixes.begin();
     roleNameIt!=this->SynchronizationPostfixes.end(); ++roleNameIt)
-  { 
+  {
     if (roleNameIt!=this->SynchronizationPostfixes.begin())
     {
       // print separator before printing the (if not the first element)
@@ -188,18 +191,19 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
 {
+  // TODO: Convert to use MRML node macros
   vtkMRMLNode::ReadXMLAttributes(atts);
 
   // Read all MRML node attributes from two arrays of names and values
   const char* attName;
   const char* attValue;
-  while (*atts != NULL) 
+  while (*atts != NULL)
   {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "playbackActive")) 
+    if (!strcmp(attName, "playbackActive"))
     {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
       {
         this->SetPlaybackActive(1);
       }
@@ -208,7 +212,7 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetPlaybackActive(0);
       }
     }
-    else if (!strcmp(attName, "playbackRateFps")) 
+    else if (!strcmp(attName, "playbackRateFps"))
     {
       std::stringstream ss;
       ss << attValue;
@@ -227,9 +231,9 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetPlaybackItemSkippingEnabled(0);
       }
     }
-    else if (!strcmp(attName, "playbackLooped")) 
+    else if (!strcmp(attName, "playbackLooped"))
     {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
       {
         this->SetPlaybackLooped(1);
       }
@@ -238,7 +242,7 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
         this->SetPlaybackLooped(0);
       }
     }
-    else if (!strcmp(attName, "selectedItemNumber")) 
+    else if (!strcmp(attName, "selectedItemNumber"))
     {
       std::stringstream ss;
       ss << attValue;
@@ -246,9 +250,9 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       ss >> selectedItemNumber;
       this->SetSelectedItemNumber(selectedItemNumber);
     }
-    else if (!strcmp(attName, "recordingActive")) 
+    else if (!strcmp(attName, "recordingActive"))
     {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
       {
         this->SetRecordingActive(1);
       }
@@ -288,6 +292,14 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       }
       SetIndexDisplayMode(indexDisplayMode);
     }
+    else if (!strcmp(attName, "indexDisplayDecimals"))
+    {
+      std::stringstream ss;
+      ss << attValue;
+      int indexDisplayDecimals = 0;
+      ss >> indexDisplayDecimals;
+      this->SetIndexDisplayDecimals(indexDisplayDecimals);
+    }
     else if (!strcmp(attName, "virtualNodePostfixes")) // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
     {
       this->SynchronizationPostfixes.clear();
@@ -322,6 +334,7 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
 // Does NOT copy: ID, FilePrefix, Name, VolumeID
 void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
 {
+  // TODO: Convert to use MRML node macros
   vtkMRMLSequenceBrowserNode* node = vtkMRMLSequenceBrowserNode::SafeDownCast(anode);
   if (node == NULL)
   {
@@ -346,6 +359,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   this->SetRecordMasterOnly(node->GetRecordMasterOnly());
   this->SetRecordingSamplingMode(node->GetRecordingSamplingMode());
   this->SetIndexDisplayMode(node->GetIndexDisplayMode());
+  this->SetIndexDisplayDecimals(node->GetIndexDisplayDecimals());
   this->SetRecordingActive(node->GetRecordingActive());
 
   this->SetSelectedItemNumber(node->GetSelectedItemNumber());
@@ -356,6 +370,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
 //----------------------------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
 {
+  // TODO: Convert to use MRML node macros
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << " Playback active: " << (this->PlaybackActive ? "true" : "false") << '\n';
@@ -367,6 +382,7 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Recording on master modified only: " << (this->RecordMasterOnly ? "true" : "false") << '\n';
   os << indent << " Recording sampling mode: " << this->GetRecordingSamplingModeAsString() << "\n";
   os << indent << " Index display mode: " << this->GetIndexDisplayModeAsString() << "\n";
+  os << indent << " Index display decimals: " << this->GetIndexDisplayDecimals() << "\n";
 
   os << indent << " Sequence nodes:\n";
   if (this->SynchronizationPostfixes.empty())
@@ -498,8 +514,8 @@ vtkMRMLSequenceNode* vtkMRMLSequenceBrowserNode::GetMasterSequenceNode()
   if (this->SynchronizationPostfixes.empty())
   {
     return NULL;
-  }  
-  std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+this->SynchronizationPostfixes[0];  
+  }
+  std::string sequenceNodeReferenceRole=SEQUENCE_NODE_REFERENCE_ROLE_BASE+this->SynchronizationPostfixes[0];
   vtkMRMLSequenceNode* node=vtkMRMLSequenceNode::SafeDownCast(this->GetNodeReference(sequenceNodeReferenceRole.c_str()));
   return node;
 }
@@ -616,7 +632,7 @@ vtkMRMLNode* vtkMRMLSequenceBrowserNode::AddProxyNode(vtkMRMLNode* sourceProxyNo
   }
 
   bool oldModify=this->StartModify();
-  
+
   std::string rolePostfix=this->GetSynchronizationPostfixFromSequence(sequenceNode);
   if (rolePostfix.empty())
   {
@@ -1102,7 +1118,7 @@ void vtkMRMLSequenceBrowserNode::OnNodeReferenceAdded(vtkMRMLNodeReference* node
   if (std::string(nodeReference->GetReferenceRole()).find( PROXY_NODE_REFERENCE_ROLE_BASE ) != std::string::npos)
   {
     // Need to observe the correct events after scene loading
-    this->SetAndObserveNodeReferenceID( nodeReference->GetReferenceRole(), nodeReference->GetReferencedNodeID(), 
+    this->SetAndObserveNodeReferenceID( nodeReference->GetReferenceRole(), nodeReference->GetReferencedNodeID(),
       vtkMRMLNodeSequencer::GetInstance()->GetNodeSequencer(nodeReference->GetReferencedNode())->GetRecordingEvents());
     // TODO: check if nodeReference->GetReferencedNode() is already valid here
   }

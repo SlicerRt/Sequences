@@ -169,6 +169,11 @@ public:
   vtkGetMacro(IndexDisplayMode, int);
   virtual std::string GetIndexDisplayModeAsString();
 
+  /// Set number of index value display decimals
+  vtkSetMacro(IndexDisplayDecimals, int);
+  /// Get number of index value display decimals
+  vtkGetMacro(IndexDisplayDecimals, int);
+
   /// Helper functions for converting between string and code representation of index display modes
   static std::string GetIndexDisplayModeAsString(int indexDisplayMode);
   static int GetIndexDisplayModeFromString(const std::string &indexDisplayModeString);
@@ -314,6 +319,7 @@ protected:
   bool RecordMasterOnly;
   int RecordingSamplingMode;
   int IndexDisplayMode;
+  int IndexDisplayDecimals;
 
   // Unique postfixes for storing references to sequence nodes, proxy nodes, and properties
   // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix

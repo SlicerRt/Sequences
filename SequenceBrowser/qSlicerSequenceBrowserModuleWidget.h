@@ -53,6 +53,7 @@ protected slots:
   void recordMasterOnlyChanged(bool enabled);
   void recordingSamplingModeChanged(int index);
   void indexDisplayModeChanged(int index);
+  void indexDisplayDecimalsChanged(int decimals);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void updateChart();
@@ -75,7 +76,7 @@ protected slots:
   void onMRMLSceneEndImportEvent();
   void onMRMLSceneEndRestoreEvent();
   void onMRMLSceneEndBatchProcessEvent();
-  void onMRMLSceneEndCloseEvent(); 
+  void onMRMLSceneEndCloseEvent();
 
 protected:
   void updateWidgetFromMRML();
@@ -84,8 +85,8 @@ protected:
   void refreshSynchronizedSequenceNodesTable();
 
   QScopedPointer<qSlicerSequenceBrowserModuleWidgetPrivate> d_ptr;
-  
-  virtual void setup();  
+
+  virtual void setup();
   virtual void enter();
   void exit();
 
