@@ -157,7 +157,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     {
       // display as index value (12.34sec)
       std::string indexValue = sequenceNode->GetNthIndexValue(selectedItemNumber);
-      vtkVariant indexVariant = indexValue;
+      vtkVariant indexVariant = vtkVariant(indexValue.c_str());
       bool success = false;
       float floatValue = indexVariant.ToFloat(&success);
       if (success)
