@@ -53,7 +53,7 @@ protected slots:
   void recordMasterOnlyChanged(bool enabled);
   void recordingSamplingModeChanged(int index);
   void indexDisplayModeChanged(int index);
-  void indexDisplayDecimalsChanged(int decimals);
+  void indexDisplayFormatChanged(const QString& format);
   void onMRMLInputSequenceInputNodeModified(vtkObject* caller);
   void onActiveBrowserNodeModified(vtkObject* caller);
   void updateChart();

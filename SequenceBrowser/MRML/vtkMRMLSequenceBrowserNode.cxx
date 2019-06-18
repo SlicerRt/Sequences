@@ -37,11 +37,19 @@
 #include <vtkCollectionIterator.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
+#include <vtksys/RegularExpression.hxx>
 #include <vtkTimerLog.h>
+#include <vtkVariant.h>
 
 // STD includes
 #include <sstream>
 #include <algorithm> // for std::find
+#include <regex>
+#if defined(_WIN32) && !defined(__CYGWIN__)
+#  define SNPRINTF _snprintf
+#else
+#  define SNPRINTF snprintf
+#endif
 
 // First reference is the master sequence node, subsequent references are the synchronized sequence nodes
 static const char* SEQUENCE_NODE_REFERENCE_ROLE_BASE = "sequenceNodeRef"; // Old: rootNodeRef
@@ -126,7 +134,7 @@ vtkMRMLSequenceBrowserNode::vtkMRMLSequenceBrowserNode()
 , RecordMasterOnly(false)
 , RecordingSamplingMode(vtkMRMLSequenceBrowserNode::SamplingLimitedToPlaybackFrameRate)
 , IndexDisplayMode(vtkMRMLSequenceBrowserNode::IndexDisplayAsIndexValue)
-, IndexDisplayDecimals(2)
+, IndexDisplayFormat("%.2f")
 , LastPostfixIndex(0)
 {
   this->SetHideFromEditors(false);
@@ -165,7 +173,7 @@ void vtkMRMLSequenceBrowserNode::WriteXML(ostream& of, int nIndent)
   {
     of << indent << " indexDisplayMode=\"" << indexDisplayModeString << "\"";
   }
-  of << indent << "indexDisplayDecimals=\"" << IndexDisplayDecimals << "\"";
+  of << indent << "indexDisplayFormat=\"" << this->GetIndexDisplayFormat() << "\"";
 
   of << indent << " virtualNodePostfixes=\""; // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
   for(std::vector< std::string >::iterator roleNameIt=this->SynchronizationPostfixes.begin();
@@ -298,7 +306,17 @@ void vtkMRMLSequenceBrowserNode::ReadXMLAttributes(const char** atts)
       ss << attValue;
       int indexDisplayDecimals = 0;
       ss >> indexDisplayDecimals;
-      this->SetIndexDisplayDecimals(indexDisplayDecimals);
+
+      std::stringstream indexDisplayFormatSS;
+      indexDisplayFormatSS << "%." << indexDisplayDecimals << "f";
+      this->SetIndexDisplayFormat(indexDisplayFormatSS.str());
+    }
+    else if (!strcmp(attName, "indexDisplayFormat"))
+    {
+      if (attValue)
+      {
+        this->SetIndexDisplayFormat(attValue);
+      }
     }
     else if (!strcmp(attName, "virtualNodePostfixes")) // TODO: Change to "synchronizationPostfixes", but need backwards-compatibility with "virtualNodePostfixes"
     {
@@ -359,7 +377,7 @@ void vtkMRMLSequenceBrowserNode::Copy(vtkMRMLNode *anode)
   this->SetRecordMasterOnly(node->GetRecordMasterOnly());
   this->SetRecordingSamplingMode(node->GetRecordingSamplingMode());
   this->SetIndexDisplayMode(node->GetIndexDisplayMode());
-  this->SetIndexDisplayDecimals(node->GetIndexDisplayDecimals());
+  this->SetIndexDisplayFormat(node->GetIndexDisplayFormat());
   this->SetRecordingActive(node->GetRecordingActive());
 
   this->SetSelectedItemNumber(node->GetSelectedItemNumber());
@@ -382,7 +400,7 @@ void vtkMRMLSequenceBrowserNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " Recording on master modified only: " << (this->RecordMasterOnly ? "true" : "false") << '\n';
   os << indent << " Recording sampling mode: " << this->GetRecordingSamplingModeAsString() << "\n";
   os << indent << " Index display mode: " << this->GetIndexDisplayModeAsString() << "\n";
-  os << indent << " Index display decimals: " << this->GetIndexDisplayDecimals() << "\n";
+  os << indent << " Index display format: " << this->GetIndexDisplayFormat() << "\n";
 
   os << indent << " Sequence nodes:\n";
   if (this->SynchronizationPostfixes.empty())
@@ -1443,4 +1461,91 @@ int vtkMRMLSequenceBrowserNode::GetIndexDisplayModeFromString(const std::string&
     }
   }
   return -1;
+}
+
+//-----------------------------------------------------------------------------
+std::string vtkMRMLSequenceBrowserNode::GetFormattedIndexValue(int index)
+{
+
+  vtkMRMLSequenceNode* sequenceNode = this->GetMasterSequenceNode();
+  if (!sequenceNode)
+  {
+    return "";
+  }
+
+  if (index < 0 || index >= sequenceNode->GetNumberOfDataNodes())
+  {
+    return "";
+  }
+
+  std::string indexValue = sequenceNode->GetNthIndexValue(index);
+  std::string formatString = this->GetIndexDisplayFormat();
+
+  std::string sprintfSpecifier;
+  std::string prefix;
+  std::string suffix;
+  bool argFound = vtkMRMLSequenceBrowserNode::ValidateFormatString(sprintfSpecifier, prefix, suffix, formatString, "fFgGeEs");
+  if (!argFound)
+  {
+    return indexValue;
+  }
+
+  std::string formattedString = std::string(512, '\0');
+
+  vtksys::RegularExpression regExForString("%.*s");
+  vtksys::RegularExpression regExForFloat("%.*[fFgGeE]");
+  if (argFound && regExForString.find(sprintfSpecifier))
+  {
+    SNPRINTF(&formattedString[0], formattedString.size(), sprintfSpecifier.c_str(), indexValue.c_str());
+  }
+  else if (argFound && regExForFloat.find(sprintfSpecifier))
+  {
+    vtkVariant indexVariant = vtkVariant(indexValue.c_str());
+    bool success = false;
+    float floatValue = indexVariant.ToDouble(&success);
+    if (success)
+    {
+      SNPRINTF(&formattedString[0], formattedString.size(), sprintfSpecifier.c_str(), floatValue);
+    }
+  }
+  else
+  {
+    return indexValue;
+  }
+
+  // Remove trailing null characters left over from sprintf
+  formattedString.erase(std::find(formattedString.begin(), formattedString.end(), '\0'), formattedString.end());
+  formattedString = prefix + formattedString + suffix;
+  return formattedString;
+}
+
+
+//-----------------------------------------------------------------------------
+bool vtkMRMLSequenceBrowserNode::ValidateFormatString(std::string& validatedFormat, std::string& prefix, std::string& suffix,
+                                                             const std::string& requestedFormat, const std::string& typeString)
+{
+  // This regex finds sprintf specifications. Only the first is used to format the index value
+  std::regex specifierRegex;
+  std::smatch specifierMatch;
+  try
+  {
+    // Regex from: https://stackoverflow.com/a/8915445
+    specifierRegex = std::regex(R"###(%(?:\d+\$)?[+-]?(?:[ 0]|'.{1})?-?\d*(?:\.\d+)?[)###" + typeString + "]");
+    std::regex_search(requestedFormat, specifierMatch, specifierRegex);
+  }
+  catch (const std::regex_error& e)
+  {
+    vtkErrorWithObjectMacro(nullptr, "Sequence browser regex error " << e.what());
+    return false;
+  }
+
+  if (specifierMatch.size() < 1)
+  {
+    return false;
+  }
+
+  validatedFormat = specifierMatch.str(0);
+  prefix = specifierMatch.prefix().str();
+  suffix = specifierMatch.suffix().str();
+  return true;
 }
