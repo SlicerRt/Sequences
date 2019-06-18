@@ -2,7 +2,7 @@ set(KIT qSlicer${MODULE_NAME}Module)
 
 #-----------------------------------------------------------------------------
 set(KIT_TEST_SRCS
-  #qSlicer${MODULE_NAME}ModuleTest.cxx
+  vtkMRMLSequenceBrowserNodeTest1.cxx
   )
 
 #-----------------------------------------------------------------------------
@@ -13,4 +13,4 @@ slicerMacroConfigureModuleCxxTestDriver(
   )
 
 #-----------------------------------------------------------------------------
-#simple_test(qSlicer${MODULE_NAME}ModuleTest)
+simple_test(vtkMRMLSequenceBrowserNodeTest1)

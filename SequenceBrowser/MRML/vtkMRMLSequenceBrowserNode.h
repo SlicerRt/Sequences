@@ -169,10 +169,10 @@ public:
   vtkGetMacro(IndexDisplayMode, int);
   virtual std::string GetIndexDisplayModeAsString();
 
-  /// Set number of index value display decimals
-  vtkSetMacro(IndexDisplayDecimals, int);
-  /// Get number of index value display decimals
-  vtkGetMacro(IndexDisplayDecimals, int);
+  /// Set format of index value display
+  vtkSetMacro(IndexDisplayFormat, std::string);
+  /// Get format of index value display
+  vtkGetMacro(IndexDisplayFormat, std::string);
 
   /// Helper functions for converting between string and code representation of index display modes
   static std::string GetIndexDisplayModeAsString(int indexDisplayMode);
@@ -289,6 +289,16 @@ public:
   /// Save state of all proxy nodes that recording is enabled for
   virtual void SaveProxyNodesState();
 
+  /// Returns the formatted index value, formatted using the sprintf string provided by IndexDisplayFormat
+  /// \sa SetIndexDisplayFormat() GetIndexDisplayFormat()
+  std::string GetFormattedIndexValue(int index);
+
+  /// Parses the requestedFormat string to find a validated format for the types contained in typeString.
+  /// validatedFormat is set to the first matching sprintf for the input types
+  /// prefix and suffix are set to the non-matching components of requestedFormat
+  static bool ValidateFormatString(std::string& validatedFormat, std::string& prefix, std::string& suffix,
+                                   const std::string& requestedFormat, const std::string& typeString);
+
 protected:
   vtkMRMLSequenceBrowserNode();
   ~vtkMRMLSequenceBrowserNode();
@@ -319,7 +329,7 @@ protected:
   bool RecordMasterOnly;
   int RecordingSamplingMode;
   int IndexDisplayMode;
-  int IndexDisplayDecimals;
+  std::string IndexDisplayFormat;
 
   // Unique postfixes for storing references to sequence nodes, proxy nodes, and properties
   // For example, a sequence node reference role name is SEQUENCE_NODE_REFERENCE_ROLE_BASE+synchronizationPostfix

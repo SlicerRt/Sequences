@@ -364,12 +364,16 @@
       <item row="5" column="0">
        <widget class="QLabel" name="label_IndexDisplayDecimals">
         <property name="text">
-         <string>Index display decimals:</string>
+         <string>Index display format:</string>
         </property>
        </widget>
       </item>
       <item row="5" column="1">
-       <widget class="QSpinBox" name="spinBox_IndexDisplayDecimals"/>
+       <widget class="QLineEdit" name="lineEdit_IndexDisplayFormat">
+        <property name="toolTip">
+         <string>Display index string in SPRINTF format. Only the first conversion specification is replaced. Availiable specifiers are: fFgGeEs.</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

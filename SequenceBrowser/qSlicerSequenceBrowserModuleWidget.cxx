@@ -388,7 +388,7 @@ void qSlicerSequenceBrowserModuleWidget::setup()
   connect(d->checkBox_RecordMasterOnly, SIGNAL(toggled(bool)), this, SLOT(recordMasterOnlyChanged(bool)));
   connect(d->comboBox_RecordingSamplingMode, SIGNAL(currentIndexChanged(int)), this, SLOT(recordingSamplingModeChanged(int)));
   connect(d->comboBox_IndexDisplayMode, SIGNAL(currentIndexChanged(int)), this, SLOT(indexDisplayModeChanged(int)));
-  connect(d->spinBox_IndexDisplayDecimals, SIGNAL(valueChanged(int)), this, SLOT(indexDisplayDecimalsChanged(int)));
+  connect(d->lineEdit_IndexDisplayFormat, SIGNAL(textEdited(const QString)), this, SLOT(indexDisplayFormatChanged(const QString)));
   connect(d->pushButton_AddSequenceNode, SIGNAL(clicked()), this, SLOT(onAddSequenceNodeButtonClicked()));
   connect(d->pushButton_RemoveSequenceNode, SIGNAL(clicked()), this, SLOT(onRemoveSequenceNodesButtonClicked()));
   d->pushButton_AddSequenceNode->setIcon( QIcon(":/Icons/Add.png" ));
@@ -591,14 +591,14 @@ void qSlicerSequenceBrowserModuleWidget::indexDisplayModeChanged(int index)
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSequenceBrowserModuleWidget::indexDisplayDecimalsChanged(int decimals)
+void qSlicerSequenceBrowserModuleWidget::indexDisplayFormatChanged(const QString& format)
 {
   Q_D(qSlicerSequenceBrowserModuleWidget);
   if (d->ActiveBrowserNode == NULL)
   {
     return; // no active node, nothing to update
   }
-  d->ActiveBrowserNode->SetIndexDisplayDecimals(decimals);
+  d->ActiveBrowserNode->SetIndexDisplayFormat(format.toStdString());
 }
 
 //-----------------------------------------------------------------------------
@@ -773,9 +773,11 @@ void qSlicerSequenceBrowserModuleWidget::updateWidgetFromMRML()
   d->comboBox_IndexDisplayMode->setCurrentIndex(d->ActiveBrowserNode->GetIndexDisplayMode());
   d->comboBox_IndexDisplayMode->blockSignals(wasBlocked);
 
-  wasBlocked = d->spinBox_IndexDisplayDecimals->blockSignals(true);
-  d->spinBox_IndexDisplayDecimals->setValue(d->ActiveBrowserNode->GetIndexDisplayDecimals());
-  d->spinBox_IndexDisplayDecimals->blockSignals(wasBlocked);
+  wasBlocked = d->lineEdit_IndexDisplayFormat->blockSignals(true);
+  int position = d->lineEdit_IndexDisplayFormat->cursorPosition();
+  d->lineEdit_IndexDisplayFormat->setText(QString::fromStdString(d->ActiveBrowserNode->GetIndexDisplayFormat()));
+  d->lineEdit_IndexDisplayFormat->setCursorPosition(position);
+  d->lineEdit_IndexDisplayFormat->blockSignals(wasBlocked);
 
   this->refreshSynchronizedSequenceNodesTable();
 }
