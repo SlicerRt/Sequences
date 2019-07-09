@@ -466,14 +466,13 @@ public:
 
 //----------------------------------------------------------------------------
 
-class MarkupsFiducialNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+class MarkupsNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 {
 public:
-  MarkupsFiducialNodeSequencer()
+  MarkupsNodeSequencer()
   {
-    this->RecordingEvents->InsertNextValue(vtkMRMLMarkupsFiducialNode::PointModifiedEvent);
-    this->SupportedNodeClassName = "vtkMRMLMarkupsFiducialNode";
-    this->SupportedNodeParentClassNames.push_back("vtkMRMLMarkupsNode");
+    this->RecordingEvents->InsertNextValue(vtkMRMLMarkupsNode::PointModifiedEvent);
+    this->SupportedNodeClassName = "vtkMRMLMarkupsNode";
     this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
@@ -485,9 +484,9 @@ public:
     // Don't copy with single-modified-event
     // TODO: check if default behavior is really not correct
     int oldModified = target->StartModify();
-    vtkMRMLMarkupsFiducialNode* targetMarkupsFiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(target);
-    vtkMRMLMarkupsFiducialNode* sourceMarkupsFiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(source);
-    targetMarkupsFiducialNode->Copy(sourceMarkupsFiducialNode);
+    vtkMRMLMarkupsNode* targetMarkupsNode = vtkMRMLMarkupsNode::SafeDownCast(target);
+    vtkMRMLMarkupsNode* sourceMarkupsNode = vtkMRMLMarkupsNode::SafeDownCast(source);
+    targetMarkupsNode->Copy(sourceMarkupsNode);
     target->EndModify(oldModified);
   }
 
@@ -702,7 +701,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new SliceNodeSequencer());
   this->RegisterNodeSequencer(new SliceCompositeNodeSequencer());
   this->RegisterNodeSequencer(new ViewNodeSequencer());
-  this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
+  this->RegisterNodeSequencer(new MarkupsNodeSequencer());
   this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
   this->RegisterNodeSequencer(new ROINodeSequencer());
 }
