@@ -471,8 +471,7 @@ class MarkupsFiducialNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
 public:
   MarkupsFiducialNodeSequencer()
   {
-    // TODO: check if a special event is needed
-    //this->RecordingEvents->InsertNextValue(vtkMRMLModelNode::PolyDataModifiedEvent);
+    this->RecordingEvents->InsertNextValue(vtkMRMLMarkupsFiducialNode::PointModifiedEvent);
     this->SupportedNodeClassName = "vtkMRMLMarkupsFiducialNode";
     this->SupportedNodeParentClassNames.push_back("vtkMRMLMarkupsNode");
     this->SupportedNodeParentClassNames.push_back("vtkMRMLDisplayableNode");
