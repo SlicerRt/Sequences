@@ -40,6 +40,7 @@
 #include <vtkMRMLViewNode.h>
 #include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLDoubleArrayNode.h>
+#include <vtkMRMLROINode.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
@@ -626,6 +627,30 @@ public:
 };
 
 //----------------------------------------------------------------------------
+
+class ROINodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  ROINodeSequencer()
+  {
+    this->SupportedNodeClassName = "vtkMRMLROINode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLTransformableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLROINode* targetROINode = vtkMRMLROINode::SafeDownCast(target);
+    vtkMRMLROINode* sourceROINode = vtkMRMLROINode::SafeDownCast(source);
+    targetROINode->CopyWithoutModifiedEvent(sourceROINode); // Copies the attributes, etc.
+    target->EndModify(oldModified);
+  }
+
+};
+
+//----------------------------------------------------------------------------
 #if VTK_MAJOR_VERSION <= 7 || (VTK_MAJOR_VERSION <= 8 && VTK_MINOR_VERSION <= 1)
   // Needed when we don't use the vtkStandardNewMacro.
   vtkInstantiatorNewMacro(vtkMRMLNodeSequencer);
@@ -680,6 +705,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new ViewNodeSequencer());
   this->RegisterNodeSequencer(new MarkupsFiducialNodeSequencer());
   this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
+  this->RegisterNodeSequencer(new ROINodeSequencer());
 }
 
 //----------------------------------------------------------------------------
