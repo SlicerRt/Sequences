@@ -178,6 +178,16 @@ std::string vtkMRMLNodeSequencer::NodeSequencer::GetDefaultSequenceStorageNodeCl
   return this->DefaultSequenceStorageNodeClassName;
 }
 
+void vtkMRMLNodeSequencer::NodeSequencer::CopyNodeAttributes(vtkMRMLNode* source, vtkMRMLNode* target)
+{
+  std::vector< std::string > attributeNames = source->GetAttributeNames();
+  for (std::vector< std::string >::iterator attributeNamesIt = attributeNames.begin();
+    attributeNamesIt != attributeNames.end(); ++attributeNamesIt)
+  {
+    target->SetAttribute(attributeNamesIt->c_str(), source->GetAttribute(attributeNamesIt->c_str()));
+  }
+}
+
 //----------------------------------------------------------------------------
 
 class ScalarVolumeNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
@@ -200,6 +210,7 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLVolumeNode* targetVolumeNode = vtkMRMLVolumeNode::SafeDownCast(target);
     vtkMRMLVolumeNode* sourceVolumeNode = vtkMRMLVolumeNode::SafeDownCast(source);
+    this->CopyNodeAttributes(source, target);
     // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix = vtkSmartPointer<vtkMatrix4x4>::New();
     sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
@@ -260,6 +271,7 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLVolumeNode* targetVolumeNode = vtkMRMLVolumeNode::SafeDownCast(target);
     vtkMRMLVolumeNode* sourceVolumeNode = vtkMRMLVolumeNode::SafeDownCast(source);
+    this->CopyNodeAttributes(source, target);
     // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkMatrix4x4> ijkToRasmatrix = vtkSmartPointer<vtkMatrix4x4>::New();
     sourceVolumeNode->GetIJKToRASMatrix(ijkToRasmatrix);
@@ -319,6 +331,7 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLSegmentationNode* targetSegmentationNode = vtkMRMLSegmentationNode::SafeDownCast(target);
     vtkMRMLSegmentationNode* sourceSegmentationNode = vtkMRMLSegmentationNode::SafeDownCast(source);
+    this->CopyNodeAttributes(source, target);
     // targetScalarVolumeNode->SetAndObserveTransformNodeID is not called, as we want to keep the currently applied transform
     vtkSmartPointer<vtkSegmentation> targetSegmentation = sourceSegmentationNode->GetSegmentation();
     if (!shallowCopy && targetSegmentation.GetPointer() != NULL)
@@ -352,6 +365,7 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLTransformNode* targetTransformNode = vtkMRMLTransformNode::SafeDownCast(target);
     vtkMRMLTransformNode* sourceTransformNode = vtkMRMLTransformNode::SafeDownCast(source);
+    this->CopyNodeAttributes(source, target);
     vtkAbstractTransform* sourceTransform;
     bool setAsTransformToParent = vtkMRMLTransformNode::IsAbstractTransformComputedFromInverse(sourceTransformNode->GetTransformFromParent());
     if (setAsTransformToParent)
@@ -412,6 +426,7 @@ public:
     int oldModified = target->StartModify();
     vtkMRMLModelNode* targetModelNode = vtkMRMLModelNode::SafeDownCast(target);
     vtkMRMLModelNode* sourceModelNode = vtkMRMLModelNode::SafeDownCast(source);
+    this->CopyNodeAttributes(source, target);
     vtkSmartPointer<vtkPolyData> targetPolyData = sourceModelNode->GetPolyData();
     if (!shallowCopy && targetPolyData.GetPointer()!=NULL)
     {
@@ -440,6 +455,7 @@ public:
     vtkMRMLSliceCompositeNode* targetNode = vtkMRMLSliceCompositeNode::SafeDownCast(target);
     vtkMRMLSliceCompositeNode* sourceNode = vtkMRMLSliceCompositeNode::SafeDownCast(source);
     int disabledModify = targetNode->StartModify();
+    this->CopyNodeAttributes(source, target);
     targetNode->SetBackgroundVolumeID(sourceNode->GetBackgroundVolumeID());
     targetNode->SetForegroundVolumeID(sourceNode->GetForegroundVolumeID());
     targetNode->SetLabelVolumeID(sourceNode->GetLabelVolumeID());
@@ -511,6 +527,7 @@ public:
     vtkMRMLCameraNode* targetCameraNode = vtkMRMLCameraNode::SafeDownCast(target);
     vtkMRMLCameraNode* sourceCameraNode = vtkMRMLCameraNode::SafeDownCast(source);
     int disabledModify = targetCameraNode->StartModify();
+    this->CopyNodeAttributes(source, target);
     targetCameraNode->SetPosition(sourceCameraNode->GetPosition());
     targetCameraNode->SetFocalPoint(sourceCameraNode->GetFocalPoint());
     targetCameraNode->SetViewUp(sourceCameraNode->GetViewUp());
@@ -543,6 +560,7 @@ public:
     vtkMRMLSliceNode* targetSliceNode = vtkMRMLSliceNode::SafeDownCast(target);
     vtkMRMLSliceNode* sourceSliceNode = vtkMRMLSliceNode::SafeDownCast(source);
     int disabledModify = targetSliceNode->StartModify();
+    this->CopyNodeAttributes(source, target);
     targetSliceNode->SetSliceVisible(sourceSliceNode->GetSliceVisible());
     targetSliceNode->GetSliceToRAS()->DeepCopy(sourceSliceNode->GetSliceToRAS());
     double* doubleVector = sourceSliceNode->GetFieldOfView();
@@ -583,6 +601,7 @@ public:
     vtkMRMLViewNode* targetNode = vtkMRMLViewNode::SafeDownCast(target);
     vtkMRMLViewNode* sourceNode = vtkMRMLViewNode::SafeDownCast(source);
     int disabledModify = targetNode->StartModify();
+    this->CopyNodeAttributes(source, target);
     targetNode->SetBoxVisible(sourceNode->GetBoxVisible());
     targetNode->SetAxisLabelsVisible(sourceNode->GetAxisLabelsVisible());
     targetNode->SetAxisLabelsCameraDependent(sourceNode->GetAxisLabelsCameraDependent());

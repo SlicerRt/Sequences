@@ -62,6 +62,8 @@ public:
     virtual std::string GetDefaultSequenceStorageNodeClassName();
 
   protected:
+    void CopyNodeAttributes(vtkMRMLNode* source, vtkMRMLNode* target);
+    
     vtkSmartPointer< vtkIntArray > RecordingEvents;
     // Name of the MRML node class that this sequencer supports.
     // It may be an abstract class.
