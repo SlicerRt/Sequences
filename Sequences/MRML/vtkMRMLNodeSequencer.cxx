@@ -180,11 +180,32 @@ std::string vtkMRMLNodeSequencer::NodeSequencer::GetDefaultSequenceStorageNodeCl
 
 void vtkMRMLNodeSequencer::NodeSequencer::CopyNodeAttributes(vtkMRMLNode* source, vtkMRMLNode* target)
 {
-  std::vector< std::string > attributeNames = source->GetAttributeNames();
-  for (std::vector< std::string >::iterator attributeNamesIt = attributeNames.begin();
-    attributeNamesIt != attributeNames.end(); ++attributeNamesIt)
+  std::vector< std::string > existingAttributeNames = target->GetAttributeNames();
+  // Update existing attributes (update value or remove)
+  for (std::vector< std::string >::iterator attributeNamesIt = existingAttributeNames.begin();
+    attributeNamesIt != existingAttributeNames.end(); ++attributeNamesIt)
   {
-    target->SetAttribute(attributeNamesIt->c_str(), source->GetAttribute(attributeNamesIt->c_str()));
+    if (source->GetAttribute(attributeNamesIt->c_str()))
+    {
+      // Attribute exists already, update value
+      target->SetAttribute(attributeNamesIt->c_str(), source->GetAttribute(attributeNamesIt->c_str()));
+    }
+    else
+    {
+      // Attribute does not exist anymore, remove it
+      target->RemoveAttribute(attributeNamesIt->c_str());
+    }
+  }
+  // Add new attributes (skip those that existed before)
+  std::vector< std::string > newAttributeNames = source->GetAttributeNames();
+  for (std::vector< std::string >::iterator attributeNamesIt = newAttributeNames.begin();
+    attributeNamesIt != newAttributeNames.end(); ++attributeNamesIt)
+  {
+    if (target->GetAttribute(attributeNamesIt->c_str()) == nullptr)
+    {
+      // New attribute, set it
+      target->SetAttribute(attributeNamesIt->c_str(), source->GetAttribute(attributeNamesIt->c_str()));
+    }
   }
 }
 

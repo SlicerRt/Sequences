@@ -146,6 +146,17 @@ int vtkMRMLSequenceStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 {
   vtkMRMLSequenceNode *sequenceNode = vtkMRMLSequenceNode::SafeDownCast(refNode);
 
+  // Custom nodes (such as vtkMRMLSceneView node) must be registered in the sequence scene,
+  // otherwise we could not create default storage nodes.
+  if (this->GetScene() && sequenceNode->GetSequenceScene())
+  {
+    this->GetScene()->CopyRegisteredNodesToScene(sequenceNode->GetSequenceScene());
+  }
+  else
+  {
+    vtkErrorMacro("Cannot register nodes in the sequence node");
+  }
+
   std::string fullName = this->GetFullNameFromFileName();
   if (fullName == std::string(""))
   {
@@ -443,6 +454,11 @@ void vtkMRMLSequenceStorageNode::ForceUniqueDataNodeFileNames(vtkMRMLSequenceNod
     {
       currStorableNode->AddDefaultStorageNode();
       currStorageNode = currStorableNode->GetStorageNode();
+    }
+    if (!currStorageNode)
+    {
+      // no need for storage node
+      continue;
     }
     std::stringstream uniqueFileNameStream;
     uniqueFileNameStream << currStorableNode->GetName(); // Note that special characters are dealt with by the application logic when writing scene
