@@ -278,9 +278,18 @@ void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
   vtkMRMLAbstractLogic* l = this->logic();
   vtkSlicerSequenceBrowserLogic * sequenceBrowserLogic = vtkSlicerSequenceBrowserLogic::SafeDownCast(l);
   if (sequenceBrowserLogic)
+  {
+    qSlicerApplication* application = qSlicerApplication::application();
+    if (application)
     {
-    sequenceBrowserLogic->UpdateAllProxyNodes();
+      application->pauseRender();
     }
+    sequenceBrowserLogic->UpdateAllProxyNodes();
+    if (application)
+    {
+      application->resumeRender();
+    }
+  }
 }
 
 //-----------------------------------------------------------------------------
