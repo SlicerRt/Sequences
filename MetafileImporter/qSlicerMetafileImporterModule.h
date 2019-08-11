@@ -49,28 +49,28 @@ public:
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
-  virtual QString helpText()const;
-  virtual QString acknowledgementText()const;
-  virtual QStringList contributors()const;
+  virtual QString helpText()const override;
+  virtual QString acknowledgementText()const override;
+  virtual QStringList contributors()const override;
 
-  virtual QIcon icon()const;
+  virtual QIcon icon()const override;
 
-  virtual QStringList categories()const;
-  virtual QStringList dependencies() const;
+  virtual QStringList categories()const override;
+  virtual QStringList dependencies() const override;
 
   /// Make this module hidden
-  virtual bool isHidden()const { return true; };
+  virtual bool isHidden()const override { return true; };
 
 protected:
 
   /// Initialize the module. Register the volumes reader/writer
-  virtual void setup();
+  virtual void setup() override;
 
   /// Create and return the widget representation associated to this module
-  virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
+  virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation() override;
 
   /// Create and return the logic associated to this module
-  virtual vtkMRMLAbstractLogic* createLogic();
+  virtual vtkMRMLAbstractLogic* createLogic() override;
 
 protected:
   QScopedPointer<qSlicerMetafileImporterModulePrivate> d_ptr;

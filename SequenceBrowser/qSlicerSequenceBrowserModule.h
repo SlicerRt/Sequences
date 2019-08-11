@@ -58,14 +58,14 @@ public:
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
-  virtual QString helpText()const;
-  virtual QString acknowledgementText()const;
-  virtual QStringList contributors()const;
+  virtual QString helpText()const override;
+  virtual QString acknowledgementText()const override;
+  virtual QStringList contributors()const override;
 
-  virtual QIcon icon()const;
+  virtual QIcon icon()const override;
 
-  virtual QStringList categories()const;
-  virtual QStringList dependencies() const;
+  virtual QStringList categories()const override;
+  virtual QStringList dependencies() const override;
 
   /// Indicates that sequence browser toolbar should be showed when a new sequence is loaded.
   /// Adding a new sequence browser node to the scene does not show the toolbar automatically
@@ -81,16 +81,16 @@ public:
 protected:
 
   /// Initialize the module. Register the volumes reader/writer
-  virtual void setup();
+  virtual void setup() override;
 
   /// Create and return the widget representation associated to this module
-  virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation();
+  virtual qSlicerAbstractModuleRepresentation * createWidgetRepresentation() override;
 
   /// Create and return the logic associated to this module
-  virtual vtkMRMLAbstractLogic* createLogic();
+  virtual vtkMRMLAbstractLogic* createLogic() override;
 
 public slots:
-  virtual void setMRMLScene(vtkMRMLScene*);
+  virtual void setMRMLScene(vtkMRMLScene*) override;
   void setToolBarVisible(bool visible);
   /// Enables automatic showing sequence browser toolbar when a new sequence is loaded
   void setAutoShowToolBar(bool autoShow);

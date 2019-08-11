@@ -179,7 +179,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->label_IndexValue->setText(indexValue);
     d->label_IndexUnit->setText(indexUnit);
 
-    if (!indexValue.length() == 0)
+    if (indexValue.length() != 0)
     {
       d->label_IndexValue->setFixedWidth(std::max(fontMetrics.width(indexValue), d->label_IndexValue->width()));
     }
