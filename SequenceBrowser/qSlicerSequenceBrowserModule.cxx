@@ -135,8 +135,11 @@ qSlicerSequenceBrowserModule::qSlicerSequenceBrowserModule(QObject* _parent)
 , d_ptr(new qSlicerSequenceBrowserModulePrivate)
 {
   Q_D(qSlicerSequenceBrowserModule);
+
+  d->UpdateAllVirtualOutputNodesTimer.setSingleShot(true);
   connect(&d->UpdateAllVirtualOutputNodesTimer, SIGNAL(timeout()), this, SLOT(updateAllVirtualOutputNodes()));
-  vtkMRMLScene * scene = qSlicerCoreApplication::application()->mrmlScene();
+
+  vtkMRMLScene* scene = qSlicerCoreApplication::application()->mrmlScene();
   if (scene)
     {
     // Need to listen for any new sequence browser nodes being added to start/stop timer
@@ -217,7 +220,7 @@ void qSlicerSequenceBrowserModule::setMRMLScene(vtkMRMLScene* scene)
 }
 
 //-----------------------------------------------------------------------------
-qSlicerAbstractModuleRepresentation * qSlicerSequenceBrowserModule
+qSlicerAbstractModuleRepresentation* qSlicerSequenceBrowserModule
 ::createWidgetRepresentation()
 {
   return new qSlicerSequenceBrowserModuleWidget;
@@ -237,7 +240,7 @@ void qSlicerSequenceBrowserModule::onNodeAddedEvent(vtkObject*, vtkObject* node)
   vtkMRMLSequenceBrowserNode* sequenceBrowserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(node);
   if (sequenceBrowserNode)
     {
-    // If the timer is not active
+    // If the timer is not active, so it should be turned on
     if (!d->UpdateAllVirtualOutputNodesTimer.isActive())
       {
       d->UpdateAllVirtualOutputNodesTimer.start(UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC*1000.0);
@@ -253,20 +256,17 @@ void qSlicerSequenceBrowserModule::onNodeRemovedEvent(vtkObject*, vtkObject* nod
   vtkMRMLSequenceBrowserNode* sequenceBrowserNode = vtkMRMLSequenceBrowserNode::SafeDownCast(node);
   if (sequenceBrowserNode)
     {
-    // If the timer is active
-    if (d->UpdateAllVirtualOutputNodesTimer.isActive())
+    // Check if there is any other sequence browser node left in the Scene
+    vtkMRMLScene* scene = qSlicerCoreApplication::application()->mrmlScene();
+    if (scene)
       {
-      // Check if there is any other sequence browser node left in the Scene
-      vtkMRMLScene * scene = qSlicerCoreApplication::application()->mrmlScene();
-      if (scene)
+      vtkMRMLNode* node;
+      node = this->mrmlScene()->GetFirstNodeByClass("vtkMRMLSequenceBrowserNode");
+      if (!node)
         {
-        std::vector<vtkMRMLNode *> nodes;
-        this->mrmlScene()->GetNodesByClass("vtkMRMLSequenceBrowserNode", nodes);
-        if (nodes.size() == 0)
-          {
-          // The last sequence browser was removed
-          d->UpdateAllVirtualOutputNodesTimer.stop();
-          }
+        // The last sequence browser was removed, so
+        // turn off timer refresh and stop any pending timers
+        d->UpdateAllVirtualOutputNodesTimer.stop();
         }
       }
     }
@@ -275,8 +275,10 @@ void qSlicerSequenceBrowserModule::onNodeRemovedEvent(vtkObject*, vtkObject* nod
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
 {
+  Q_D(qSlicerSequenceBrowserModule);
+
   vtkMRMLAbstractLogic* l = this->logic();
-  vtkSlicerSequenceBrowserLogic * sequenceBrowserLogic = vtkSlicerSequenceBrowserLogic::SafeDownCast(l);
+  vtkSlicerSequenceBrowserLogic* sequenceBrowserLogic = vtkSlicerSequenceBrowserLogic::SafeDownCast(l);
   if (sequenceBrowserLogic)
   {
     qSlicerApplication* application = qSlicerApplication::application();
@@ -284,7 +286,9 @@ void qSlicerSequenceBrowserModule::updateAllVirtualOutputNodes()
     {
       application->pauseRender();
     }
+    // update proxies then request another singleShot timer
     sequenceBrowserLogic->UpdateAllProxyNodes();
+    d->UpdateAllVirtualOutputNodesTimer.start(UPDATE_VIRTUAL_OUTPUT_NODES_PERIOD_SEC*1000.0);
     if (application)
     {
       application->resumeRender();
@@ -298,7 +302,6 @@ qMRMLSequenceBrowserToolBar* qSlicerSequenceBrowserModule::toolBar()
   Q_D(qSlicerSequenceBrowserModule);
   return d->ToolBar;
 }
-
 
 //-----------------------------------------------------------------------------
 void qSlicerSequenceBrowserModule::setToolBarVisible(bool visible)
