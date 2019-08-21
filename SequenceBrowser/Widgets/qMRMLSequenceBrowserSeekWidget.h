@@ -54,6 +54,7 @@ public slots:
   void setSelectedItemNumber(int itemNumber);
 
 protected slots:
+  void onIndexDisplayFormatModified();
   void updateWidgetFromMRML();
 
 protected:
