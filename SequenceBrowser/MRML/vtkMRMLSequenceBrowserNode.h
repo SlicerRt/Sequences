@@ -47,7 +47,8 @@ public:
   /// ProxyNodeModifiedEvent is invoked when a proxy node is modified
   enum
   {
-    ProxyNodeModifiedEvent = 21001
+    ProxyNodeModifiedEvent = 21001,
+    IndexDisplayFormatModifiedEvent
   };
 
   /// Modes for determining recording frame rate.
@@ -170,7 +171,7 @@ public:
   virtual std::string GetIndexDisplayModeAsString();
 
   /// Set format of index value display
-  vtkSetMacro(IndexDisplayFormat, std::string);
+  void SetIndexDisplayFormat(std::string displayFormat);
   /// Get format of index value display
   vtkGetMacro(IndexDisplayFormat, std::string);
 

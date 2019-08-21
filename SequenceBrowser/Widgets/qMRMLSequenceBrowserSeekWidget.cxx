@@ -89,11 +89,13 @@ void qMRMLSequenceBrowserSeekWidget::setMRMLSequenceBrowserNode(vtkMRMLSequenceB
 {
   Q_D(qMRMLSequenceBrowserSeekWidget);
 
+  qvtkReconnect(d->SequenceBrowserNode, browserNode, vtkMRMLSequenceBrowserNode::IndexDisplayFormatModifiedEvent,
+    this, SLOT(onIndexDisplayFormatModified()));
   qvtkReconnect(d->SequenceBrowserNode, browserNode, vtkCommand::ModifiedEvent,
     this, SLOT(updateWidgetFromMRML()));
 
   d->SequenceBrowserNode = browserNode;
-  d->label_IndexValue->setFixedWidth(0); // Reset fixed width of index value label
+  this->onIndexDisplayFormatModified();
   this->updateWidgetFromMRML();
 }
 
@@ -117,6 +119,15 @@ void qMRMLSequenceBrowserSeekWidget::setSelectedItemNumber(int itemNumber)
     }
   }
   d->SequenceBrowserNode->SetSelectedItemNumber(selectedItemNumber);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLSequenceBrowserSeekWidget::onIndexDisplayFormatModified()
+{
+  Q_D(qMRMLSequenceBrowserSeekWidget);
+  // Reset the fixed width of the label
+  QFontMetrics fontMetrics = QFontMetrics(d->label_IndexValue->font());
+  d->label_IndexValue->setFixedWidth(fontMetrics.width(d->label_IndexValue->text()));
 }
 
 //-----------------------------------------------------------------------------
@@ -179,14 +190,7 @@ void qMRMLSequenceBrowserSeekWidget::updateWidgetFromMRML()
     d->label_IndexValue->setText(indexValue);
     d->label_IndexUnit->setText(indexUnit);
 
-    if (indexValue.length() != 0)
-    {
-      d->label_IndexValue->setFixedWidth(std::max(fontMetrics.width(indexValue), d->label_IndexValue->width()));
-    }
-    else
-    {
-      d->label_IndexValue->setFixedWidth(0);
-    }
+    d->label_IndexValue->setFixedWidth(std::max(fontMetrics.width(indexValue), d->label_IndexValue->width()));
     d->slider_IndexValue->setValue(selectedItemNumber);
   }
   else

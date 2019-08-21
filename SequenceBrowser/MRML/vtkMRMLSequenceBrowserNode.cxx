@@ -1425,6 +1425,18 @@ int vtkMRMLSequenceBrowserNode::GetRecordingSamplingModeFromString(const std::st
 }
 
 //-----------------------------------------------------------
+void vtkMRMLSequenceBrowserNode::SetIndexDisplayFormat(std::string indexDisplayNode)
+{
+  vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting IndexDisplayFormat to " << indexDisplayNode);
+  if (this->IndexDisplayFormat != indexDisplayNode)
+  {
+    this->IndexDisplayFormat = indexDisplayNode;
+    this->InvokeCustomModifiedEvent(IndexDisplayFormatModifiedEvent);
+    this->Modified();
+  }
+}
+
+//-----------------------------------------------------------
 void vtkMRMLSequenceBrowserNode::SetIndexDisplayModeFromString(const char *indexDisplayModeString)
 {
   int indexDisplayMode = GetIndexDisplayModeFromString(indexDisplayModeString);
