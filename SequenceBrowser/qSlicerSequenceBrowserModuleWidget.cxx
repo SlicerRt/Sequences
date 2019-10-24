@@ -117,23 +117,23 @@ qSlicerSequenceBrowserModuleWidgetPrivate::qSlicerSequenceBrowserModuleWidgetPri
 //-----------------------------------------------------------------------------
 qSlicerSequenceBrowserModuleWidgetPrivate::~qSlicerSequenceBrowserModuleWidgetPrivate()
 {
-  if (ChartTable)
+  if (this->ChartTable)
   {
     this->ChartTable->Delete();
   }
-  if (ArrayX)
+  if (this->ArrayX)
   {
     this->ArrayX->Delete();
   }
-  if (ArrayY1)
+  if (this->ArrayY1)
   {
     this->ArrayY1->Delete();
   }
-  if (ArrayY2)
+  if (this->ArrayY2)
   {
     this->ArrayY2->Delete();
   }
-  if (ArrayY3)
+  if (this->ArrayY3)
   {
     this->ArrayY3->Delete();
   }
@@ -463,6 +463,8 @@ void qSlicerSequenceBrowserModuleWidget::enter()
   {
     qCritical() << "Entering the SequenceBrowser module failed, scene is invalid";
   }
+
+  d->setAndObserveCrosshairNode();
 
   this->Superclass::enter();
 }
