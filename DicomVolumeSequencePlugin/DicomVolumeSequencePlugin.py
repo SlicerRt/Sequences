@@ -3,7 +3,10 @@ import string
 from __main__ import vtk, qt, ctk, slicer
 import logging
 import numpy
-import dicom
+if slicer.app.majorVersion >= 5 or (slicer.app.majorVersion == 4 and slicer.app.minorVersion >= 11):
+  import pydicom
+else:
+  import dicom
 from DICOMLib import DICOMPlugin
 from DICOMLib import DICOMLoadable
 from DICOMLib import DICOMExportScalarVolume
@@ -39,7 +42,7 @@ class DicomVolumeSequencePluginClass(DICOMPlugin):
     self.tags['instanceUID'] = "0008,0018"
     self.tags['windowCenter'] = "0028,1050"
     self.tags['windowWidth'] = "0028,1051"
-    self.tags['classUID'] = "0008,0016" 
+    self.tags['classUID'] = "0008,0016"
 
   def getSequenceBrowserNodeForMasterOutputNode(self, masterOutputNode):
     browserNodes = slicer.mrmlScene.GetNodesByClass('vtkMRMLSequenceBrowserNode')
@@ -187,7 +190,10 @@ class DicomVolumeSequencePluginClass(DICOMPlugin):
       tags['Patient Name'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMPatientNameTagName())
       tags['Patient ID'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMPatientIDTagName())
       tags['Patient Comments'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMPatientCommentsTagName())
-      tags['Study Instance UID'] = dicom.UID.generate_uid()
+      if slicer.app.majorVersion >= 5 or (slicer.app.majorVersion == 4 and slicer.app.minorVersion >= 11):
+        tags['Study Instance UID'] = pydicom.uid.generate_uid()
+      else:
+        tags['Study Instance UID'] = dicom.UID.generate_uid()
       tags['Study ID'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMStudyIDTagName())
       tags['Study Date'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMStudyDateTagName())
       tags['Study Time'] = exportable.tag(slicer.vtkMRMLSubjectHierarchyConstants.GetDICOMStudyTimeTagName())
@@ -199,8 +205,12 @@ class DicomVolumeSequencePluginClass(DICOMPlugin):
       tags['Series Number'] = exportable.tag('SeriesNumber')
       tags['Series Date'] = exportable.tag("SeriesDate")
       tags['Series Time'] = exportable.tag("SeriesTime")
-      tags['Series Instance UID'] = dicom.UID.generate_uid()
-      tags['Frame of Reference Instance UID'] = dicom.UID.generate_uid()
+      if slicer.app.majorVersion >= 5 or (slicer.app.majorVersion == 4 and slicer.app.minorVersion >= 11):
+        tags['Series Instance UID'] = pydicom.uid.generate_uid()
+        tags['Frame of Reference Instance UID'] = pydicom.uid.generate_uid()
+      else:
+        tags['Series Instance UID'] = dicom.UID.generate_uid()
+        tags['Frame of Reference Instance UID'] = dicom.UID.generate_uid()
 
       # Validate tags
       if tags['Modality'] == "":
