@@ -758,6 +758,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
 {
   this->NodeSequencers.push_back(new NodeSequencer());
   this->RegisterNodeSequencer(new DisplayNodeSequencer());
+  this->RegisterNodeSequencer(new VectorVolumeNodeSequencer()); // Needs to be registered before ScalarVolumeNodeSequencer
   this->RegisterNodeSequencer(new ScalarVolumeNodeSequencer());
   this->RegisterNodeSequencer(new TransformNodeSequencer());
   this->RegisterNodeSequencer(new ModelNodeSequencer());
