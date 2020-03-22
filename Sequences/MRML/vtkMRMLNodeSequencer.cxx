@@ -41,6 +41,7 @@
 #include <vtkMRMLVolumeNode.h>
 #include <vtkMRMLDoubleArrayNode.h>
 #include <vtkMRMLROINode.h>
+#include <vtkMRMLTextNode.h>
 #include <vtkMRMLVolumePropertyNode.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -712,6 +713,28 @@ public:
 
 };
 
+//----------------------------------------------------------------------------
+
+class TextNodeSequencer : public vtkMRMLNodeSequencer::NodeSequencer
+{
+public:
+  TextNodeSequencer()
+  {
+    this->RecordingEvents->InsertNextValue(vtkMRMLTextNode::TextModifiedEvent);
+    this->SupportedNodeClassName = "vtkMRMLTextNode";
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLStorableNode");
+    this->SupportedNodeParentClassNames.push_back("vtkMRMLNode");
+  }
+
+  virtual void CopyNode(vtkMRMLNode* source, vtkMRMLNode* target, bool vtkNotUsed(shallowCopy) /* =false */)
+  {
+    int oldModified = target->StartModify();
+    vtkMRMLTextNode* targetNode = vtkMRMLTextNode::SafeDownCast(target);
+    vtkMRMLTextNode* sourceNode = vtkMRMLTextNode::SafeDownCast(source);
+    targetNode->CopyWithoutModifiedEvent(sourceNode); // Copies the attributes, etc.
+    target->EndModify(oldModified);
+  }
+};
 
 //----------------------------------------------------------------------------
 #if VTK_MAJOR_VERSION <= 7 || (VTK_MAJOR_VERSION <= 8 && VTK_MINOR_VERSION <= 1)
@@ -771,6 +794,7 @@ vtkMRMLNodeSequencer::vtkMRMLNodeSequencer():Superclass()
   this->RegisterNodeSequencer(new DoubleArrayNodeSequencer());
   this->RegisterNodeSequencer(new ROINodeSequencer());
   this->RegisterNodeSequencer(new VolumePropertyNodeSequencer());
+  this->RegisterNodeSequencer(new TextNodeSequencer());
 }
 
 //----------------------------------------------------------------------------
